@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root {
@@ -67,9 +69,10 @@
         .param-row span { color: var(--text-muted); font-size: 0.95rem; }
         .param-row input { width: 55px; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: #fff; text-align: center; font-weight: 700; font-size: 1rem;}
 
-        .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif;}
+        .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif; display: flex; justify-content: center; align-items: center; gap: 8px;}
         .btn:disabled { background: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
-        .btn-whatsapp { background: #25D366; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .btn-whatsapp { background: #25D366; }
+        .btn-image { background: var(--edit-color); }
 
         .squad-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
         .squad-item { display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); }
@@ -99,7 +102,6 @@
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; }
 
-        /* תוצאות ועיצוב מגרש */
         #results { display: none; }
         .team-row { margin-bottom: 25px; }
         .team-header { font-size: 1.2rem; font-weight: 900; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;}
@@ -450,7 +452,6 @@
         const classes = ["t-blue", "t-white", "t-yellow"];
         const names = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה"];
         
-        // פונקציית עזר ליצירת "כרטיס שחקן" קטן בתוך המגרש כדי לשמור על קוד נקי
         const renderPlayerCard = (p, icon, roleName) => `
             <div class="pitch-player">
                 <div>${p.name}</div>
@@ -459,8 +460,10 @@
             </div>
         `;
 
-        r.style.display = 'block';
-        r.innerHTML = "<h2 class='card-title'>החלוקה שנקבעה</h2>" + teams.map((t, i) => {
+        // הוספנו מכולה לכפתורי השיתוף כדי להסתיר אותם בצילום המסך
+        let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
+        
+        content += teams.map((t, i) => {
             const roles = assignRoles(t, gkIds ? gkIds[i] : null);
             const gkId = roles['שוער'].id;
             
@@ -501,11 +504,90 @@
                 </div>
             </div>
             `;
-        }).join('') + `
-        <button class="btn btn-whatsapp" onclick="shareWhatsApp()">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-            שתף ל-WhatsApp
-        </button>`;
+        }).join('');
+        
+        content += "</div>"; // סגירת teamsContainer
+        
+        // הוספת שני כפתורי השיתוף
+        content += `
+        <div id="shareButtonsBox" style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn btn-whatsapp" style="flex:1;" onclick="shareWhatsApp()">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                טקסט
+            </button>
+            <button class="btn btn-image" style="flex:1;" onclick="shareAsImage()">
+                📸 שתף תמונה
+            </button>
+        </div>`;
+
+        r.innerHTML = content;
+        r.style.display = 'block';
+        setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+    }
+
+    // הפונקציה החדשה שמצלמת את המסך ומשתפת כתמונה!
+    async function shareAsImage() {
+        const resultsDiv = document.getElementById('results');
+        const shareButtonsBox = document.getElementById('shareButtonsBox');
+        const gkButtons = document.querySelectorAll('.gk-btn');
+        
+        // מעלים את הכפתורים כדי שלא יופיעו בתמונה
+        shareButtonsBox.style.display = 'none';
+        gkButtons.forEach(btn => btn.style.display = 'none');
+        
+        // צבע רקע אחיד כדי שהתמונה לא תצא שקופה
+        const originalBg = resultsDiv.style.backgroundColor;
+        resultsDiv.style.backgroundColor = '#1E293B'; 
+        resultsDiv.style.padding = '20px';
+        resultsDiv.style.borderRadius = '16px';
+
+        try {
+            // "מצלם" את החלק של התוצאות
+            const canvas = await html2canvas(resultsDiv, {
+                scale: 2, // איכות גבוהה לטלפונים
+                useCORS: true,
+                backgroundColor: '#1E293B'
+            });
+            
+            // מחזיר את הכפתורים חזרה
+            shareButtonsBox.style.display = 'flex';
+            gkButtons.forEach(btn => btn.style.display = 'inline-block');
+            resultsDiv.style.backgroundColor = originalBg;
+            resultsDiv.style.padding = '0';
+
+            // הופך את הקנבס לקובץ תמונה
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], "הרכבים.png", { type: "image/png" });
+                
+                // מנסה קודם לשתף ישירות לאפליקציות בטלפון (Native Share)
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: 'הרכבים להערב',
+                            text: '⚽ קבוצות להערב - חלוקה מאוזנת'
+                        });
+                        return; // הצליח לשתף
+                    } catch (err) {
+                        console.log("שיתוף בוטל", err);
+                    }
+                }
+                
+                // במידה והשיתוף הישיר לא נתמך (למשל במחשב), מוריד את התמונה
+                const link = document.createElement('a');
+                link.download = 'הרכבים.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                alert('התמונה ירדה למכשיר! כעת תוכל לשלוח אותה בוואטסאפ מתיקיית ההורדות.');
+            });
+        } catch (e) {
+            shareButtonsBox.style.display = 'flex';
+            gkButtons.forEach(btn => btn.style.display = 'inline-block');
+            resultsDiv.style.backgroundColor = originalBg;
+            resultsDiv.style.padding = '0';
+            alert('הייתה בעיה ביצירת התמונה, נסה שוב.');
+            console.error(e);
+        }
     }
 
     function shareWhatsApp() {
@@ -513,7 +595,6 @@
         let text = "⚽ *הרכבים להערב - חלוקה מאוזנת:*\n\n";
         const names = ["🔵 קבוצה כחולה", "⚪ קבוצה לבנה", "🟡 קבוצה צהובה"];
         
-        // פונקציית עזר ליישור בוואטסאפ
         const formatP = (p) => `${p.name} (🛡️${p.defScore||5} 🎯${p.attScore||5})`;
         
         activeTeams.forEach((t, i) => { 
