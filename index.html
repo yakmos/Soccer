@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול קטרגל - אדמין</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy } 
+        from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // הגדרות Firebase שלך
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-TiTV8g9kBgbWYXnwERxnYlsLZTRJksU",
+            authDomain: "soccer-282b7.firebaseapp.com",
+            projectId: "soccer-282b7",
+            storageBucket: "soccer-282b7.firebasestorage.app",
+            messagingSenderId: "1027879289442",
+            appId: "1:1027879289442:web:e1afbb0877ee67186b473b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // הפיכת המשתנים לזמינים עבור React
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.orderBy = orderBy;
+    </script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 15px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .admin-section { background: #eef2f7; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin: 20px 0; }
+        .player-card { padding: 10px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; transition: 0.3s; }
+        .player-card.selected { background-color: #4caf50; color: white; border-color: #388e3c; }
+        .team-container { display: flex; justify-content: space-around; gap: 10px; margin-top: 20px; }
+        .team { flex: 1; padding: 15px; border-radius: 10px; border: 2px solid #333; }
+        .btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+        .btn:disabled { background: #ccc; }
+        input[type="number"] { width: 50px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [players, setPlayers] = useState([]);
+            const [selectedIds, setSelectedIds] = useState([]);
+            const [teams, setTeams] = useState(null);
+            
+            const [newName, setNewName] = useState('');
+            const [def, setDef] = useState({ פיזיות: 3, מהירות: 3, מיקום: 3 });
+            const [att, setAtt] = useState({ סיומת: 3, דריבל: 3, מסירה: 3 });
+
+            const fetchPlayers = async () => {
+                const q = window.query(window.collection(window.db, "players"), window.orderBy("name"));
+                const querySnapshot = await window.getDocs(q);
+                setPlayers(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            };
+
+            useEffect(() => { setTimeout(fetchPlayers, 1000); }, []); // השהייה קלה לחיבור ה-Firebase
+
+            const handleAddPlayer = async () => {
+                if (!newName) return alert("הכנס שם");
+                const avg = (obj) => Object.values(obj).reduce((a, b) => a + b, 0) / 3;
+                await window.addDoc(window.collection(window.db, "players"), {
+                    name: newName,
+                    defScore: avg(def),
+                    attScore: avg(att),
+                });
+                setNewName('');
+                fetchPlayers();
+            };
+
+            const togglePlayer = (id) => {
+                if (selectedIds.includes(id)) setSelectedIds(selectedIds.filter(i => i !== id));
+                else if (selectedIds.length < 18) setSelectedIds([...selectedIds, id]);
+            };
+
+            const generateTeams = () => {
+                const active = players.filter(p => selectedIds.includes(p.id));
+                let best = null;
+                let minDiff = Infinity;
+
+                for (let i = 0; i < 5000; i++) {
+                    const shuffled = [...active].sort(() => 0.5 - Math.random());
+                    const t = [shuffled.slice(0, 6), shuffled.slice(6, 12), shuffled.slice(12, 18)];
+                    const scores = t.map(team => team.reduce((s, p) => s + p.defScore + p.attScore, 0));
+                    const diff = Math.max(...scores) - Math.min(...scores);
+                    if (diff < minDiff) { minDiff = diff; best = t; }
+                }
+                setTeams(best);
+            };
+
+            return (
+                <div className="container">
+                    <h1 style={{textAlign: 'center'}}>⚽ מאזן קבוצות קטרגל</h1>
+                    
+                    <div className="admin-section">
+                        <h3>הוספת שחקן חדש</h3>
+                        <input placeholder="שם שחקן" value={newName} onChange={e => setNewName(e.target.value)} />
+                        <div style={{display: 'flex', gap: '20px'}}>
+                            <div>
+                                <h5>הגנה (1-5)</h5>
+                                {Object.keys(def).map(k => (
+                                    <div key={k}>{k}: <input type="number" value={def[k]} onChange={e => setDef({...def, [k]: parseInt(e.target.value)})}/></div>
+                                ))}
+                            </div>
+                            <div>
+                                <h5>התקפה (1-5)</h5>
+                                {Object.keys(att).map(k => (
+                                    <div key={k}>{k}: <input type="number" value={att[k]} onChange={e => setAtt({...att, [k]: parseInt(e.target.value)})}/></div>
+                                ))}
+                            </div>
+                        </div>
+                        <button className="btn" onClick={handleAddPlayer} style={{marginTop: '10px'}}>שמור שחקן</button>
+                    </div>
+
+                    <h3>בחר 18 שחקנים ({selectedIds.length}/18)</h3>
+                    <div className="player-grid">
+                        {players.map(p => (
+                            <div key={p.id} className={`player-card ${selectedIds.includes(p.id) ? 'selected' : ''}`} onClick={() => togglePlayer(p.id)}>
+                                {p.name}
+                            </div>
+                        ))}
+                    </div>
+
+                    <button className="btn" disabled={selectedIds.length !== 18} onClick={generateTeams}>
+                        צור קבוצות מאוזנות
+                    </button>
+
+                    {teams && (
+                        <div className="team-container">
+                            {['כחולים', 'לבנים', 'צהובים'].map((color, i) => (
+                                <div key={i} className="team">
+                                    <h4>{color}</h4>
+                                    {teams[i].map(p => <div key={p.id}>{p.name}</div>)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
