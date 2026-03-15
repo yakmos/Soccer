@@ -375,11 +375,23 @@
         const lineup = players.filter(p => p.inLineup);
         if(lineup.length !== 18) return alert("צריך בדיוק 18 שחקנים בהרכב.");
 
+        // חלוקת כל ההרכב לשתי קבוצות איכות: התקפה והגנה, כדי להבטיח 3 שחקנים מכל סוג בכל קבוצה
+        let sortedLineup = [...lineup].sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
+        let attackers = sortedLineup.slice(0, 9);
+        let defenders = sortedLineup.slice(9, 18);
+
         let best = null, min = Infinity;
         
         for(let i=0; i<5000; i++) {
-            const shuf = [...lineup].sort(() => 0.5 - Math.random());
-            const teams = [shuf.slice(0,6), shuf.slice(6,12), shuf.slice(12,18)];
+            const shufAtt = [...attackers].sort(() => 0.5 - Math.random());
+            const shufDef = [...defenders].sort(() => 0.5 - Math.random());
+            
+            // כל קבוצה מקבלת בדיוק 3 שחקנים התקפיים ו-3 הגנתיים
+            const teams = [
+                [...shufAtt.slice(0,3), ...shufDef.slice(0,3)],
+                [...shufAtt.slice(3,6), ...shufDef.slice(3,6)],
+                [...shufAtt.slice(6,9), ...shufDef.slice(6,9)]
+            ];
             
             const scores = teams.map(t => {
                 const tempRoles = assignRoles(t, null);
@@ -505,7 +517,6 @@
         
         content += "</div>"; 
         
-        // הכפתור החדש - רק אחד, גדול, ירוק וברור.
         content += `
         <div id="shareButtonsBox" style="margin-top:20px;">
             <button class="btn btn-whatsapp" onclick="shareImageToWhatsApp()">
@@ -519,13 +530,11 @@
         setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
     }
 
-    // הפונקציה החכמה שעושה צילום מסך ומיד שולחת לוואטסאפ
     async function shareImageToWhatsApp() {
         const resultsDiv = document.getElementById('results');
         const shareButtonsBox = document.getElementById('shareButtonsBox');
         const gkButtons = document.querySelectorAll('.gk-btn');
         
-        // מעלימים את הכפתורים רגע לפני הצילום
         shareButtonsBox.style.display = 'none';
         gkButtons.forEach(btn => btn.style.display = 'none');
         
@@ -541,7 +550,6 @@
                 backgroundColor: '#1E293B'
             });
             
-            // מחזירים את המסך למצב רגיל
             shareButtonsBox.style.display = 'block';
             gkButtons.forEach(btn => btn.style.display = 'inline-block');
             resultsDiv.style.backgroundColor = originalBg;
@@ -550,7 +558,6 @@
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], "lineups.png", { type: "image/png" });
                 
-                // הניסיון לפתוח את תפריט השיתוף של הטלפון (יעבוד בנייד)
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
                         await navigator.share({
@@ -562,7 +569,6 @@
                         console.log("שיתוף בוטל", err);
                     }
                 } else {
-                    // למקרה שאתה במחשב (מוריד את התמונה כדי שתוכל לגרור לוואטסאפ ווב)
                     const link = document.createElement('a');
                     link.download = 'הרכבים.png';
                     link.href = canvas.toDataURL('image/png');
