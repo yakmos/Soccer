@@ -62,10 +62,12 @@
         .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
         .form-input:focus { border-color: var(--primary-color); outline: none; }
         
-        /* עיצוב התמונות */
-        .avatar-list { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.05); flex-shrink: 0;}
-        .avatar-chip { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05);}
-        .avatar-pitch { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.1); flex-shrink: 0;}
+        /* עיצוב התמונות ללחיצות */
+        .avatar-list { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.05); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
+        .avatar-chip { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;}
+        .avatar-pitch { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.1); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
+        
+        .avatar-list:active, .avatar-chip:active, .avatar-pitch:active { transform: scale(0.9); border-color: var(--edit-color); }
 
         .stats-section { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.02); }
         .stats-section h4 { margin-top: 0; margin-bottom: 12px; color: var(--text-main); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;}
@@ -88,7 +90,7 @@
         .btn-edit { background: var(--edit-color); }
 
         .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-        .player-chip { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 8px; text-align: center; color: var(--text-muted); position: relative; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .player-chip { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 8px; text-align: center; color: var(--text-muted); position: relative; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .player-chip.selected { background: rgba(16, 185, 129, 0.08); border-color: var(--primary-color); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15); }
         .chip-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main); transition: 0.2s; }
         .player-chip.selected .chip-name { color: var(--primary-color); }
@@ -98,7 +100,7 @@
         .stat-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
         .stat-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
 
-        .delete-btn { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid var(--surface-color); z-index: 5; }
+        .delete-btn { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid var(--surface-color); z-index: 5; cursor: pointer; }
 
         .counter { background: var(--bg-color); padding: 4px 12px; border-radius: 20px; font-size: 0.95rem; font-weight: 800; color: var(--text-muted); border: 1px solid var(--border-color);}
         .counter.ready { background: rgba(16, 185, 129, 0.2); color: var(--primary-color); border-color: var(--primary-color); }
@@ -136,6 +138,43 @@
         }
         .pitch-player-stats { font-size: 0.7rem; color: #93C5FD; font-weight: 700; margin: 3px 0; letter-spacing: 0.5px; }
         .pitch-role { display: block; font-size: 0.7rem; color: #10B981; margin-top: 2px; font-weight: 500; }
+
+        /* חלון קופץ - כרטיס שחקן אישי */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+        }
+        .player-card-modal {
+            background: var(--surface-color); border: 1px solid var(--border-color);
+            border-radius: 20px; width: 100%; max-width: 400px; padding: 25px;
+            position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-height: 90vh; overflow-y: auto; text-align: center;
+        }
+        .close-btn {
+            position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.1);
+            border: none; color: white; width: 30px; height: 30px; border-radius: 50%;
+            cursor: pointer; font-weight: bold; transition: 0.2s; display: flex; justify-content: center; align-items: center;
+        }
+        .close-btn:active { transform: scale(0.9); background: var(--danger); }
+        .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05);}
+        .modal-name { font-size: 1.6rem; font-weight: 900; margin: 0 0 5px 0; }
+        .modal-votes { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;}
+        
+        .modal-scores { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
+        .modal-score-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; }
+        .modal-score-val { font-size: 1.5rem; font-weight: 900; }
+        .modal-score-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .stat-bar-row { display: flex; align-items: center; margin-bottom: 12px; font-size: 0.9rem; text-align: right;}
+        .stat-bar-label { width: 140px; color: #cbd5e1; font-weight: 500;}
+        .stat-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 10px; }
+        .stat-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease-out; }
+        .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 0.95rem; }
+        
+        .att-fill { background: var(--att-color); }
+        .def-fill { background: var(--def-color); }
+        .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
     </style>
 </head>
 <body id="mainBody">
@@ -183,7 +222,6 @@
             <div class="squad-list" id="squadList"></div>
             
             <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
-            
             <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
         </div>
 
@@ -202,6 +240,13 @@
 
     <div class="bottom-bar admin-only">
         <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+    </div>
+
+    <div id="playerModalOverlay" class="modal-overlay" onclick="closePlayerCard()">
+        <div class="player-card-modal" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closePlayerCard()">✕</button>
+            <div id="modalContent"></div>
+        </div>
     </div>
 
 <script>
@@ -363,8 +408,70 @@
         await db.collection("game").doc("current").delete();
     }
 
-    function getAvatarHTML(url, className) {
-        return url ? `<img src="${url}" class="${className}">` : `<div class="${className}">👤</div>`;
+    // פונקציה שמייצרת את התמונה והופכת אותה ללחיצה
+    function getAvatarHTML(url, className, id) {
+        return url ? `<img src="${url}" class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">` 
+                   : `<div class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">👤</div>`;
+    }
+
+    // הפונקציות להצגת החלון הקופץ (כרטיס שחקן)
+    function showPlayerCard(id) {
+        const p = players.find(x => x.id === id);
+        if(!p) return;
+
+        const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar">` : `<div class="modal-avatar">👤</div>`;
+        const votesText = p.votesCount ? `מבוסס על ${p.votesCount} הצבעות משחקנים` : `טרם דורג על ידי שחקנים`;
+
+        // עזר לבניית פס ההתקדמות (ערך מ-1 עד 10, אחוז מ-10 עד 100)
+        const getBar = (label, val, fillClass) => {
+            const v = val || 5;
+            const percent = (v / 10) * 100;
+            return `
+                <div class="stat-bar-row">
+                    <div class="stat-bar-label">${label}</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill ${fillClass}" style="width: ${percent}%;"></div></div>
+                    <div class="stat-bar-val">${v}</div>
+                </div>
+            `;
+        };
+
+        const content = `
+            ${avatar}
+            <h2 class="modal-name">${p.name}</h2>
+            <div class="modal-votes">${votesText}</div>
+
+            <div class="modal-scores">
+                <div class="modal-score-box">
+                    <div class="modal-score-val" style="color: var(--att-color);">${p.attScore||5}</div>
+                    <div class="modal-score-label">התקפה</div>
+                </div>
+                <div class="modal-score-box">
+                    <div class="modal-score-val" style="color: var(--def-color);">${p.defScore||5}</div>
+                    <div class="modal-score-label">הגנה</div>
+                </div>
+            </div>
+
+            <div class="modal-section-title">מדדי התקפה</div>
+            ${getBar('סיומת מול שער', p.fin, 'att-fill')}
+            ${getBar('דריבל ושליטה', p.dri, 'att-fill')}
+            ${getBar('מהירות וזריזות', p.pac, 'att-fill')}
+            ${getBar('ראיית משחק', p.vis, 'att-fill')}
+            ${getBar('תנועה ללא כדור', p.pos, 'att-fill')}
+
+            <div class="modal-section-title">מדדי הגנה ופיזיות</div>
+            ${getBar('חילוצי כדור ותיקולים', p.tac, 'def-fill')}
+            ${getBar('קריאת משחק', p.awa, 'def-fill')}
+            ${getBar('פיזיות ועוצמה', p.str, 'def-fill')}
+            ${getBar('כושר גופני', p.sta, 'def-fill')}
+            ${getBar('יציאה מלחץ ומסירה', p.com, 'def-fill')}
+        `;
+
+        document.getElementById('modalContent').innerHTML = content;
+        document.getElementById('playerModalOverlay').style.display = 'flex';
+    }
+
+    function closePlayerCard() {
+        document.getElementById('playerModalOverlay').style.display = 'none';
     }
 
     function render() {
@@ -374,7 +481,7 @@
         
         squadList.innerHTML = players.map(p => `
             <div class="squad-item">
-                ${getAvatarHTML(p.imgUrl, 'avatar-list')}
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
                     <div class="squad-name">${p.name}</div>
                     <div class="chip-stats-container" style="justify-content: flex-start;">
@@ -395,7 +502,7 @@
         } else {
             lineupGrid.innerHTML = lineupPlayers.map(p => `
                 <div class="player-chip">
-                    ${getAvatarHTML(p.imgUrl, 'avatar-chip')}
+                    ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
                     <div class="chip-name">${p.name}</div>
                     <div class="chip-stats-container">
                         <span class="stat-badge stat-def">🛡️ ${p.defScore||5}</span>
@@ -505,7 +612,7 @@
         
         const renderPlayerCard = (p, icon, roleName) => `
             <div class="pitch-player">
-                ${getAvatarHTML(p.imgUrl, 'avatar-pitch')}
+                ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
                 <div style="margin-top:4px;">${p.name}</div>
                 <div class="pitch-player-stats">🛡️${p.defScore||5} 🎯${p.attScore||5}</div>
                 <span class="pitch-role">${icon} ${roleName}</span>
