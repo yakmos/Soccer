@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -29,12 +30,15 @@
         .player-card:active { transform: scale(0.95); }
         .player-card.voted { border-color: var(--edit-color); background: rgba(59, 130, 246, 0.05); }
         
-        .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
-        .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 4px; color: var(--text-main); }
+        .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
+        .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 6px; color: var(--text-main); }
         
-        /* עיצוב כמות ההצבעות בכרטיס */
-        .votes-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; font-weight: 500; }
+        /* מדדי שחקן בכרטיס */
+        .chip-stats-container { display: flex; gap: 6px; width: 100%; justify-content: center; margin-bottom: 12px; }
+        .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 6px; font-weight: 900; font-size: 0.8rem; }
         
+        /* כמות הצבעות וכפתור */
+        .votes-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
         .vote-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
         .voted-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
 
@@ -114,6 +118,29 @@
     let playersData = [];
     let currentPlayerId = null;
 
+    // מערכת צבעים חכמה לדירוגים
+    function getColorStyles(val) {
+        const v = val || 5;
+        let r, g, b, hex;
+        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } // אדום
+        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } // כתום
+        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } // ירוק רגיל
+        else { r=6; g=182; b=212; hex='#06B6D4'; } // תכלת יהלום עלית!
+        
+        return { 
+            hex: hex, 
+            bg: `rgba(${r}, ${g}, ${b}, 0.15)`, 
+            text: hex, 
+            border: `rgba(${r}, ${g}, ${b}, 0.3)` 
+        };
+    }
+
+    function getColoredBadge(icon, val) {
+        const v = val || 5;
+        const c = getColorStyles(v);
+        return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
+    }
+
     window.onload = async () => {
         await fetchPlayers();
     };
@@ -134,13 +161,22 @@
         const grid = document.getElementById('playersGrid');
         grid.innerHTML = playersData.map(p => {
             const hasVoted = localStorage.getItem('voted_' + p.id);
-            const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar">` : `<div class="list-avatar">👤</div>`;
-            const votesDisplay = p.votesCount || 1; // תמיד יש לפחות דירוג מנהל 1 התחלתי
+            const votesDisplay = p.votesCount || 1;
+            
+            const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
+            const borderColor = getColorStyles(avgScore).hex;
+            
+            const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">` 
+                                    : `<div class="list-avatar" style="border-color:${borderColor}">👤</div>`;
             
             return `
                 <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="openVote('${p.id}')">
                     ${avatar}
                     <div class="p-name">${p.name}</div>
+                    <div class="chip-stats-container">
+                        ${getColoredBadge('🛡️', p.defScore)}
+                        ${getColoredBadge('🎯', p.attScore)}
+                    </div>
                     <div class="votes-count">📊 ${votesDisplay} דירוגים</div>
                     ${hasVoted ? '<div class="voted-badge">✏️ ערוך דירוג</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
                 </div>
@@ -154,7 +190,12 @@
         currentPlayerId = id;
         
         document.getElementById('displayPlayerName').innerText = p.name;
-        const avatarHtml = p.imgUrl ? `<img src="${p.imgUrl}" class="vote-avatar">` : `<div class="vote-avatar">👤</div>`;
+        
+        const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
+        const borderColor = getColorStyles(avgScore).hex;
+        
+        const avatarHtml = p.imgUrl ? `<img src="${p.imgUrl}" class="vote-avatar" style="border-color:${borderColor}">` 
+                                    : `<div class="vote-avatar" style="border-color:${borderColor}">👤</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
         
         const hasVoted = localStorage.getItem('voted_' + id);
@@ -303,3 +344,4 @@
 </script>
 </body>
 </html>
+
