@@ -105,14 +105,18 @@
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; }
 
-        /* טבלת מלך השערים */
+        /* טבלת מלך השערים - תוספת תמונה */
         .lb-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border-color); background: var(--surface-color); }
         .lb-item:last-child { border-bottom: none; }
-        .lb-rank { font-weight: 900; font-size: 1.1rem; width: 35px; text-align: center; color: var(--text-muted); }
-        .lb-rank.gold { color: #FBBF24; font-size: 1.3rem;}
-        .lb-rank.silver { color: #94A3B8; font-size: 1.3rem;}
-        .lb-rank.bronze { color: #B45309; font-size: 1.3rem;}
-        .lb-name { flex: 1; font-weight: 800; font-size: 1.1rem; color: var(--text-main); }
+        .lb-rank { font-weight: 900; font-size: 1.1rem; width: 30px; text-align: center; color: var(--text-muted); }
+        .lb-rank.gold { color: #FBBF24; font-size: 1.4rem;}
+        .lb-rank.silver { color: #94A3B8; font-size: 1.4rem;}
+        .lb-rank.bronze { color: #B45309; font-size: 1.4rem;}
+        
+        .lb-player-info { display: flex; align-items: center; flex: 1; gap: 12px; margin-right: 10px;}
+        .lb-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+        .lb-name { font-weight: 800; font-size: 1.1rem; color: var(--text-main); }
+        
         .lb-goals { display: flex; align-items: center; gap: 12px; font-weight: 900; font-size: 1.2rem; color: var(--primary-color); }
         .goal-admin-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: white; width: 32px; height: 32px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem;}
         .goal-admin-btn:active { background: rgba(255,255,255,0.2); }
@@ -191,7 +195,9 @@
         <div id="lineupView">
             <div class="card admin-only">
                 <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
+                
                 <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
+                <input type="text" id="pImage" class="form-input" placeholder="קישור לתמונה (לא חובה)">
                 
                 <div class="stats-section">
                     <h4>⚔️ מדדי התקפה (1-10)</h4>
@@ -264,7 +270,6 @@
         } 
     }
 
-    // ניווט בין הטאבים
     function switchTab(tab, btnElement) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btnElement.classList.add('active');
@@ -280,10 +285,9 @@
         }
     }
 
-    // שליפת הנתונים מהענן
     db.collection("players").orderBy("name").onSnapshot(snap => {
         players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        render(); // מרנדר גם את ההרכבים וגם את הטבלה
+        render(); 
     });
 
     db.collection("game").doc("current").onSnapshot(snap => {
@@ -297,14 +301,14 @@
         }
     });
 
-    // הוספת שער לשחקן (לאדמין בלבד)
     async function changeGoals(id, currentGoals, amount) {
-        const newGoals = Math.max(0, (currentGoals || 0) + amount); // מונע ירידה מתחת לאפס
+        const newGoals = Math.max(0, (currentGoals || 0) + amount); 
         await db.collection("players").doc(id).update({ goals: newGoals });
     }
 
     async function savePlayer() {
         const name = document.getElementById('pName').value.trim();
+        const imgUrl = document.getElementById('pImage').value.trim();
         if(!name) return;
 
         const fin = parseInt(document.getElementById('pFin').value) || 5;
@@ -323,14 +327,13 @@
         const defScore = parseFloat(((tac + awa + str + sta + com) / 5).toFixed(1));
 
         if(editingId) {
-            // עדכון נתונים קיימים, שומר על השערים הקיימים אם לא צויינו
-            await db.collection("players").doc(editingId).update({ name, fin, dri, pac, vis, pos, tac, awa, str, sta, com, attScore, defScore });
+            await db.collection("players").doc(editingId).update({ name, imgUrl, fin, dri, pac, vis, pos, tac, awa, str, sta, com, attScore, defScore });
             cancelEdit();
         } else {
-            // שחקן חדש נכנס עם 0 שערים
-            const playerData = { name, fin, dri, pac, vis, pos, tac, awa, str, sta, com, attScore, defScore, inLineup: false, goals: 0 };
+            const playerData = { name, imgUrl, fin, dri, pac, vis, pos, tac, awa, str, sta, com, attScore, defScore, inLineup: false, goals: 0 };
             await db.collection("players").add(playerData);
             document.getElementById('pName').value = ''; 
+            document.getElementById('pImage').value = ''; 
         }
     }
 
@@ -338,6 +341,7 @@
         editingId = id;
         document.getElementById('formTitle').innerText = "עריכת שחקן: " + p.name;
         document.getElementById('pName').value = p.name;
+        document.getElementById('pImage').value = p.imgUrl || '';
         
         document.getElementById('pFin').value = p.fin || 5; document.getElementById('pDri').value = p.dri || 5;
         document.getElementById('pPac').value = p.pac || 5; document.getElementById('pVis').value = p.vis || 5;
@@ -354,6 +358,7 @@
         editingId = null;
         document.getElementById('formTitle').innerText = "הוספת שחקן חדש";
         document.getElementById('pName').value = '';
+        document.getElementById('pImage').value = '';
         const inputs = ['pFin', 'pDri', 'pPac', 'pVis', 'pPos', 'pTac', 'pAwa', 'pStr', 'pSta', 'pCom'];
         inputs.forEach(id => document.getElementById(id).value = 5);
         document.getElementById('saveBtn').innerText = "שמור שחקן";
@@ -375,14 +380,12 @@
         await db.collection("game").doc("current").delete();
     }
 
-    // הפונקציה הראשית שמרנדרת גם את הסגל, גם את הגריד, וגם את טבלת מלך השערים
     function render() {
         const squadList = document.getElementById('squadList');
         const lineupGrid = document.getElementById('lineupGrid');
         const leaderboardList = document.getElementById('leaderboardList');
         const isAdmin = document.getElementById('mainBody').classList.contains('is-admin');
         
-        // 1. רינדור רשימת הניהול
         squadList.innerHTML = players.map(p => `
             <div class="squad-item">
                 <div class="squad-info">
@@ -401,7 +404,7 @@
             </div>
         `).join('');
 
-        // 2. רינדור טבלת מלך השערים
+        // רינדור מלך השערים
         const sortedScorers = [...players].sort((a, b) => (b.goals || 0) - (a.goals || 0));
         leaderboardList.innerHTML = sortedScorers.map((p, i) => {
             let rankClass = "";
@@ -410,10 +413,15 @@
             else if(i === 1) { rankClass = "silver"; rankDisplay = "🥈"; }
             else if(i === 2) { rankClass = "bronze"; rankDisplay = "🥉"; }
 
+            const avatarUrl = p.imgUrl ? p.imgUrl : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=random&color=fff&rounded=true&bold=true`;
+
             return `
             <div class="lb-item">
                 <div class="lb-rank ${rankClass}">${rankDisplay}</div>
-                <div class="lb-name">${p.name}</div>
+                <div class="lb-player-info">
+                    <img src="${avatarUrl}" class="lb-avatar" alt="תמונת שחקן" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=random&color=fff&rounded=true&bold=true'">
+                    <div class="lb-name">${p.name}</div>
+                </div>
                 <div class="lb-goals">
                     <span style="min-width: 45px; text-align: center;">⚽ ${p.goals || 0}</span>
                     <div class="admin-only" style="display: ${isAdmin ? 'flex' : 'none'}; gap: 5px;">
@@ -425,7 +433,6 @@
             `;
         }).join('');
 
-        // 3. רינדור שחקני ההרכב
         const lineupPlayers = players.filter(p => p.inLineup);
         if(lineupPlayers.length === 0) {
             lineupGrid.innerHTML = "<div style='grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;'>עדיין לא נבחר הרכב להערב.</div>";
