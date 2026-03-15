@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>הצבעת דירוג שחקן</title>
+    <title>פורטל דירוגי שחקנים</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -14,56 +14,69 @@
             --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155;
             --att-color: #EF4444; --def-color: #3B82F6;
         }
-        body { font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; direction: rtl; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; direction: rtl; padding-bottom: 50px;}
         .container { max-width: 500px; margin: 0 auto; }
         .card { background: var(--surface-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.5);}
         
-        h1 { text-align: center; color: var(--primary-color); margin-top: 0; font-weight: 900;}
+        h1 { text-align: center; color: var(--primary-color); margin-top: 0; font-weight: 900; font-size: 1.6rem;}
+        .subtitle { text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px; margin-top: -10px;}
         
-        .vote-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05); }
-        .player-name { text-align: center; font-size: 1.8rem; font-weight: 900; margin-bottom: 20px; color: #fff; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px dashed var(--border-color);}
+        /* רשת השחקנים */
+        .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .player-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; position: relative;}
+        .player-card:active { transform: scale(0.95); }
+        .player-card.voted { opacity: 0.6; cursor: default; border-color: var(--primary-color); background: rgba(16, 185, 129, 0.05);}
         
-        h3 { margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;}
+        .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
+        .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; color: var(--text-main); }
+        
+        .vote-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
+        .voted-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
+
+        /* טופס הצבעה */
+        .vote-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 35px; background: rgba(255,255,255,0.05); }
+        .player-name-large { text-align: center; font-size: 1.6rem; font-weight: 900; margin-bottom: 20px; color: #fff; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px dashed var(--border-color);}
+        
+        h3 { margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; font-size: 1.1rem;}
         .att-title { color: var(--att-color); }
         .def-title { color: var(--def-color); }
 
         .slider-group { margin-bottom: 18px; }
-        .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 500; font-size: 1.05rem;}
+        .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 500; font-size: 1rem;}
         .val-badge { background: rgba(255,255,255,0.1); padding: 2px 12px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; color: #fff;}
         
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: var(--primary-color); cursor: pointer; margin-top: -8px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: var(--border-color); border-radius: 5px; }
-        
         .att-slider::-webkit-slider-thumb { background: var(--att-color) !important; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5) !important;}
         .def-slider::-webkit-slider-thumb { background: var(--def-color) !important; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5) !important;}
 
-        .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.2rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif;}
+        .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif;}
         .btn:active { transform: scale(0.98); }
+        .btn-back { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); margin-bottom: 15px; padding: 10px; font-size: 1rem;}
         
-        #loading, #successMsg, #errorMsg { text-align: center; padding: 40px 20px; font-size: 1.2rem; font-weight: 700; }
-        #successMsg { color: var(--primary-color); display: none; }
-        #errorMsg { color: var(--danger); display: none; }
-        #voteForm { display: none; }
+        #loading { text-align: center; padding: 40px 20px; font-size: 1.2rem; font-weight: 700; }
+        #portalScreen { display: none; }
+        #voteScreen { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="card">
-        <h1>הצבעת דירוג שחקן ⚽</h1>
-        
-        <div id="loading">טוען נתוני שחקן... ⏳</div>
-        <div id="errorMsg"></div>
-        <div id="successMsg">
-            <h2>הצבעתך נקלטה בהצלחה! ✔️</h2>
-            <p>הציונים שוקללו לממוצע הכללי של השחקן.</p>
-            <p style="font-size: 0.9rem; color: var(--text-muted);">אפשר לסגור את החלון.</p>
+        <div id="loading">טוען את נתוני הסגל... ⏳</div>
+
+        <div id="portalScreen">
+            <h1>פורטל דירוגי שחקנים ⚽</h1>
+            <p class="subtitle">בחר שחקן כדי לדרג את ביצועיו למערכת הכוחות</p>
+            <div id="playersGrid" class="players-grid"></div>
         </div>
 
-        <div id="voteForm">
+        <div id="voteScreen">
+            <button class="btn btn-back" onclick="backToPortal()">🔙 חזור לרשימה</button>
             <div id="avatarContainer"></div>
-            <div class="player-name" id="displayPlayerName">---</div>
+            <div class="player-name-large" id="displayPlayerName">---</div>
             <p style="text-align:center; color:var(--text-muted); font-size:0.9rem; margin-top:-10px;">גרור את הסליידרים כדי לדרג (1-10)</p>
 
             <h3 class="att-title">⚔️ מדדי התקפה</h3>
@@ -80,7 +93,7 @@
             <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
 
-            <button class="btn" id="submitBtn" onclick="submitVote()" style="margin-top: 20px;">שלח הצבעה 🚀</button>
+            <button class="btn" id="submitBtn" onclick="submitVote()" style="margin-top: 20px;">שלח הצבעה לשחקן 🚀</button>
         </div>
     </div>
 </div>
@@ -94,53 +107,73 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const playerId = urlParams.get('id');
+    let playersData = [];
+    let currentPlayerId = null;
 
     window.onload = async () => {
-        if(!playerId) {
-            showError("לינק לא תקין. חסר מזהה שחקן.");
-            return;
-        }
-
-        if(localStorage.getItem('voted_' + playerId)) {
-            showError("כבר הצבעת לשחקן זה מהמכשיר הנוכחי! לא ניתן להצביע פעמיים.");
-            return;
-        }
-
-        try {
-            const doc = await db.collection("players").doc(playerId).get();
-            if(!doc.exists) {
-                showError("השחקן לא קיים במערכת.");
-                return;
-            }
-            
-            const data = doc.data();
-            document.getElementById('displayPlayerName').innerText = data.name;
-            
-            // תצוגת התמונה
-            const avatarHtml = data.imgUrl ? `<img src="${data.imgUrl}" class="vote-avatar">` : `<div class="vote-avatar">👤</div>`;
-            document.getElementById('avatarContainer').innerHTML = avatarHtml;
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('voteForm').style.display = 'block';
-        } catch(e) {
-            showError("שגיאה בטעינת הנתונים.");
-        }
+        await fetchPlayers();
     };
 
-    function showError(msg) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('voteForm').style.display = 'none';
-        const errDiv = document.getElementById('errorMsg');
-        errDiv.innerText = msg;
-        errDiv.style.display = 'block';
+    async function fetchPlayers() {
+        try {
+            const snap = await db.collection("players").orderBy("name").get();
+            playersData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderPortal();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('portalScreen').style.display = 'block';
+        } catch(e) {
+            document.getElementById('loading').innerText = "שגיאה בטעינת נתונים ❌";
+        }
+    }
+
+    function renderPortal() {
+        const grid = document.getElementById('playersGrid');
+        grid.innerHTML = playersData.map(p => {
+            const hasVoted = localStorage.getItem('voted_' + p.id);
+            const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar">` : `<div class="list-avatar">👤</div>`;
+            return `
+                <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="${hasVoted ? '' : `openVote('${p.id}')`}">
+                    ${avatar}
+                    <div class="p-name">${p.name}</div>
+                    ${hasVoted ? '<div class="voted-badge">✔️ הצבעת</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function openVote(id) {
+        const p = playersData.find(player => player.id === id);
+        if(!p) return;
+        currentPlayerId = id;
+        
+        document.getElementById('displayPlayerName').innerText = p.name;
+        const avatarHtml = p.imgUrl ? `<img src="${p.imgUrl}" class="vote-avatar">` : `<div class="vote-avatar">👤</div>`;
+        document.getElementById('avatarContainer').innerHTML = avatarHtml;
+        
+        // איפוס הסליידרים
+        const inputs = ['sFin', 'sDri', 'sPac', 'sVis', 'sPos', 'sTac', 'sAwa', 'sStr', 'sSta', 'sCom'];
+        const values = ['vFin', 'vDri', 'vPac', 'vVis', 'vPos', 'vTac', 'vAwa', 'vStr', 'vSta', 'vCom'];
+        inputs.forEach((id, idx) => {
+            document.getElementById(id).value = 5;
+            document.getElementById(values[idx]).innerText = "5";
+        });
+
+        document.getElementById('portalScreen').style.display = 'none';
+        document.getElementById('voteScreen').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function backToPortal() {
+        currentPlayerId = null;
+        document.getElementById('voteScreen').style.display = 'none';
+        document.getElementById('portalScreen').style.display = 'block';
     }
 
     async function submitVote() {
+        if(!currentPlayerId) return;
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
-        btn.innerText = "שולח נתונים... ⏳";
+        btn.innerText = "שומר ציונים... ⏳";
 
         const getVal = (id) => parseInt(document.getElementById(id).value);
         const newVotes = {
@@ -148,7 +181,7 @@
             tac: getVal('sTac'), awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
         };
 
-        const playerRef = db.collection("players").doc(playerId);
+        const playerRef = db.collection("players").doc(currentPlayerId);
 
         try {
             await db.runTransaction(async (transaction) => {
@@ -199,16 +232,22 @@
                 });
             });
 
-            localStorage.setItem('voted_' + playerId, 'true');
+            // מסמן שהמשתמש הצביע לאותו שחקן
+            localStorage.setItem('voted_' + currentPlayerId, 'true');
             
-            document.getElementById('voteForm').style.display = 'none';
-            document.getElementById('successMsg').style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = "שלח הצבעה לשחקן 🚀";
+            
+            // מרענן את הרשימה ומחזיר למסך הראשי
+            alert('ההצבעה נקלטה בהצלחה! ✔️');
+            await fetchPlayers();
+            backToPortal();
 
         } catch (e) {
             console.error(e);
             alert("הייתה שגיאה בשליחת ההצבעה. נסה שוב.");
             btn.disabled = false;
-            btn.innerText = "שלח הצבעה 🚀";
+            btn.innerText = "שלח הצבעה לשחקן 🚀";
         }
     }
 </script>

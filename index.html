@@ -62,7 +62,7 @@
         .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
         .form-input:focus { border-color: var(--primary-color); outline: none; }
         
-        /* עיצוב לתמונות במערכת */
+        /* עיצוב התמונות */
         .avatar-list { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.05); flex-shrink: 0;}
         .avatar-chip { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05);}
         .avatar-pitch { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.1); flex-shrink: 0;}
@@ -81,7 +81,7 @@
         .squad-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); }
         .squad-info { flex: 1; }
         .squad-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; }
-        .squad-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; width: 85px;}
+        .squad-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;}
         .action-btn { width: 35px; height: 35px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-size: 16px; font-weight: bold;}
         .btn-toggle { background: var(--border-color); }
         .btn-toggle.active { background: var(--primary-color); }
@@ -105,6 +105,7 @@
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; }
 
+        /* אזור מגרש התוצאות */
         #results { display: none; }
         .team-row { margin-bottom: 25px; }
         .team-header { font-size: 1.2rem; font-weight: 900; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;}
@@ -180,7 +181,10 @@
 
             <h3 style="margin-top: 30px; font-size: 1.05rem; color:var(--text-main); font-weight:800;">כל הסגל <span style="font-size:0.85rem; font-weight:400; color:var(--text-muted);">(לחץ + להוספה, ✓ להסרה)</span></h3>
             <div class="squad-list" id="squadList"></div>
+            
             <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
+            
+            <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
         </div>
 
         <div class="card">
@@ -215,7 +219,7 @@
     
     let players = [];
     let editingId = null; 
-    let currentEditingImg = null; // שומר את התמונה הקיימת בעריכה
+    let currentEditingImg = null; 
     let activeTeams = null; 
     let activeGkIds = [null, null, null]; 
     
@@ -242,7 +246,6 @@
         }
     });
 
-    // פונקציה לכיווץ התמונה לגודל קטן כדי שתעלה מהר ותשב יפה במסד נתונים
     async function resizeImage(file) {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -264,7 +267,7 @@
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8)); // מחזיר מחרוזת Base64
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
                 };
                 img.src = e.target.result;
             };
@@ -382,7 +385,6 @@
                 <div class="squad-actions">
                     <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})" title="הוסף/הסר מהרכב">${p.inLineup ? '✓' : '+'}</button>
                     <button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})' title="ערוך">✏️</button>
-                    <button class="action-btn" style="background:#25D366;" onclick="shareVoteLink('${p.id}', '${p.name}')" title="שתף לינק הצבעה">📢</button>
                 </div>
             </div>
         `).join('');
@@ -600,10 +602,10 @@
         }
     }
 
-    function shareVoteLink(playerId, playerName) {
+    function shareGlobalVoteLink() {
         const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-        const voteUrl = `${baseUrl}vote.html?id=${playerId}`;
-        const text = `⚽ *חברים, בואו לדרג את ביצועיו של ${playerName}!* ⚽\n\nכל קול משפיע על הציון הממוצע שלו באלגוריתם לחלוקת הקבוצות.\nהיכנסו עכשיו והצביעו:\n${voteUrl}`;
+        const voteUrl = `${baseUrl}vote.html`;
+        const text = `⚽ *חברים, פורטל הדירוגים נפתח!* ⚽\n\nכנסו עכשיו כדי לדרג את הביצועים של כל החבר'ה בסגל. הציונים שלכם קובעים את חלוקת הכוחות.\n\nלהצבעה לחצו כאן:\n${voteUrl}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
 </script>
