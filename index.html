@@ -62,11 +62,10 @@
         .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
         .form-input:focus { border-color: var(--primary-color); outline: none; }
         
-        /* עיצוב התמונות ללחיצות */
+        /* תמונות */
         .avatar-list { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.05); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
         .avatar-chip { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;}
         .avatar-pitch { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.1); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
-        
         .avatar-list:active, .avatar-chip:active, .avatar-pitch:active { transform: scale(0.9); border-color: var(--edit-color); }
 
         .stats-section { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.02); }
@@ -97,6 +96,8 @@
         
         .chip-stats-container { display: flex; gap: 8px; width: 100%; justify-content: center; }
         .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-weight: 900; font-size: 0.95rem; }
+        
+        /* כיתוב כברירת מחדל של קבוצות */
         .stat-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
         .stat-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
 
@@ -107,7 +108,6 @@
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; }
 
-        /* אזור מגרש התוצאות */
         #results { display: none; }
         .team-row { margin-bottom: 25px; }
         .team-header { font-size: 1.2rem; font-weight: 900; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;}
@@ -136,7 +136,7 @@
             width: 31%; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .pitch-player-stats { font-size: 0.7rem; color: #93C5FD; font-weight: 700; margin: 3px 0; letter-spacing: 0.5px; }
+        .pitch-player-stats { font-size: 0.75rem; font-weight: 800; margin: 3px 0; letter-spacing: 0.5px; display: flex; gap: 6px; }
         .pitch-role { display: block; font-size: 0.7rem; color: #10B981; margin-top: 2px; font-weight: 500; }
 
         /* חלון קופץ - כרטיס שחקן אישי */
@@ -157,23 +157,21 @@
             cursor: pointer; font-weight: bold; transition: 0.2s; display: flex; justify-content: center; align-items: center;
         }
         .close-btn:active { transform: scale(0.9); background: var(--danger); }
-        .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05);}
+        .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--border-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05);}
         .modal-name { font-size: 1.6rem; font-weight: 900; margin: 0 0 5px 0; }
         .modal-votes { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;}
         
         .modal-scores { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
-        .modal-score-box { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; }
-        .modal-score-val { font-size: 1.5rem; font-weight: 900; }
-        .modal-score-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .modal-score-box { border: 2px solid rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; width: 45%; transition: 0.3s;}
+        .modal-score-val { font-size: 1.6rem; font-weight: 900; }
+        .modal-score-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;}
         
         .stat-bar-row { display: flex; align-items: center; margin-bottom: 12px; font-size: 0.9rem; text-align: right;}
         .stat-bar-label { width: 140px; color: #cbd5e1; font-weight: 500;}
         .stat-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 10px; }
         .stat-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease-out; }
-        .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 0.95rem; }
+        .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 1rem; }
         
-        .att-fill { background: var(--att-color); }
-        .def-fill { background: var(--def-color); }
         .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
     </style>
 </head>
@@ -290,6 +288,30 @@
             document.getElementById('results').style.display = 'none';
         }
     });
+
+    // פונקציית צבעים דינמית לפי חוקים (אדום, כתום, ירוק, ירוק כהה)
+    function getColorStyles(val) {
+        const v = val || 5;
+        let r, g, b, hex;
+        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } // אדום
+        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } // כתום
+        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } // ירוק בהיר/רגיל
+        else { r=5; g=150; b=105; hex='#059669'; } // ירוק כהה
+        
+        return { 
+            hex: hex, 
+            bg: `rgba(${r}, ${g}, ${b}, 0.15)`, 
+            text: hex, 
+            border: `rgba(${r}, ${g}, ${b}, 0.3)` 
+        };
+    }
+
+    // פונקציית יצירת תג צבעוני לשחקן
+    function getColoredBadge(icon, val) {
+        const v = val || 5;
+        const c = getColorStyles(v);
+        return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
+    }
 
     async function resizeImage(file) {
         return new Promise((resolve) => {
@@ -408,32 +430,36 @@
         await db.collection("game").doc("current").delete();
     }
 
-    // פונקציה שמייצרת את התמונה והופכת אותה ללחיצה
     function getAvatarHTML(url, className, id) {
         return url ? `<img src="${url}" class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">` 
                    : `<div class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">👤</div>`;
     }
 
-    // הפונקציות להצגת החלון הקופץ (כרטיס שחקן)
+    // בניית כרטיס השחקן עם הצבעים המיוחדים
     function showPlayerCard(id) {
         const p = players.find(x => x.id === id);
         if(!p) return;
 
-        const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar">` : `<div class="modal-avatar">👤</div>`;
-        const votesText = p.votesCount ? `מבוסס על ${p.votesCount} הצבעות משחקנים` : `טרם דורג על ידי שחקנים`;
+        const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">` 
+                                : `<div class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">👤</div>`;
+        
+        const votesText = p.votesCount ? `מבוסס על ${p.votesCount} דירוגים משחקנים` : `טרם דורג על ידי שחקנים`;
 
-        // עזר לבניית פס ההתקדמות (ערך מ-1 עד 10, אחוז מ-10 עד 100)
-        const getBar = (label, val, fillClass) => {
+        const getBar = (label, val) => {
             const v = val || 5;
             const percent = (v / 10) * 100;
+            const c = getColorStyles(v);
             return `
                 <div class="stat-bar-row">
                     <div class="stat-bar-label">${label}</div>
-                    <div class="stat-bar-bg"><div class="stat-bar-fill ${fillClass}" style="width: ${percent}%;"></div></div>
-                    <div class="stat-bar-val">${v}</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${percent}%; background-color: ${c.hex}; box-shadow: 0 0 8px ${c.bg};"></div></div>
+                    <div class="stat-bar-val" style="color: ${c.text};">${v}</div>
                 </div>
             `;
         };
+
+        const attC = getColorStyles(p.attScore);
+        const defC = getColorStyles(p.defScore);
 
         const content = `
             ${avatar}
@@ -441,29 +467,29 @@
             <div class="modal-votes">${votesText}</div>
 
             <div class="modal-scores">
-                <div class="modal-score-box">
-                    <div class="modal-score-val" style="color: var(--att-color);">${p.attScore||5}</div>
-                    <div class="modal-score-label">התקפה</div>
+                <div class="modal-score-box" style="border-color: ${attC.border}; background: ${attC.bg};">
+                    <div class="modal-score-val" style="color: ${attC.text}; text-shadow: 0 0 10px ${attC.bg};">${p.attScore||5}</div>
+                    <div class="modal-score-label" style="color: ${attC.text};">התקפה</div>
                 </div>
-                <div class="modal-score-box">
-                    <div class="modal-score-val" style="color: var(--def-color);">${p.defScore||5}</div>
-                    <div class="modal-score-label">הגנה</div>
+                <div class="modal-score-box" style="border-color: ${defC.border}; background: ${defC.bg};">
+                    <div class="modal-score-val" style="color: ${defC.text}; text-shadow: 0 0 10px ${defC.bg};">${p.defScore||5}</div>
+                    <div class="modal-score-label" style="color: ${defC.text};">הגנה</div>
                 </div>
             </div>
 
             <div class="modal-section-title">מדדי התקפה</div>
-            ${getBar('סיומת מול שער', p.fin, 'att-fill')}
-            ${getBar('דריבל ושליטה', p.dri, 'att-fill')}
-            ${getBar('מהירות וזריזות', p.pac, 'att-fill')}
-            ${getBar('ראיית משחק', p.vis, 'att-fill')}
-            ${getBar('תנועה ללא כדור', p.pos, 'att-fill')}
+            ${getBar('סיומת מול שער', p.fin)}
+            ${getBar('דריבל ושליטה', p.dri)}
+            ${getBar('מהירות וזריזות', p.pac)}
+            ${getBar('ראיית משחק', p.vis)}
+            ${getBar('תנועה ללא כדור', p.pos)}
 
             <div class="modal-section-title">מדדי הגנה ופיזיות</div>
-            ${getBar('חילוצי כדור ותיקולים', p.tac, 'def-fill')}
-            ${getBar('קריאת משחק', p.awa, 'def-fill')}
-            ${getBar('פיזיות ועוצמה', p.str, 'def-fill')}
-            ${getBar('כושר גופני', p.sta, 'def-fill')}
-            ${getBar('יציאה מלחץ ומסירה', p.com, 'def-fill')}
+            ${getBar('חילוצי כדור', p.tac)}
+            ${getBar('קריאת משחק', p.awa)}
+            ${getBar('פיזיות ועוצמה', p.str)}
+            ${getBar('כושר גופני', p.sta)}
+            ${getBar('יציאה מלחץ', p.com)}
         `;
 
         document.getElementById('modalContent').innerHTML = content;
@@ -485,8 +511,8 @@
                 <div class="squad-info">
                     <div class="squad-name">${p.name}</div>
                     <div class="chip-stats-container" style="justify-content: flex-start;">
-                        <span class="stat-badge stat-def" title="ציון הגנה ממוצע">🛡️ ${p.defScore||5}</span>
-                        <span class="stat-badge stat-att" title="ציון התקפה ממוצע">🎯 ${p.attScore||5}</span>
+                        ${getColoredBadge('🛡️', p.defScore)}
+                        ${getColoredBadge('🎯', p.attScore)}
                     </div>
                 </div>
                 <div class="squad-actions">
@@ -505,8 +531,8 @@
                     ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
                     <div class="chip-name">${p.name}</div>
                     <div class="chip-stats-container">
-                        <span class="stat-badge stat-def">🛡️ ${p.defScore||5}</span>
-                        <span class="stat-badge stat-att">🎯 ${p.attScore||5}</span>
+                        ${getColoredBadge('🛡️', p.defScore)}
+                        ${getColoredBadge('🎯', p.attScore)}
                     </div>
                     ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); deletePlayer('${p.id}')">✕</div>` : ''}
                 </div>
@@ -610,14 +636,21 @@
         const classes = ["t-blue", "t-white", "t-yellow"];
         const names = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה"];
         
-        const renderPlayerCard = (p, icon, roleName) => `
+        const renderPitchCard = (p, icon, roleName) => {
+            const defC = getColorStyles(p.defScore);
+            const attC = getColorStyles(p.attScore);
+            return `
             <div class="pitch-player">
                 ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
                 <div style="margin-top:4px;">${p.name}</div>
-                <div class="pitch-player-stats">🛡️${p.defScore||5} 🎯${p.attScore||5}</div>
+                <div class="pitch-player-stats">
+                    <span style="color:${defC.text};">🛡️${p.defScore||5}</span> 
+                    <span style="color:${attC.text};">🎯${p.attScore||5}</span>
+                </div>
                 <span class="pitch-role">${icon} ${roleName}</span>
             </div>
-        `;
+            `;
+        };
 
         let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
         
@@ -641,15 +674,15 @@
                     <span class="stat-badge stat-att">🎯 שדה התקפה: ${attTotal}</span>
                 </div>
                 <div class="pitch">
-                    <div class="pitch-row">${renderPlayerCard(roles['שוער'], '🧤', 'שוער')}</div>
+                    <div class="pitch-row">${renderPitchCard(roles['שוער'], '🧤', 'שוער')}</div>
                     <div class="pitch-row">
-                        ${renderPlayerCard(roles['מגן ימין'], '🏃‍♂️', 'מגן ימין')}
-                        ${renderPlayerCard(roles['בלם'], '🛡️', 'בלם')}
-                        ${renderPlayerCard(roles['מגן שמאל'], '🏃‍♂️', 'מגן שמאל')}
+                        ${renderPitchCard(roles['מגן ימין'], '🏃‍♂️', 'מגן ימין')}
+                        ${renderPitchCard(roles['בלם'], '🛡️', 'בלם')}
+                        ${renderPitchCard(roles['מגן שמאל'], '🏃‍♂️', 'מגן שמאל')}
                     </div>
                     <div class="pitch-row">
-                        ${renderPlayerCard(roles['חלוץ ימין'], '⚽', 'חלוץ ימין')}
-                        ${renderPlayerCard(roles['חלוץ שמאל'], '⚽', 'חלוץ שמאל')}
+                        ${renderPitchCard(roles['חלוץ ימין'], '⚽', 'חלוץ ימין')}
+                        ${renderPitchCard(roles['חלוץ שמאל'], '⚽', 'חלוץ שמאל')}
                     </div>
                 </div>
             </div>

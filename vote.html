@@ -27,12 +27,13 @@
         .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .player-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; position: relative;}
         .player-card:active { transform: scale(0.95); }
-        
-        /* עיצוב משודרג לכרטיסייה שכבר הוצבעה (מצב עריכה) */
         .player-card.voted { border-color: var(--edit-color); background: rgba(59, 130, 246, 0.05); }
         
         .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
-        .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; color: var(--text-main); }
+        .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 4px; color: var(--text-main); }
+        
+        /* עיצוב כמות ההצבעות בכרטיס */
+        .votes-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; font-weight: 500; }
         
         .vote-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
         .voted-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
@@ -134,10 +135,13 @@
         grid.innerHTML = playersData.map(p => {
             const hasVoted = localStorage.getItem('voted_' + p.id);
             const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar">` : `<div class="list-avatar">👤</div>`;
+            const votesDisplay = p.votesCount || 1; // תמיד יש לפחות דירוג מנהל 1 התחלתי
+            
             return `
                 <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="openVote('${p.id}')">
                     ${avatar}
                     <div class="p-name">${p.name}</div>
+                    <div class="votes-count">📊 ${votesDisplay} דירוגים</div>
                     ${hasVoted ? '<div class="voted-badge">✏️ ערוך דירוג</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
                 </div>
             `;
@@ -158,7 +162,6 @@
         
         let defaultVals = {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
         
-        // אם המשתמש כבר הצביע ויש לנו את הנתונים השמורים שלו - מציגים אותם בסליידרים!
         if (hasVoted && savedVoteRaw) {
             defaultVals = JSON.parse(savedVoteRaw);
             document.getElementById('submitBtn').innerText = "עדכן את הדירוג שלך ✏️";
@@ -168,7 +171,6 @@
             document.getElementById('submitBtn').style.background = "var(--primary-color)";
         }
 
-        // מחילים את הערכים על הסליידרים
         const inputs = ['fin', 'dri', 'pac', 'vis', 'pos', 'tac', 'awa', 'str', 'sta', 'com'];
         inputs.forEach(key => {
             const val = defaultVals[key] || 5;
@@ -201,10 +203,8 @@
             tac: getVal('sTac'), awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
         };
 
-        // משיכת ההצבעה הקודמת (אם יש) כדי להחסיר אותה מהממוצע
         let isEditing = !!localStorage.getItem('voted_' + currentPlayerId);
         let savedVoteRaw = localStorage.getItem('voteData_' + currentPlayerId);
-        // אם הצביע לפני העדכון הזה ואין לו נתונים שמורים, נצא מנקודת הנחה שהצביע ממוצע 5
         let oldVotes = savedVoteRaw ? JSON.parse(savedVoteRaw) : {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
 
         const playerRef = db.collection("players").doc(currentPlayerId);
@@ -217,7 +217,6 @@
                 const data = doc.data();
                 let totalVotesCount = data.votesCount || 1;
                 
-                // משיכת סכומי ההצבעה הנוכחיים ממסד הנתונים
                 let sums = {
                     fin: data.sumFin !== undefined ? data.sumFin : (data.fin || 5),
                     dri: data.sumDri !== undefined ? data.sumDri : (data.dri || 5),
@@ -231,9 +230,7 @@
                     com: data.sumCom !== undefined ? data.sumCom : (data.com || 5)
                 };
 
-                // אלגוריתם העדכון
                 if (isEditing) {
-                    // מוסיפים את ההפרש בין ההצבעה החדשה לישנה (ללא הגדלת סך המצביעים!)
                     sums.fin += (newVotes.fin - oldVotes.fin);
                     sums.dri += (newVotes.dri - oldVotes.dri);
                     sums.pac += (newVotes.pac - oldVotes.pac);
@@ -245,7 +242,6 @@
                     sums.sta += (newVotes.sta - oldVotes.sta);
                     sums.com += (newVotes.com - oldVotes.com);
                 } else {
-                    // הצבעה חדשה לגמרי - מוסיפים למצביעים ולסכומים
                     totalVotesCount++;
                     sums.fin += newVotes.fin;
                     sums.dri += newVotes.dri;
@@ -259,7 +255,6 @@
                     sums.com += newVotes.com;
                 }
 
-                // הבטחה שסכומים לא ייפלו מתחת ל-0 במקרה של גליץ'
                 for (let key in sums) { if (sums[key] < 0) sums[key] = 0; }
 
                 const newAvgs = {
@@ -288,7 +283,6 @@
                 });
             });
 
-            // שמירת ההצבעה המדויקת במכשיר של המשתמש כדי שיוכל לערוך אותה בעתיד
             localStorage.setItem('voteData_' + currentPlayerId, JSON.stringify(newVotes));
             localStorage.setItem('voted_' + currentPlayerId, 'true');
             
