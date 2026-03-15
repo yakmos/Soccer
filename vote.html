@@ -55,7 +55,7 @@
         <div id="errorMsg"></div>
         <div id="successMsg">
             <h2>הצבעתך נקלטה בהצלחה! ✔️</h2>
-            <p>הציונים שוחשבו לממוצע הכללי של השחקן.</p>
+            <p>הציונים שוקללו לממוצע הכללי של השחקן.</p>
             <p style="font-size: 0.9rem; color: var(--text-muted);">אפשר לסגור את החלון.</p>
         </div>
 
@@ -91,7 +91,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // משיכת מזהה השחקן מהקישור (למשל vote.html?id=123)
     const urlParams = new URLSearchParams(window.location.search);
     const playerId = urlParams.get('id');
 
@@ -101,7 +100,6 @@
             return;
         }
 
-        // בדיקה אם המכשיר כבר הצביע לשחקן הזה
         if(localStorage.getItem('voted_' + playerId)) {
             showError("כבר הצבעת לשחקן זה מהמכשיר הנוכחי! לא ניתן להצביע פעמיים.");
             return;
@@ -143,17 +141,14 @@
         const playerRef = db.collection("players").doc(playerId);
 
         try {
-            // משתמשים ב-Transaction כדי למנוע דריסת נתונים אם שניים מצביעים באותה שנייה
             await db.runTransaction(async (transaction) => {
                 const doc = await transaction.get(playerRef);
                 if (!doc.exists) throw "Player does not exist!";
                 
                 const data = doc.data();
                 
-                // אם זו הצבעה ראשונה אי פעם דרך המערכת, נגדיר את הציונים הנוכחיים כהצבעה בודדת
                 let totalVotesCount = data.votesCount || 1;
                 
-                // מאגר סכומים (אם אין, לוקח את הציון הישן כבסיס)
                 let sums = {
                     fin: (data.sumFin || data.fin || 5) + newVotes.fin,
                     dri: (data.sumDri || data.dri || 5) + newVotes.dri,
@@ -167,27 +162,26 @@
                     com: (data.sumCom || data.com || 5) + newVotes.com
                 };
 
-                totalVotesCount++; // מוסיף את ההצבעה החדשה לספירה
+                totalVotesCount++;
 
-                // מחשב ממוצעים חדשים מעוגלים לשלמים (עבור הפרמטרים הבודדים)
+                // התיקון: עכשיו הממוצעים נשמרים כמספרים עשרוניים (Floats) עם ספרה אחת אחרי הנקודה במקום מספר שלם!
                 const newAvgs = {
-                    fin: Math.round(sums.fin / totalVotesCount),
-                    dri: Math.round(sums.dri / totalVotesCount),
-                    pac: Math.round(sums.pac / totalVotesCount),
-                    vis: Math.round(sums.vis / totalVotesCount),
-                    pos: Math.round(sums.pos / totalVotesCount),
-                    tac: Math.round(sums.tac / totalVotesCount),
-                    awa: Math.round(sums.awa / totalVotesCount),
-                    str: Math.round(sums.str / totalVotesCount),
-                    sta: Math.round(sums.sta / totalVotesCount),
-                    com: Math.round(sums.com / totalVotesCount)
+                    fin: parseFloat((sums.fin / totalVotesCount).toFixed(1)),
+                    dri: parseFloat((sums.dri / totalVotesCount).toFixed(1)),
+                    pac: parseFloat((sums.pac / totalVotesCount).toFixed(1)),
+                    vis: parseFloat((sums.vis / totalVotesCount).toFixed(1)),
+                    pos: parseFloat((sums.pos / totalVotesCount).toFixed(1)),
+                    tac: parseFloat((sums.tac / totalVotesCount).toFixed(1)),
+                    awa: parseFloat((sums.awa / totalVotesCount).toFixed(1)),
+                    str: parseFloat((sums.str / totalVotesCount).toFixed(1)),
+                    sta: parseFloat((sums.sta / totalVotesCount).toFixed(1)),
+                    com: parseFloat((sums.com / totalVotesCount).toFixed(1))
                 };
 
-                // חישוב ציוני ההגנה/התקפה הכלליים החדשים (ספרה אחת אחרי הנקודה)
+                // חישוב הממוצע הכללי של התקפה והגנה
                 const attScore = parseFloat(((newAvgs.fin + newAvgs.dri + newAvgs.pac + newAvgs.vis + newAvgs.pos) / 5).toFixed(1));
                 const defScore = parseFloat(((newAvgs.tac + newAvgs.awa + newAvgs.str + newAvgs.sta + newAvgs.com) / 5).toFixed(1));
 
-                // מעדכן את מסד הנתונים
                 transaction.update(playerRef, {
                     votesCount: totalVotesCount,
                     sumFin: sums.fin, sumDri: sums.dri, sumPac: sums.pac, sumVis: sums.vis, sumPos: sums.pos,
@@ -198,7 +192,6 @@
                 });
             });
 
-            // צורב במכשיר שהוא כבר הצביע כדי למנוע הצבעה כפולה
             localStorage.setItem('voted_' + playerId, 'true');
             
             document.getElementById('voteForm').style.display = 'none';
