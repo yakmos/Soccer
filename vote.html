@@ -13,6 +13,7 @@
             --bg-color: #0F172A; --surface-color: #1E293B; --primary-color: #10B981; 
             --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155;
             --att-color: #EF4444; --def-color: #3B82F6;
+            --edit-color: #3B82F6;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; direction: rtl; padding-bottom: 50px;}
@@ -26,13 +27,15 @@
         .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .player-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; position: relative;}
         .player-card:active { transform: scale(0.95); }
-        .player-card.voted { opacity: 0.6; cursor: default; border-color: var(--primary-color); background: rgba(16, 185, 129, 0.05);}
+        
+        /* עיצוב משודרג לכרטיסייה שכבר הוצבעה (מצב עריכה) */
+        .player-card.voted { border-color: var(--edit-color); background: rgba(59, 130, 246, 0.05); }
         
         .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
         .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; color: var(--text-main); }
         
-        .vote-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
-        .voted-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
+        .vote-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
+        .voted-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
 
         /* טופס הצבעה */
         .vote-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 35px; background: rgba(255,255,255,0.05); }
@@ -132,10 +135,10 @@
             const hasVoted = localStorage.getItem('voted_' + p.id);
             const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar">` : `<div class="list-avatar">👤</div>`;
             return `
-                <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="${hasVoted ? '' : `openVote('${p.id}')`}">
+                <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="openVote('${p.id}')">
                     ${avatar}
                     <div class="p-name">${p.name}</div>
-                    ${hasVoted ? '<div class="voted-badge">✔️ הצבעת</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
+                    ${hasVoted ? '<div class="voted-badge">✏️ ערוך דירוג</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
                 </div>
             `;
         }).join('');
@@ -150,12 +153,29 @@
         const avatarHtml = p.imgUrl ? `<img src="${p.imgUrl}" class="vote-avatar">` : `<div class="vote-avatar">👤</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
         
-        // איפוס הסליידרים
-        const inputs = ['sFin', 'sDri', 'sPac', 'sVis', 'sPos', 'sTac', 'sAwa', 'sStr', 'sSta', 'sCom'];
-        const values = ['vFin', 'vDri', 'vPac', 'vVis', 'vPos', 'vTac', 'vAwa', 'vStr', 'vSta', 'vCom'];
-        inputs.forEach((id, idx) => {
-            document.getElementById(id).value = 5;
-            document.getElementById(values[idx]).innerText = "5";
+        const hasVoted = localStorage.getItem('voted_' + id);
+        const savedVoteRaw = localStorage.getItem('voteData_' + id);
+        
+        let defaultVals = {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
+        
+        // אם המשתמש כבר הצביע ויש לנו את הנתונים השמורים שלו - מציגים אותם בסליידרים!
+        if (hasVoted && savedVoteRaw) {
+            defaultVals = JSON.parse(savedVoteRaw);
+            document.getElementById('submitBtn').innerText = "עדכן את הדירוג שלך ✏️";
+            document.getElementById('submitBtn').style.background = "var(--edit-color)";
+        } else {
+            document.getElementById('submitBtn').innerText = "שלח הצבעה לשחקן 🚀";
+            document.getElementById('submitBtn').style.background = "var(--primary-color)";
+        }
+
+        // מחילים את הערכים על הסליידרים
+        const inputs = ['fin', 'dri', 'pac', 'vis', 'pos', 'tac', 'awa', 'str', 'sta', 'com'];
+        inputs.forEach(key => {
+            const val = defaultVals[key] || 5;
+            const sliderId = 's' + key.charAt(0).toUpperCase() + key.slice(1);
+            const valId = 'v' + key.charAt(0).toUpperCase() + key.slice(1);
+            document.getElementById(sliderId).value = val;
+            document.getElementById(valId).innerText = val;
         });
 
         document.getElementById('portalScreen').style.display = 'none';
@@ -181,6 +201,12 @@
             tac: getVal('sTac'), awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
         };
 
+        // משיכת ההצבעה הקודמת (אם יש) כדי להחסיר אותה מהממוצע
+        let isEditing = !!localStorage.getItem('voted_' + currentPlayerId);
+        let savedVoteRaw = localStorage.getItem('voteData_' + currentPlayerId);
+        // אם הצביע לפני העדכון הזה ואין לו נתונים שמורים, נצא מנקודת הנחה שהצביע ממוצע 5
+        let oldVotes = savedVoteRaw ? JSON.parse(savedVoteRaw) : {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
+
         const playerRef = db.collection("players").doc(currentPlayerId);
 
         try {
@@ -191,20 +217,50 @@
                 const data = doc.data();
                 let totalVotesCount = data.votesCount || 1;
                 
+                // משיכת סכומי ההצבעה הנוכחיים ממסד הנתונים
                 let sums = {
-                    fin: (data.sumFin || data.fin || 5) + newVotes.fin,
-                    dri: (data.sumDri || data.dri || 5) + newVotes.dri,
-                    pac: (data.sumPac || data.pac || 5) + newVotes.pac,
-                    vis: (data.sumVis || data.vis || 5) + newVotes.vis,
-                    pos: (data.sumPos || data.pos || 5) + newVotes.pos,
-                    tac: (data.sumTac || data.tac || 5) + newVotes.tac,
-                    awa: (data.sumAwa || data.awa || 5) + newVotes.awa,
-                    str: (data.sumStr || data.str || 5) + newVotes.str,
-                    sta: (data.sumSta || data.sta || 5) + newVotes.sta,
-                    com: (data.sumCom || data.com || 5) + newVotes.com
+                    fin: data.sumFin !== undefined ? data.sumFin : (data.fin || 5),
+                    dri: data.sumDri !== undefined ? data.sumDri : (data.dri || 5),
+                    pac: data.sumPac !== undefined ? data.sumPac : (data.pac || 5),
+                    vis: data.sumVis !== undefined ? data.sumVis : (data.vis || 5),
+                    pos: data.sumPos !== undefined ? data.sumPos : (data.pos || 5),
+                    tac: data.sumTac !== undefined ? data.sumTac : (data.tac || 5),
+                    awa: data.sumAwa !== undefined ? data.sumAwa : (data.awa || 5),
+                    str: data.sumStr !== undefined ? data.sumStr : (data.str || 5),
+                    sta: data.sumSta !== undefined ? data.sumSta : (data.sta || 5),
+                    com: data.sumCom !== undefined ? data.sumCom : (data.com || 5)
                 };
 
-                totalVotesCount++;
+                // אלגוריתם העדכון
+                if (isEditing) {
+                    // מוסיפים את ההפרש בין ההצבעה החדשה לישנה (ללא הגדלת סך המצביעים!)
+                    sums.fin += (newVotes.fin - oldVotes.fin);
+                    sums.dri += (newVotes.dri - oldVotes.dri);
+                    sums.pac += (newVotes.pac - oldVotes.pac);
+                    sums.vis += (newVotes.vis - oldVotes.vis);
+                    sums.pos += (newVotes.pos - oldVotes.pos);
+                    sums.tac += (newVotes.tac - oldVotes.tac);
+                    sums.awa += (newVotes.awa - oldVotes.awa);
+                    sums.str += (newVotes.str - oldVotes.str);
+                    sums.sta += (newVotes.sta - oldVotes.sta);
+                    sums.com += (newVotes.com - oldVotes.com);
+                } else {
+                    // הצבעה חדשה לגמרי - מוסיפים למצביעים ולסכומים
+                    totalVotesCount++;
+                    sums.fin += newVotes.fin;
+                    sums.dri += newVotes.dri;
+                    sums.pac += newVotes.pac;
+                    sums.vis += newVotes.vis;
+                    sums.pos += newVotes.pos;
+                    sums.tac += newVotes.tac;
+                    sums.awa += newVotes.awa;
+                    sums.str += newVotes.str;
+                    sums.sta += newVotes.sta;
+                    sums.com += newVotes.com;
+                }
+
+                // הבטחה שסכומים לא ייפלו מתחת ל-0 במקרה של גליץ'
+                for (let key in sums) { if (sums[key] < 0) sums[key] = 0; }
 
                 const newAvgs = {
                     fin: parseFloat((sums.fin / totalVotesCount).toFixed(1)),
@@ -232,14 +288,14 @@
                 });
             });
 
-            // מסמן שהמשתמש הצביע לאותו שחקן
+            // שמירת ההצבעה המדויקת במכשיר של המשתמש כדי שיוכל לערוך אותה בעתיד
+            localStorage.setItem('voteData_' + currentPlayerId, JSON.stringify(newVotes));
             localStorage.setItem('voted_' + currentPlayerId, 'true');
             
             btn.disabled = false;
             btn.innerText = "שלח הצבעה לשחקן 🚀";
             
-            // מרענן את הרשימה ומחזיר למסך הראשי
-            alert('ההצבעה נקלטה בהצלחה! ✔️');
+            alert(isEditing ? 'ההצבעה שלך עודכנה בהצלחה! ✏️✔️' : 'ההצבעה נקלטה בהצלחה! ✔️');
             await fetchPlayers();
             backToPortal();
 
