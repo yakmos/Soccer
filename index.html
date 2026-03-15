@@ -96,8 +96,6 @@
         
         .chip-stats-container { display: flex; gap: 8px; width: 100%; justify-content: center; }
         .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-weight: 900; font-size: 0.95rem; }
-        
-        /* כיתוב כברירת מחדל של קבוצות */
         .stat-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
         .stat-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
 
@@ -117,6 +115,7 @@
         .t-white .team-header-name::before { background: #F8FAFC; box-shadow: 0 0 8px #F8FAFC;}
         .t-yellow .team-header-name::before { background: #EAB308; box-shadow: 0 0 8px #EAB308;}
         
+        .team-header-right { display: flex; align-items: center; gap: 8px; }
         .gk-btn { display: none; background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 8px; padding: 4px 10px; font-size: 0.85rem; font-weight: 800; cursor: pointer; transition: 0.2s;}
         .gk-btn:active { transform: scale(0.95); }
         body.is-admin .gk-btn { display: inline-block; }
@@ -139,6 +138,14 @@
         .pitch-player-stats { font-size: 0.75rem; font-weight: 800; margin: 3px 0; letter-spacing: 0.5px; display: flex; gap: 6px; }
         .pitch-role { display: block; font-size: 0.7rem; color: #10B981; margin-top: 2px; font-weight: 500; }
 
+        /* כפתורי פלוס מינוס לגולים וניצחונות */
+        .stat-ticker { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
+        .ticker-val { font-size: 0.85rem; color: #FCD34D; font-weight: 900; }
+        .ticker-btn { display: none; background: rgba(255,255,255,0.15); border: none; color: white; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;}
+        body.is-admin .ticker-btn { display: flex; align-items: center; justify-content: center; }
+        .ticker-btn:active { background: var(--primary-color); transform: scale(0.9); }
+        .team-ticker { background: rgba(255,215,0,0.1); padding: 4px 8px; border-radius: 8px; margin: 0; }
+
         /* חלון קופץ - כרטיס שחקן אישי */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -159,7 +166,8 @@
         .close-btn:active { transform: scale(0.9); background: var(--danger); }
         .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--border-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05);}
         .modal-name { font-size: 1.6rem; font-weight: 900; margin: 0 0 5px 0; }
-        .modal-votes { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;}
+        .modal-votes { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;}
+        .modal-goals { font-size: 1rem; color: #FCD34D; font-weight: 800; margin-bottom: 20px;}
         
         .modal-scores { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
         .modal-score-box { border: 2px solid rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; width: 45%; transition: 0.3s;}
@@ -265,6 +273,7 @@
     let currentEditingImg = null; 
     let activeTeams = null; 
     let activeGkIds = [null, null, null]; 
+    let activeWins = [0, 0, 0]; // משתנה למעקב אחרי ניצחונות בערב הנוכחי
     
     function promptAdmin() { 
         if(prompt("קוד גישה:") === "1946") { 
@@ -276,6 +285,8 @@
     db.collection("players").orderBy("name").onSnapshot(snap => {
         players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         render();
+        // ריענון המגרש החי למקרה שהתווסף גול לשחקן
+        if (activeTeams) displayTeams(activeTeams, activeGkIds, activeWins);
     });
 
     db.collection("game").doc("current").onSnapshot(snap => {
@@ -283,30 +294,27 @@
             const data = snap.data();
             activeTeams = [data.team1, data.team2, data.team3];
             activeGkIds = data.gkIds || [null, null, null];
-            displayTeams(activeTeams, activeGkIds);
+            activeWins = data.teamWins || [0, 0, 0];
+            displayTeams(activeTeams, activeGkIds, activeWins);
         } else {
             document.getElementById('results').style.display = 'none';
         }
     });
 
-    // פונקציית צבעים דינמית לפי חוקים (אדום, כתום, ירוק, ירוק כהה)
     function getColorStyles(val) {
         const v = val || 5;
         let r, g, b, hex;
-        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } // אדום
-        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } // כתום
-        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } // ירוק בהיר/רגיל
+        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } 
+        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } 
+        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } 
         else { r=6; g=182; b=212; hex='#06B6D4'; } // תכלת יהלום
         
         return { 
-            hex: hex, 
-            bg: `rgba(${r}, ${g}, ${b}, 0.15)`, 
-            text: hex, 
-            border: `rgba(${r}, ${g}, ${b}, 0.3)` 
+            hex: hex, bg: `rgba(${r}, ${g}, ${b}, 0.15)`, 
+            text: hex, border: `rgba(${r}, ${g}, ${b}, 0.3)` 
         };
     }
 
-    // פונקציית יצירת תג צבעוני לשחקן
     function getColoredBadge(icon, val) {
         const v = val || 5;
         const c = getColorStyles(v);
@@ -375,6 +383,7 @@
             cancelEdit();
         } else {
             playerData.inLineup = false;
+            playerData.goals = 0; // אתחול גולים
             await db.collection("players").add(playerData);
             document.getElementById('pName').value = ''; 
             document.getElementById('pImage').value = '';
@@ -435,7 +444,6 @@
                    : `<div class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">👤</div>`;
     }
 
-    // בניית כרטיס השחקן עם הצבעים המיוחדים
     function showPlayerCard(id) {
         const p = players.find(x => x.id === id);
         if(!p) return;
@@ -444,6 +452,7 @@
                                 : `<div class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">👤</div>`;
         
         const votesText = p.votesCount ? `מבוסס על ${p.votesCount} דירוגים משחקנים` : `טרם דורג על ידי שחקנים`;
+        const goalsText = p.goals ? `⚽ כבש ${p.goals} שערים העונה` : `עדיין לא כבש העונה`;
 
         const getBar = (label, val) => {
             const v = val || 5;
@@ -465,6 +474,7 @@
             ${avatar}
             <h2 class="modal-name">${p.name}</h2>
             <div class="modal-votes">${votesText}</div>
+            <div class="modal-goals">${goalsText}</div>
 
             <div class="modal-scores">
                 <div class="modal-score-box" style="border-color: ${attC.border}; background: ${attC.bg};">
@@ -500,6 +510,32 @@
         document.getElementById('playerModalOverlay').style.display = 'none';
     }
 
+    // --- פונקציות הניהול החדשות לסטטיסטיקה של הערב ---
+    
+    // עדכון גולים לשחקן מסוים (הנתון נשמר בפרופיל שלו לתמיד!)
+    async function updatePlayerGoal(id, delta) {
+        try {
+            const pRef = db.collection("players").doc(id);
+            const pDoc = await pRef.get();
+            if(pDoc.exists) {
+                let newGoals = (pDoc.data().goals || 0) + delta;
+                if(newGoals < 0) newGoals = 0;
+                await pRef.update({ goals: newGoals });
+            }
+        } catch(e) { console.error("שגיאה בעדכון גול:", e); }
+    }
+
+    // עדכון ניצחונות לקבוצה (הנתון נשמר רק למשחק הנוכחי של הערב)
+    async function updateTeamWin(index, delta) {
+        if(!activeTeams) return;
+        try {
+            let currentWins = activeWins ? [...activeWins] : [0,0,0];
+            currentWins[index] += delta;
+            if(currentWins[index] < 0) currentWins[index] = 0;
+            await db.collection("game").doc("current").update({ teamWins: currentWins });
+        } catch(e) { console.error("שגיאה בעדכון ניצחון:", e); }
+    }
+
     function render() {
         const squadList = document.getElementById('squadList');
         const lineupGrid = document.getElementById('lineupGrid');
@@ -509,7 +545,7 @@
             <div class="squad-item">
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
-                    <div class="squad-name">${p.name}</div>
+                    <div class="squad-name">${p.name} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals||0})</span></div>
                     <div class="chip-stats-container" style="justify-content: flex-start;">
                         ${getColoredBadge('🛡️', p.defScore)}
                         ${getColoredBadge('🎯', p.attScore)}
@@ -587,8 +623,9 @@
             return tempRoles['שוער'].id;
         });
 
+        // איפוס ניצחונות כשמחשבים קבוצות מחדש
         await db.collection("game").doc("current").set({ 
-            team1: best[0], team2: best[1], team3: best[2], gkIds: defaultGks,
+            team1: best[0], team2: best[1], team3: best[2], gkIds: defaultGks, teamWins: [0, 0, 0],
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
     }
@@ -631,7 +668,7 @@
         return roles;
     }
 
-    function displayTeams(teams, gkIds) {
+    function displayTeams(teams, gkIds, wins) {
         const r = document.getElementById('results');
         const classes = ["t-blue", "t-white", "t-yellow"];
         const names = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה"];
@@ -639,14 +676,24 @@
         const renderPitchCard = (p, icon, roleName) => {
             const defC = getColorStyles(p.defScore);
             const attC = getColorStyles(p.attScore);
+            const liveP = players.find(x => x.id === p.id) || p; // מושך נתונים עדכניים (כמו גולים)
+            
             return `
             <div class="pitch-player">
                 ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
                 <div style="margin-top:4px;">${p.name}</div>
+                
                 <div class="pitch-player-stats">
                     <span style="color:${defC.text};">🛡️${p.defScore||5}</span> 
                     <span style="color:${attC.text};">🎯${p.attScore||5}</span>
                 </div>
+                
+                <div class="stat-ticker">
+                    <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button>
+                    <span class="ticker-val">⚽ ${liveP.goals || 0}</span>
+                    <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button>
+                </div>
+                
                 <span class="pitch-role">${icon} ${roleName}</span>
             </div>
             `;
@@ -667,7 +714,14 @@
             <div class="team-row">
                 <div class="team-header ${classes[i]}">
                     <div class="team-header-name">${names[i]} <span style="font-size:0.9rem; color:var(--text-muted); font-weight:500;">(כוח שדה: ${overallTotal})</span></div>
-                    <button class="gk-btn" onclick="rotateGk(${i})">🔄 החלף שוער</button>
+                    <div class="team-header-right">
+                        <div class="stat-ticker team-ticker">
+                            <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, -1)">-</button>
+                            <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i] || 0}</span>
+                            <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button>
+                        </div>
+                        <button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>
+                    </div>
                 </div>
                 <div class="team-stats-row">
                     <span class="stat-badge stat-def">🛡️ שדה הגנה: ${defTotal}</span>
@@ -707,10 +761,13 @@
     async function shareImageToWhatsApp() {
         const resultsDiv = document.getElementById('results');
         const shareButtonsBox = document.getElementById('shareButtonsBox');
-        const gkButtons = document.querySelectorAll('.gk-btn');
         
+        // מעלים את תיבת הכפתורים התחתונה
         shareButtonsBox.style.display = 'none';
-        gkButtons.forEach(btn => btn.style.display = 'none');
+        
+        // טריק שמכבה את מצב הניהול זמנית כדי להעלים את כפתורי ה-+/- והחלפת שוער
+        const wasAdmin = document.body.classList.contains('is-admin');
+        document.body.classList.remove('is-admin');
         
         const originalBg = resultsDiv.style.backgroundColor;
         resultsDiv.style.backgroundColor = '#1E293B'; 
@@ -719,15 +776,17 @@
 
         try {
             const canvas = await html2canvas(resultsDiv, { scale: 2, useCORS: true, backgroundColor: '#1E293B' });
+            
+            // החזרת המצב לקדמותו
             shareButtonsBox.style.display = 'block';
-            gkButtons.forEach(btn => btn.style.display = 'inline-block');
+            if (wasAdmin) document.body.classList.add('is-admin');
             resultsDiv.style.backgroundColor = originalBg;
             resultsDiv.style.padding = '0';
 
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], "lineups.png", { type: "image/png" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try { await navigator.share({ files: [file], title: 'הרכבים להערב', text: '⚽ קבוצות להערב - חלוקה מאוזנת!' }); } catch (err) {}
+                    try { await navigator.share({ files: [file], title: 'תוצאות הערב', text: '⚽ קבוצות הערב - תוצאות לייב!' }); } catch (err) {}
                 } else {
                     const link = document.createElement('a'); link.download = 'הרכבים.png'; link.href = canvas.toDataURL('image/png'); link.click();
                     alert('התמונה ירדה למכשיר! כעת תוכל לגרור/לשלוח אותה בוואטסאפ.');
@@ -735,7 +794,7 @@
             });
         } catch (e) {
             shareButtonsBox.style.display = 'block';
-            gkButtons.forEach(btn => btn.style.display = 'inline-block');
+            if (wasAdmin) document.body.classList.add('is-admin');
             resultsDiv.style.backgroundColor = originalBg;
             resultsDiv.style.padding = '0';
             alert('הייתה בעיה ביצירת התמונה, נסה שוב.');
