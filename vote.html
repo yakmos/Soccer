@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>הצבעת דירוג שחקן</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0F172A; --surface-color: #1E293B; --primary-color: #10B981; 
+            --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155;
+            --att-color: #EF4444; --def-color: #3B82F6;
+        }
+        body { font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; direction: rtl; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card { background: var(--surface-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 25px rgba(0,0,0,0.5);}
+        
+        h1 { text-align: center; color: var(--primary-color); margin-top: 0; font-weight: 900;}
+        .player-name { text-align: center; font-size: 1.8rem; font-weight: 900; margin-bottom: 20px; color: #fff; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px dashed var(--border-color);}
+        
+        h3 { margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;}
+        .att-title { color: var(--att-color); }
+        .def-title { color: var(--def-color); }
+
+        .slider-group { margin-bottom: 18px; }
+        .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 500; font-size: 1.05rem;}
+        .val-badge { background: rgba(255,255,255,0.1); padding: 2px 12px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; color: #fff;}
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: var(--primary-color); cursor: pointer; margin-top: -8px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: var(--border-color); border-radius: 5px; }
+        
+        .att-slider::-webkit-slider-thumb { background: var(--att-color) !important; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5) !important;}
+        .def-slider::-webkit-slider-thumb { background: var(--def-color) !important; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5) !important;}
+
+        .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.2rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif;}
+        .btn:active { transform: scale(0.98); }
+        
+        #loading, #successMsg, #errorMsg { text-align: center; padding: 40px 20px; font-size: 1.2rem; font-weight: 700; }
+        #successMsg { color: var(--primary-color); display: none; }
+        #errorMsg { color: var(--danger); display: none; }
+        #voteForm { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>הצבעת דירוג שחקן ⚽</h1>
+        
+        <div id="loading">טוען נתוני שחקן... ⏳</div>
+        <div id="errorMsg"></div>
+        <div id="successMsg">
+            <h2>הצבעתך נקלטה בהצלחה! ✔️</h2>
+            <p>הציונים שוחשבו לממוצע הכללי של השחקן.</p>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">אפשר לסגור את החלון.</p>
+        </div>
+
+        <div id="voteForm">
+            <div class="player-name" id="displayPlayerName">---</div>
+            <p style="text-align:center; color:var(--text-muted); font-size:0.9rem; margin-top:-10px;">גרור את הסליידרים כדי לדרג (1-10)</p>
+
+            <h3 class="att-title">⚔️ מדדי התקפה</h3>
+            <div class="slider-group"><div class="slider-header"><span>סיומת מול שער</span><span class="val-badge" id="vFin">5</span></div><input type="range" class="att-slider" id="sFin" min="1" max="10" value="5" oninput="document.getElementById('vFin').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>דריבל ושליטה בכדור</span><span class="val-badge" id="vDri">5</span></div><input type="range" class="att-slider" id="sDri" min="1" max="10" value="5" oninput="document.getElementById('vDri').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>מהירות וזריזות</span><span class="val-badge" id="vPac">5</span></div><input type="range" class="att-slider" id="sPac" min="1" max="10" value="5" oninput="document.getElementById('vPac').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>ראיית משחק ובישולים</span><span class="val-badge" id="vVis">5</span></div><input type="range" class="att-slider" id="sVis" min="1" max="10" value="5" oninput="document.getElementById('vVis').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>תנועה ללא כדור</span><span class="val-badge" id="vPos">5</span></div><input type="range" class="att-slider" id="sPos" min="1" max="10" value="5" oninput="document.getElementById('vPos').innerText=this.value"></div>
+
+            <h3 class="def-title">🛡️ מדדי הגנה ופיזיות</h3>
+            <div class="slider-group"><div class="slider-header"><span>חילוצי כדור ותיקולים</span><span class="val-badge" id="vTac">5</span></div><input type="range" class="def-slider" id="sTac" min="1" max="10" value="5" oninput="document.getElementById('vTac').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('vAwa').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>פיזיות ועוצמה</span><span class="val-badge" id="vStr">5</span></div><input type="range" class="def-slider" id="sStr" min="1" max="10" value="5" oninput="document.getElementById('vStr').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
+
+            <button class="btn" id="submitBtn" onclick="submitVote()" style="margin-top: 20px;">שלח הצבעה 🚀</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+        authDomain: "soccer-b30a6.firebaseapp.com",
+        projectId: "soccer-b30a6"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // משיכת מזהה השחקן מהקישור (למשל vote.html?id=123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const playerId = urlParams.get('id');
+
+    window.onload = async () => {
+        if(!playerId) {
+            showError("לינק לא תקין. חסר מזהה שחקן.");
+            return;
+        }
+
+        // בדיקה אם המכשיר כבר הצביע לשחקן הזה
+        if(localStorage.getItem('voted_' + playerId)) {
+            showError("כבר הצבעת לשחקן זה מהמכשיר הנוכחי! לא ניתן להצביע פעמיים.");
+            return;
+        }
+
+        try {
+            const doc = await db.collection("players").doc(playerId).get();
+            if(!doc.exists) {
+                showError("השחקן לא קיים במערכת.");
+                return;
+            }
+            document.getElementById('displayPlayerName').innerText = doc.data().name;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('voteForm').style.display = 'block';
+        } catch(e) {
+            showError("שגיאה בטעינת הנתונים.");
+        }
+    };
+
+    function showError(msg) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('voteForm').style.display = 'none';
+        const errDiv = document.getElementById('errorMsg');
+        errDiv.innerText = msg;
+        errDiv.style.display = 'block';
+    }
+
+    async function submitVote() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "שולח נתונים... ⏳";
+
+        const getVal = (id) => parseInt(document.getElementById(id).value);
+        const newVotes = {
+            fin: getVal('sFin'), dri: getVal('sDri'), pac: getVal('sPac'), vis: getVal('sVis'), pos: getVal('sPos'),
+            tac: getVal('sTac'), awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
+        };
+
+        const playerRef = db.collection("players").doc(playerId);
+
+        try {
+            // משתמשים ב-Transaction כדי למנוע דריסת נתונים אם שניים מצביעים באותה שנייה
+            await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(playerRef);
+                if (!doc.exists) throw "Player does not exist!";
+                
+                const data = doc.data();
+                
+                // אם זו הצבעה ראשונה אי פעם דרך המערכת, נגדיר את הציונים הנוכחיים כהצבעה בודדת
+                let totalVotesCount = data.votesCount || 1;
+                
+                // מאגר סכומים (אם אין, לוקח את הציון הישן כבסיס)
+                let sums = {
+                    fin: (data.sumFin || data.fin || 5) + newVotes.fin,
+                    dri: (data.sumDri || data.dri || 5) + newVotes.dri,
+                    pac: (data.sumPac || data.pac || 5) + newVotes.pac,
+                    vis: (data.sumVis || data.vis || 5) + newVotes.vis,
+                    pos: (data.sumPos || data.pos || 5) + newVotes.pos,
+                    tac: (data.sumTac || data.tac || 5) + newVotes.tac,
+                    awa: (data.sumAwa || data.awa || 5) + newVotes.awa,
+                    str: (data.sumStr || data.str || 5) + newVotes.str,
+                    sta: (data.sumSta || data.sta || 5) + newVotes.sta,
+                    com: (data.sumCom || data.com || 5) + newVotes.com
+                };
+
+                totalVotesCount++; // מוסיף את ההצבעה החדשה לספירה
+
+                // מחשב ממוצעים חדשים מעוגלים לשלמים (עבור הפרמטרים הבודדים)
+                const newAvgs = {
+                    fin: Math.round(sums.fin / totalVotesCount),
+                    dri: Math.round(sums.dri / totalVotesCount),
+                    pac: Math.round(sums.pac / totalVotesCount),
+                    vis: Math.round(sums.vis / totalVotesCount),
+                    pos: Math.round(sums.pos / totalVotesCount),
+                    tac: Math.round(sums.tac / totalVotesCount),
+                    awa: Math.round(sums.awa / totalVotesCount),
+                    str: Math.round(sums.str / totalVotesCount),
+                    sta: Math.round(sums.sta / totalVotesCount),
+                    com: Math.round(sums.com / totalVotesCount)
+                };
+
+                // חישוב ציוני ההגנה/התקפה הכלליים החדשים (ספרה אחת אחרי הנקודה)
+                const attScore = parseFloat(((newAvgs.fin + newAvgs.dri + newAvgs.pac + newAvgs.vis + newAvgs.pos) / 5).toFixed(1));
+                const defScore = parseFloat(((newAvgs.tac + newAvgs.awa + newAvgs.str + newAvgs.sta + newAvgs.com) / 5).toFixed(1));
+
+                // מעדכן את מסד הנתונים
+                transaction.update(playerRef, {
+                    votesCount: totalVotesCount,
+                    sumFin: sums.fin, sumDri: sums.dri, sumPac: sums.pac, sumVis: sums.vis, sumPos: sums.pos,
+                    sumTac: sums.tac, sumAwa: sums.awa, sumStr: sums.str, sumSta: sums.sta, sumCom: sums.com,
+                    fin: newAvgs.fin, dri: newAvgs.dri, pac: newAvgs.pac, vis: newAvgs.vis, pos: newAvgs.pos,
+                    tac: newAvgs.tac, awa: newAvgs.awa, str: newAvgs.str, sta: newAvgs.sta, com: newAvgs.com,
+                    attScore: attScore, defScore: defScore
+                });
+            });
+
+            // צורב במכשיר שהוא כבר הצביע כדי למנוע הצבעה כפולה
+            localStorage.setItem('voted_' + playerId, 'true');
+            
+            document.getElementById('voteForm').style.display = 'none';
+            document.getElementById('successMsg').style.display = 'block';
+
+        } catch (e) {
+            console.error(e);
+            alert("הייתה שגיאה בשליחת ההצבעה. נסה שוב.");
+            btn.disabled = false;
+            btn.innerText = "שלח הצבעה 🚀";
+        }
+    }
+</script>
+</body>
+</html>

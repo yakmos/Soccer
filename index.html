@@ -338,6 +338,7 @@
                         ${p.inLineup ? '✓' : '+'}
                     </button>
                     <button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})' title="ערוך">✏️</button>
+                    <button class="action-btn" style="background:#25D366;" onclick="shareVoteLink('${p.id}', '${p.name}')" title="שתף לינק הצבעה">📢</button>
                 </div>
             </div>
         `).join('');
@@ -375,7 +376,7 @@
         const lineup = players.filter(p => p.inLineup);
         if(lineup.length !== 18) return alert("צריך בדיוק 18 שחקנים בהרכב.");
 
-        // חלוקת כל ההרכב לשתי קבוצות איכות: התקפה והגנה, כדי להבטיח 3 שחקנים מכל סוג בכל קבוצה
+        // מיון לשחקני הגנה והתקפה
         let sortedLineup = [...lineup].sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
         let attackers = sortedLineup.slice(0, 9);
         let defenders = sortedLineup.slice(9, 18);
@@ -386,7 +387,6 @@
             const shufAtt = [...attackers].sort(() => 0.5 - Math.random());
             const shufDef = [...defenders].sort(() => 0.5 - Math.random());
             
-            // כל קבוצה מקבלת בדיוק 3 שחקנים התקפיים ו-3 הגנתיים
             const teams = [
                 [...shufAtt.slice(0,3), ...shufDef.slice(0,3)],
                 [...shufAtt.slice(3,6), ...shufDef.slice(3,6)],
@@ -583,6 +583,15 @@
             resultsDiv.style.padding = '0';
             alert('הייתה בעיה ביצירת התמונה, נסה שוב.');
         }
+    }
+
+    function shareVoteLink(playerId, playerName) {
+        // מזהה את כתובת האתר הנוכחית כדי לייצר לינק תקין להצבעה
+        const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
+        const voteUrl = `${baseUrl}vote.html?id=${playerId}`;
+        
+        const text = `⚽ *חברים, בואו לדרג את ביצועיו של ${playerName}!* ⚽\n\nכל קול משפיע על הציון הממוצע שלו באלגוריתם לחלוקת הקבוצות.\nהיכנסו עכשיו והצביעו:\n${voteUrl}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
 </script>
 </body>
