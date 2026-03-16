@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -67,16 +66,19 @@
         #loading { text-align: center; padding: 40px 20px; font-size: 1.2rem; font-weight: 700; }
         #portalScreen { display: none; }
         #voteScreen { display: none; }
+        .error-msg { text-align: center; color: var(--att-color); font-weight: bold; margin-top: 50px; padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
+    <div id="errorScreen" class="error-msg"></div>
+
+    <div class="card" id="mainCard">
         <div id="loading">טוען את נתוני הסגל... ⏳</div>
 
         <div id="portalScreen">
-            <h1>פורטל דירוגי שחקנים ⚽</h1>
+            <h1 id="groupTitle">פורטל דירוגי שחקנים ⚽</h1>
             <p class="subtitle">בחר שחקן כדי לדרג את ביצועיו למערכת הכוחות</p>
             <div id="playersGrid" class="players-grid"></div>
         </div>
@@ -115,39 +117,65 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // --- מערכת קבוצות מרובות ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('group');
+    let playersRef = null;
+
     let playersData = [];
     let currentPlayerId = null;
 
-    // מערכת צבעים חכמה לדירוגים
+    // פונקציות עזר לצבעים
     function getColorStyles(val) {
         const v = val || 5;
         let r, g, b, hex;
-        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } // אדום
-        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } // כתום
-        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } // ירוק רגיל
-        else { r=6; g=182; b=212; hex='#06B6D4'; } // תכלת יהלום עלית!
+        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } 
+        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } 
+        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } 
+        else { r=6; g=182; b=212; hex='#06B6D4'; } 
         
-        return { 
-            hex: hex, 
-            bg: `rgba(${r}, ${g}, ${b}, 0.15)`, 
-            text: hex, 
-            border: `rgba(${r}, ${g}, ${b}, 0.3)` 
-        };
+        return { hex: hex, bg: `rgba(${r}, ${g}, ${b}, 0.15)`, text: hex, border: `rgba(${r}, ${g}, ${b}, 0.3)` };
     }
 
     function getColoredBadge(icon, val) {
-        const v = val || 5;
-        const c = getColorStyles(v);
+        const v = val || 5; const c = getColorStyles(v);
         return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
     }
 
     window.onload = async () => {
-        await fetchPlayers();
+        if (!groupId) {
+            showError("לא נמצא מזהה קבוצה בקישור. אנא בקש ממנהל הקבוצה קישור תקין.");
+            return;
+        }
+        
+        try {
+            // הבאת שם הקבוצה כדי להציג בכותרת
+            const groupDoc = await db.collection('groups').doc(groupId).get();
+            if (!groupDoc.exists) {
+                showError("הקבוצה לא נמצאה במסד הנתונים.");
+                return;
+            }
+            document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupDoc.data().name} ⚽`;
+            
+            // הגדרת ההפניה לתיקיית השחקנים של הקבוצה הספציפית
+            playersRef = db.collection('groups').doc(groupId).collection('players');
+            await fetchPlayers();
+            
+        } catch (error) {
+            showError("שגיאה בהתחברות לשרת. נסה שוב מאוחר יותר.");
+        }
     };
+
+    function showError(msg) {
+        document.getElementById('mainCard').style.display = 'none';
+        const errorDiv = document.getElementById('errorScreen');
+        errorDiv.innerText = msg;
+        errorDiv.style.display = 'block';
+    }
 
     async function fetchPlayers() {
         try {
-            const snap = await db.collection("players").orderBy("name").get();
+            const snap = await playersRef.orderBy("name").get();
             playersData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderPortal();
             document.getElementById('loading').style.display = 'none';
@@ -157,10 +185,18 @@
         }
     }
 
+    function getStorageKey(playerId) {
+        return `voted_${groupId}_${playerId}`;
+    }
+
+    function getDataStorageKey(playerId) {
+        return `voteData_${groupId}_${playerId}`;
+    }
+
     function renderPortal() {
         const grid = document.getElementById('playersGrid');
         grid.innerHTML = playersData.map(p => {
-            const hasVoted = localStorage.getItem('voted_' + p.id);
+            const hasVoted = localStorage.getItem(getStorageKey(p.id));
             const votesDisplay = p.votesCount || 1;
             
             const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
@@ -198,8 +234,8 @@
                                     : `<div class="vote-avatar" style="border-color:${borderColor}">👤</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
         
-        const hasVoted = localStorage.getItem('voted_' + id);
-        const savedVoteRaw = localStorage.getItem('voteData_' + id);
+        const hasVoted = localStorage.getItem(getStorageKey(id));
+        const savedVoteRaw = localStorage.getItem(getDataStorageKey(id));
         
         let defaultVals = {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
         
@@ -244,11 +280,11 @@
             tac: getVal('sTac'), awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
         };
 
-        let isEditing = !!localStorage.getItem('voted_' + currentPlayerId);
-        let savedVoteRaw = localStorage.getItem('voteData_' + currentPlayerId);
+        let isEditing = !!localStorage.getItem(getStorageKey(currentPlayerId));
+        let savedVoteRaw = localStorage.getItem(getDataStorageKey(currentPlayerId));
         let oldVotes = savedVoteRaw ? JSON.parse(savedVoteRaw) : {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
 
-        const playerRef = db.collection("players").doc(currentPlayerId);
+        const playerRef = playersRef.doc(currentPlayerId);
 
         try {
             await db.runTransaction(async (transaction) => {
@@ -324,8 +360,8 @@
                 });
             });
 
-            localStorage.setItem('voteData_' + currentPlayerId, JSON.stringify(newVotes));
-            localStorage.setItem('voted_' + currentPlayerId, 'true');
+            localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify(newVotes));
+            localStorage.setItem(getStorageKey(currentPlayerId), 'true');
             
             btn.disabled = false;
             btn.innerText = "שלח הצבעה לשחקן 🚀";
@@ -344,4 +380,3 @@
 </script>
 </body>
 </html>
-
