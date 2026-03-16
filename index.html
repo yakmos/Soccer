@@ -127,7 +127,6 @@
         .team-header-name { display: flex; align-items: center; gap: 8px; }
         .team-header-name::before { content: ''; display: block; width: 14px; height: 14px; border-radius: 50%; }
         
-        /* צבעי קבוצות דינמיים */
         .t-0 .team-header-name::before { background: #3B82F6; box-shadow: 0 0 8px #3B82F6;}
         .t-1 .team-header-name::before { background: #F8FAFC; box-shadow: 0 0 8px #F8FAFC;}
         .t-2 .team-header-name::before { background: #EAB308; box-shadow: 0 0 8px #EAB308;}
@@ -177,12 +176,6 @@
         .stat-bar-fill { height: 100%; border-radius: 4px; }
         .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 1rem; }
         .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
-
-        /* עיצוב לבורר הדירוגים */
-        .lb-toggle-container { display: flex; background: var(--bg-color); border-radius: 12px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--border-color); }
-        .lb-toggle-btn { flex: 1; padding: 12px; text-align: center; background: transparent; border: none; color: var(--text-muted); font-weight: 800; font-size: 1.05rem; border-radius: 8px; cursor: pointer; transition: 0.3s; font-family: 'Heebo', sans-serif; }
-        .lb-toggle-btn.active-att { background: rgba(239, 68, 68, 0.15); color: var(--att-color); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);}
-        .lb-toggle-btn.active-def { background: rgba(59, 130, 246, 0.15); color: var(--def-color); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);}
     </style>
 </head>
 <body id="mainBody">
@@ -278,18 +271,29 @@
             </div>
 
             <div id="tab-leaderboards" class="tab-content">
-                
-                <div class="lb-toggle-container">
-                    <button id="lb-btn-att" class="lb-toggle-btn active-att" onclick="switchLB('att')">🎯 טופ התקפה</button>
-                    <button id="lb-btn-def" class="lb-toggle-btn" onclick="switchLB('def')">🛡️ טופ הגנה</button>
-                </div>
+                <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
+                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 20px;">🏆 דירוג שחקנים מפורט</h2>
 
-                <div class="card" id="lb-card-att" style="border-top-width: 4px; border-top-color: var(--att-color);">
-                    <div id="topAttackersList" style="display: flex; flex-direction: column; gap: 10px;"></div>
-                </div>
-                
-                <div class="card" id="lb-card-def" style="border-top-width: 4px; border-top-color: var(--def-color); display: none;">
-                    <div id="topDefendersList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                    <select id="statSelector" class="form-input" onchange="renderLeaderboards()" style="font-weight: 800; font-size: 1.1rem; color: var(--primary-color);">
+                        <option value="attScore">🎯 ציון התקפה כללי</option>
+                        <option value="defScore">🛡️ ציון הגנה כללי</option>
+                        <optgroup label="מדדי התקפה">
+                            <option value="fin">⚽ סיומת מול שער</option>
+                            <option value="dri">🤹 דריבל ושליטה</option>
+                            <option value="pac">⚡ מהירות וזריזות</option>
+                            <option value="vis">👁️ ראיית משחק ובישולים</option>
+                            <option value="pos">🏃 תנועה ללא כדור</option>
+                        </optgroup>
+                        <optgroup label="מדדי הגנה ופיזיות">
+                            <option value="tac">🦵 חילוצי כדור ותיקולים</option>
+                            <option value="awa">🧠 קריאת משחק ומיקום</option>
+                            <option value="str">💪 פיזיות ועוצמה</option>
+                            <option value="sta">🫁 כושר גופני וסיבולת</option>
+                            <option value="com">🧘 יציאה מלחץ ומסירה</option>
+                        </optgroup>
+                    </select>
+
+                    <div id="dynamicLeaderboardList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
                 </div>
             </div>
 
@@ -499,26 +503,6 @@
         }
     }
 
-    // מעבר בין טבלת התקפה להגנה בתוך הטאב
-    function switchLB(type) {
-        const btnAtt = document.getElementById('lb-btn-att');
-        const btnDef = document.getElementById('lb-btn-def');
-        const cardAtt = document.getElementById('lb-card-att');
-        const cardDef = document.getElementById('lb-card-def');
-
-        if (type === 'att') {
-            btnAtt.classList.add('active-att');
-            btnDef.classList.remove('active-def');
-            cardAtt.style.display = 'block';
-            cardDef.style.display = 'none';
-        } else {
-            btnDef.classList.add('active-def');
-            btnAtt.classList.remove('active-att');
-            cardDef.style.display = 'block';
-            cardAtt.style.display = 'none';
-        }
-    }
-
     function getColorStyles(val) {
         const v = val || 5;
         let r, g, b, hex;
@@ -698,39 +682,50 @@
         }).join('');
     }
 
+    // פונקציית רינדור הדירוגים הדינמית
     function renderLeaderboards() {
-        const attContainer = document.getElementById('topAttackersList');
-        const defContainer = document.getElementById('topDefendersList');
-        if (!attContainer || !defContainer) return;
+        const listContainer = document.getElementById('dynamicLeaderboardList');
+        const selector = document.getElementById('statSelector');
+        if (!listContainer || !selector) return;
 
-        const sortedAtt = [...players].sort((a, b) => (b.attScore || 5) - (a.attScore || 5));
-        const sortedDef = [...players].sort((a, b) => (b.defScore || 5) - (a.defScore || 5));
+        const statKey = selector.value;
+        const statName = selector.options[selector.selectedIndex].text;
 
-        const buildList = (list, type) => {
-            if (list.length === 0) return `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`;
-            return list.map((p, index) => {
-                const score = type === 'att' ? (p.attScore || 5) : (p.defScore || 5);
-                const icon = type === 'att' ? '🎯' : '🛡️';
-                const colorClass = type === 'att' ? 'var(--att-color)' : 'var(--def-color)';
-                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-                
-                return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span style="font-weight: 900; width: 20px; color: ${index < 3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>
-                            ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                            <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">${p.name} ${medal}</div>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.1); color: ${colorClass}; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 1rem; border: 1px solid ${colorClass};">
-                            ${icon} ${score}
-                        </div>
+        // התאמת צבעים לפי סוג המדד שבחרנו
+        let colorClass = 'var(--primary-color)';
+        if (['attScore', 'fin', 'dri', 'pac', 'vis', 'pos'].includes(statKey)) {
+            colorClass = 'var(--att-color)';
+        } else if (['defScore', 'tac', 'awa', 'str', 'sta', 'com'].includes(statKey)) {
+            colorClass = 'var(--def-color)';
+        }
+
+        // מיון השחקנים לפי המדד הנבחר בסדר יורד
+        const sortedPlayers = [...players].sort((a, b) => (b[statKey] || 5) - (a[statKey] || 5));
+
+        if (sortedPlayers.length === 0) {
+            listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`;
+            return;
+        }
+
+        listContainer.innerHTML = sortedPlayers.map((p, index) => {
+            const score = p[statKey] || 5;
+            // מציג עשרוני לממוצעים הכלליים, ומספר שלם למדדים ספציפיים
+            const formattedScore = Number.isInteger(score) ? score : score.toFixed(1);
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            
+            return `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-weight: 900; width: 20px; color: ${index < 3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>
+                        ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                        <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">${p.name} ${medal}</div>
                     </div>
-                `;
-            }).join('');
-        };
-
-        attContainer.innerHTML = buildList(sortedAtt, 'att');
-        defContainer.innerHTML = buildList(sortedDef, 'def');
+                    <div style="background: rgba(255,255,255,0.1); color: ${colorClass}; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 1rem; border: 1px solid ${colorClass};">
+                        ${formattedScore}
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 
     function render() {
