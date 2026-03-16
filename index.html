@@ -49,6 +49,45 @@
         h1 { font-weight: 800; font-size: 1.2rem; margin: 0; }
         .admin-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; padding: 5px; }
 
+        /* ניווט טאבים */
+        .tabs-nav {
+            display: flex;
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 57px; /* יושב ישר מתחת להדר */
+            z-index: 90;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px 10px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: 0.3s;
+            font-family: 'Heebo', sans-serif;
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .card { 
             background: var(--surface-color); border-radius: 16px; 
             padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color);
@@ -104,7 +143,11 @@
         .counter { background: var(--bg-color); padding: 4px 12px; border-radius: 20px; font-size: 0.95rem; font-weight: 800; color: var(--text-muted); border: 1px solid var(--border-color);}
         .counter.ready { background: rgba(16, 185, 129, 0.2); color: var(--primary-color); border-color: var(--primary-color); }
 
-        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; }
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; display: none;}
+        
+        /* הצגת כפתור החלוקה רק בטאב המשחק כשהמשתמש הוא אדמין */
+        body.is-admin .tab-content.active #tab-main-content .bottom-bar-wrapper { display: block; }
+        .bottom-bar-wrapper { display: none; }
 
         #results { display: none; }
         .team-row { margin-bottom: 25px; }
@@ -190,62 +233,84 @@
         <button class="admin-btn" onclick="promptAdmin()">ניהול 🔒</button>
     </header>
 
-    <div class="container">
-        <div class="card admin-only">
-            <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
-            <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; margin-bottom:5px; color:var(--text-muted); font-size:0.9rem;">תמונת שחקן (אופציונלי):</label>
-                <input type="file" id="pImage" accept="image/*" class="form-input" style="padding: 10px;">
-                <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
-            </div>
-
-            <div class="stats-section">
-                <h4>⚔️ מדדי התקפה (1-10)</h4>
-                <div class="param-row"><span>סיומת מול שער</span> <input type="number" id="pFin" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>דריבל ושליטה בכדור</span> <input type="number" id="pDri" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>מהירות וזריזות</span> <input type="number" id="pPac" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>ראיית משחק ובישולים</span> <input type="number" id="pVis" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>תנועה ללא כדור</span> <input type="number" id="pPos" value="5" min="1" max="10"></div>
-            </div>
-
-            <div class="stats-section">
-                <h4>🛡️ מדדי הגנה ופיזיות (1-10)</h4>
-                <div class="param-row"><span>חילוצי כדור ותיקולים</span> <input type="number" id="pTac" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>קריאת משחק ומיקום</span> <input type="number" id="pAwa" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>פיזיות ועוצמה</span> <input type="number" id="pStr" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>כושר גופני וסיבולת</span> <input type="number" id="pSta" value="5" min="1" max="10"></div>
-                <div class="param-row"><span>יציאה מלחץ ומסירה</span> <input type="number" id="pCom" value="5" min="1" max="10"></div>
-            </div>
-
-            <div style="display:flex; gap:10px;">
-                <button class="btn" id="saveBtn" onclick="savePlayer()">שמור שחקן</button>
-                <button class="btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; background:var(--danger);">בטל עריכה</button>
-            </div>
-
-            <h3 style="margin-top: 30px; font-size: 1.05rem; color:var(--text-main); font-weight:800;">כל הסגל <span style="font-size:0.85rem; font-weight:400; color:var(--text-muted);">(לחץ + להוספה, ✓ להסרה)</span></h3>
-            <div class="squad-list" id="squadList"></div>
-            
-            <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
-            <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
-        </div>
-
-        <div class="card">
-            <h2 class="card-title">
-                הרכב למשחק
-                <span id="counterBadge" class="counter">0 / 18</span>
-            </h2>
-            <div id="lineupGrid" class="player-grid">
-                <div style="grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;">עדיין לא נבחר הרכב.</div>
-            </div>
-        </div>
-
-        <div id="results" class="card"></div>
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('tab-main', this)">משחק נוכחי</button>
+        <button class="tab-btn" onclick="switchTab('tab-scorers', this)">מלכי השערים 🏆</button>
     </div>
 
-    <div class="bottom-bar admin-only">
-        <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+    <div class="container">
+        
+        <div id="tab-main" class="tab-content active">
+            <div id="tab-main-content">
+                <div class="card admin-only">
+                    <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
+                    <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom:5px; color:var(--text-muted); font-size:0.9rem;">תמונת שחקן (אופציונלי):</label>
+                        <input type="file" id="pImage" accept="image/*" class="form-input" style="padding: 10px;">
+                        <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h4>⚔️ מדדי התקפה (1-10)</h4>
+                        <div class="param-row"><span>סיומת מול שער</span> <input type="number" id="pFin" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>דריבל ושליטה בכדור</span> <input type="number" id="pDri" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>מהירות וזריזות</span> <input type="number" id="pPac" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>ראיית משחק ובישולים</span> <input type="number" id="pVis" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>תנועה ללא כדור</span> <input type="number" id="pPos" value="5" min="1" max="10"></div>
+                    </div>
+
+                    <div class="stats-section">
+                        <h4>🛡️ מדדי הגנה ופיזיות (1-10)</h4>
+                        <div class="param-row"><span>חילוצי כדור ותיקולים</span> <input type="number" id="pTac" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>קריאת משחק ומיקום</span> <input type="number" id="pAwa" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>פיזיות ועוצמה</span> <input type="number" id="pStr" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>כושר גופני וסיבולת</span> <input type="number" id="pSta" value="5" min="1" max="10"></div>
+                        <div class="param-row"><span>יציאה מלחץ ומסירה</span> <input type="number" id="pCom" value="5" min="1" max="10"></div>
+                    </div>
+
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn" id="saveBtn" onclick="savePlayer()">שמור שחקן</button>
+                        <button class="btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; background:var(--danger);">בטל עריכה</button>
+                    </div>
+
+                    <h3 style="margin-top: 30px; font-size: 1.05rem; color:var(--text-main); font-weight:800;">כל הסגל <span style="font-size:0.85rem; font-weight:400; color:var(--text-muted);">(לחץ + להוספה, ✓ להסרה)</span></h3>
+                    <div class="squad-list" id="squadList"></div>
+                    
+                    <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
+                    <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title">
+                        הרכב למשחק
+                        <span id="counterBadge" class="counter">0 / 18</span>
+                    </h2>
+                    <div id="lineupGrid" class="player-grid">
+                        <div style="grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;">עדיין לא נבחר הרכב.</div>
+                    </div>
+                </div>
+
+                <div id="results" class="card"></div>
+                
+                <div class="bottom-bar-wrapper">
+                    <div class="bottom-bar" id="adminBottomBar">
+                        <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-scorers" class="tab-content">
+            <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
+                <h2 class="card-title" style="font-size: 1.4rem; justify-content: center; margin-bottom: 25px;">🏆 טבלת מלכי השערים</h2>
+                <div id="topScorersList" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="text-align:center; color:var(--text-muted); padding:10px;">טוען נתונים...</div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="playerModalOverlay" class="modal-overlay" onclick="closePlayerCard()">
@@ -273,11 +338,38 @@
     let currentEditingImg = null; 
     let activeTeams = null; 
     let activeGkIds = [null, null, null]; 
-    let activeWins = [0, 0, 0]; // משתנה למעקב אחרי ניצחונות בערב הנוכחי
+    let activeWins = [0, 0, 0];
     
+    // --- פונקציית מעבר טאבים ---
+    function switchTab(tabId, btnElement) {
+        // ניקוי מצב פעיל מכל הכפתורים
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        // הדלקת הכפתור הנבחר
+        btnElement.classList.add('active');
+        
+        // הסתרת כל הטאבים
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        // הצגת הטאב המבוקש
+        document.getElementById(tabId).classList.add('active');
+        
+        // גלילה למעלה בעת החלפת טאב (אופציונלי)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // טיפול בכפתור המנהל הצף כדי שלא יסתיר תוכן בטאב מלכי השערים
+        const bottomBar = document.getElementById('adminBottomBar');
+        if (bottomBar) {
+            bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
+        }
+    }
+
     function promptAdmin() { 
         if(prompt("קוד גישה:") === "1946") { 
-            document.getElementById('mainBody').classList.add('is-admin'); 
+            document.body.classList.add('is-admin'); 
+            const bottomBar = document.getElementById('adminBottomBar');
+            // מראה את הכפתור למטה רק אם אנחנו בטאב הראשי
+            if (bottomBar && document.getElementById('tab-main').classList.contains('active')) {
+                bottomBar.style.display = 'block';
+            }
             render(); 
         } 
     }
@@ -285,7 +377,6 @@
     db.collection("players").orderBy("name").onSnapshot(snap => {
         players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         render();
-        // ריענון המגרש החי למקרה שהתווסף גול לשחקן
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeWins);
     });
 
@@ -307,7 +398,7 @@
         if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } 
         else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } 
         else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } 
-        else { r=6; g=182; b=212; hex='#06B6D4'; } // תכלת יהלום
+        else { r=6; g=182; b=212; hex='#06B6D4'; } 
         
         return { 
             hex: hex, bg: `rgba(${r}, ${g}, ${b}, 0.15)`, 
@@ -383,7 +474,7 @@
             cancelEdit();
         } else {
             playerData.inLineup = false;
-            playerData.goals = 0; // אתחול גולים
+            playerData.goals = 0; 
             await db.collection("players").add(playerData);
             document.getElementById('pName').value = ''; 
             document.getElementById('pImage').value = '';
@@ -510,9 +601,6 @@
         document.getElementById('playerModalOverlay').style.display = 'none';
     }
 
-    // --- פונקציות הניהול החדשות לסטטיסטיקה של הערב ---
-    
-    // עדכון גולים לשחקן מסוים (הנתון נשמר בפרופיל שלו לתמיד!)
     async function updatePlayerGoal(id, delta) {
         try {
             const pRef = db.collection("players").doc(id);
@@ -525,7 +613,6 @@
         } catch(e) { console.error("שגיאה בעדכון גול:", e); }
     }
 
-    // עדכון ניצחונות לקבוצה (הנתון נשמר רק למשחק הנוכחי של הערב)
     async function updateTeamWin(index, delta) {
         if(!activeTeams) return;
         try {
@@ -536,10 +623,43 @@
         } catch(e) { console.error("שגיאה בעדכון ניצחון:", e); }
     }
 
+    // --- עיבוד טבלת מלכי השערים בטאב הנפרד ---
+    function renderTopScorers() {
+        const container = document.getElementById('topScorersList');
+        if (!container) return;
+        
+        // סינון שחקנים עם לפחות גול אחד ומיון מהגבוה לנמוך
+        const scorers = players
+            .filter(p => p.goals && p.goals > 0)
+            .sort((a, b) => b.goals - a.goals);
+            // אם רוצים להגביל לכמות מסוימת, אפשר להוסיף .slice(0, 10) למשל
+
+        if (scorers.length === 0) {
+            container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">עוד לא נכבשו שערים העונה ⚽<br><span style="font-size:0.8rem;">הגולים יתעדכנו כאן בזמן אמת!</span></div>`;
+            return;
+        }
+
+        container.innerHTML = scorers.map((p, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            return `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-weight: 900; width: 20px; color: ${index < 3 ? 'var(--primary-color)' : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>
+                        ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                        <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">${p.name} ${medal}</div>
+                    </div>
+                    <div style="background: ${index === 0 ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)'}; color: #fff; padding: 6px 14px; border-radius: 20px; font-weight: 900; font-size: 1.05rem;">
+                        ${p.goals} שערים
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
     function render() {
         const squadList = document.getElementById('squadList');
         const lineupGrid = document.getElementById('lineupGrid');
-        const isAdmin = document.getElementById('mainBody').classList.contains('is-admin');
+        const isAdmin = document.body.classList.contains('is-admin');
         
         squadList.innerHTML = players.map(p => `
             <div class="squad-item">
@@ -586,6 +706,8 @@
             badge.classList.remove('ready');
             document.getElementById('calcBtn').disabled = true;
         }
+
+        renderTopScorers();
     }
 
     async function run() {
@@ -623,7 +745,6 @@
             return tempRoles['שוער'].id;
         });
 
-        // איפוס ניצחונות כשמחשבים קבוצות מחדש
         await db.collection("game").doc("current").set({ 
             team1: best[0], team2: best[1], team3: best[2], gkIds: defaultGks, teamWins: [0, 0, 0],
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -676,7 +797,7 @@
         const renderPitchCard = (p, icon, roleName) => {
             const defC = getColorStyles(p.defScore);
             const attC = getColorStyles(p.attScore);
-            const liveP = players.find(x => x.id === p.id) || p; // מושך נתונים עדכניים (כמו גולים)
+            const liveP = players.find(x => x.id === p.id) || p; 
             
             return `
             <div class="pitch-player">
@@ -762,10 +883,8 @@
         const resultsDiv = document.getElementById('results');
         const shareButtonsBox = document.getElementById('shareButtonsBox');
         
-        // מעלים את תיבת הכפתורים התחתונה
         shareButtonsBox.style.display = 'none';
         
-        // טריק שמכבה את מצב הניהול זמנית כדי להעלים את כפתורי ה-+/- והחלפת שוער
         const wasAdmin = document.body.classList.contains('is-admin');
         document.body.classList.remove('is-admin');
         
@@ -777,7 +896,6 @@
         try {
             const canvas = await html2canvas(resultsDiv, { scale: 2, useCORS: true, backgroundColor: '#1E293B' });
             
-            // החזרת המצב לקדמותו
             shareButtonsBox.style.display = 'block';
             if (wasAdmin) document.body.classList.add('is-admin');
             resultsDiv.style.backgroundColor = originalBg;
