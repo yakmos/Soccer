@@ -49,13 +49,12 @@
         h1 { font-weight: 800; font-size: 1.2rem; margin: 0; }
         .admin-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; padding: 5px; }
 
-        /* ניווט טאבים */
         .tabs-nav {
             display: flex;
             background: var(--surface-color);
             border-bottom: 1px solid var(--border-color);
             position: sticky;
-            top: 57px; /* יושב ישר מתחת להדר */
+            top: 57px;
             z-index: 90;
         }
         .tab-btn {
@@ -101,7 +100,6 @@
         .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
         .form-input:focus { border-color: var(--primary-color); outline: none; }
         
-        /* תמונות */
         .avatar-list { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.05); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
         .avatar-chip { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;}
         .avatar-pitch { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.1); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
@@ -145,7 +143,6 @@
 
         .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; display: none;}
         
-        /* הצגת כפתור החלוקה רק בטאב המשחק כשהמשתמש הוא אדמין */
         body.is-admin .tab-content.active #tab-main-content .bottom-bar-wrapper { display: block; }
         .bottom-bar-wrapper { display: none; }
 
@@ -181,7 +178,6 @@
         .pitch-player-stats { font-size: 0.75rem; font-weight: 800; margin: 3px 0; letter-spacing: 0.5px; display: flex; gap: 6px; }
         .pitch-role { display: block; font-size: 0.7rem; color: #10B981; margin-top: 2px; font-weight: 500; }
 
-        /* כפתורי פלוס מינוס לגולים וניצחונות */
         .stat-ticker { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
         .ticker-val { font-size: 0.85rem; color: #FCD34D; font-weight: 900; }
         .ticker-btn { display: none; background: rgba(255,255,255,0.15); border: none; color: white; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;}
@@ -189,7 +185,6 @@
         .ticker-btn:active { background: var(--primary-color); transform: scale(0.9); }
         .team-ticker { background: rgba(255,215,0,0.1); padding: 4px 8px; border-radius: 8px; margin: 0; }
 
-        /* חלון קופץ - כרטיס שחקן אישי */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
@@ -339,23 +334,14 @@
     let activeTeams = null; 
     let activeGkIds = [null, null, null]; 
     let activeWins = [0, 0, 0];
+    let scrollToTeamsFlag = false; // דגל שמונע גלילה למטה סתם ככה
     
-    // --- פונקציית מעבר טאבים ---
     function switchTab(tabId, btnElement) {
-        // ניקוי מצב פעיל מכל הכפתורים
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        // הדלקת הכפתור הנבחר
         btnElement.classList.add('active');
-        
-        // הסתרת כל הטאבים
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        // הצגת הטאב המבוקש
         document.getElementById(tabId).classList.add('active');
-        
-        // גלילה למעלה בעת החלפת טאב (אופציונלי)
         window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // טיפול בכפתור המנהל הצף כדי שלא יסתיר תוכן בטאב מלכי השערים
         const bottomBar = document.getElementById('adminBottomBar');
         if (bottomBar) {
             bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
@@ -366,7 +352,6 @@
         if(prompt("קוד גישה:") === "1946") { 
             document.body.classList.add('is-admin'); 
             const bottomBar = document.getElementById('adminBottomBar');
-            // מראה את הכפתור למטה רק אם אנחנו בטאב הראשי
             if (bottomBar && document.getElementById('tab-main').classList.contains('active')) {
                 bottomBar.style.display = 'block';
             }
@@ -487,16 +472,13 @@
         currentEditingImg = p.imgUrl || null;
         document.getElementById('formTitle').innerText = "עריכת שחקן: " + p.name;
         document.getElementById('pName').value = p.name;
-        
         document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
         document.getElementById('pImage').value = '';
-
         document.getElementById('pFin').value = p.fin || 5; document.getElementById('pDri').value = p.dri || 5;
         document.getElementById('pPac').value = p.pac || 5; document.getElementById('pVis').value = p.vis || 5;
         document.getElementById('pPos').value = p.pos || 5; document.getElementById('pTac').value = p.tac || 5;
         document.getElementById('pAwa').value = p.awa || 5; document.getElementById('pStr').value = p.str || 5;
         document.getElementById('pSta').value = p.sta || 5; document.getElementById('pCom').value = p.com || 5;
-        
         document.getElementById('saveBtn').innerText = "עדכן נתונים";
         document.getElementById('cancelBtn').style.display = "block";
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -623,22 +605,16 @@
         } catch(e) { console.error("שגיאה בעדכון ניצחון:", e); }
     }
 
-    // --- עיבוד טבלת מלכי השערים בטאב הנפרד ---
     function renderTopScorers() {
         const container = document.getElementById('topScorersList');
         if (!container) return;
-        
-        // סינון שחקנים עם לפחות גול אחד ומיון מהגבוה לנמוך
         const scorers = players
             .filter(p => p.goals && p.goals > 0)
             .sort((a, b) => b.goals - a.goals);
-            // אם רוצים להגביל לכמות מסוימת, אפשר להוסיף .slice(0, 10) למשל
-
         if (scorers.length === 0) {
             container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">עוד לא נכבשו שערים העונה ⚽<br><span style="font-size:0.8rem;">הגולים יתעדכנו כאן בזמן אמת!</span></div>`;
             return;
         }
-
         container.innerHTML = scorers.map((p, index) => {
             const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
             return `
@@ -657,6 +633,8 @@
     }
 
     function render() {
+        const currentScrollPos = window.scrollY;
+
         const squadList = document.getElementById('squadList');
         const lineupGrid = document.getElementById('lineupGrid');
         const isAdmin = document.body.classList.contains('is-admin');
@@ -690,7 +668,7 @@
                         ${getColoredBadge('🛡️', p.defScore)}
                         ${getColoredBadge('🎯', p.attScore)}
                     </div>
-                    ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); deletePlayer('${p.id}')">✕</div>` : ''}
+                    ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}
                 </div>
             `).join('');
         }
@@ -698,7 +676,6 @@
         const count = lineupPlayers.length;
         const badge = document.getElementById('counterBadge');
         badge.innerText = `${count} / 18`;
-        
         if(count === 18) {
             badge.classList.add('ready');
             document.getElementById('calcBtn').disabled = false;
@@ -706,45 +683,42 @@
             badge.classList.remove('ready');
             document.getElementById('calcBtn').disabled = true;
         }
-
         renderTopScorers();
+
+        window.scrollTo(0, currentScrollPos);
     }
 
     async function run() {
         const lineup = players.filter(p => p.inLineup);
         if(lineup.length !== 18) return alert("צריך בדיוק 18 שחקנים בהרכב.");
-
+        
+        // מדליקים את הדגל רק כשהמשתמש באמת מבקש לחלק לקבוצות
+        scrollToTeamsFlag = true; 
+        
         let sortedLineup = [...lineup].sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
         let attackers = sortedLineup.slice(0, 9);
         let defenders = sortedLineup.slice(9, 18);
-
         let best = null, min = Infinity;
-        
         for(let i=0; i<5000; i++) {
             const shufAtt = [...attackers].sort(() => 0.5 - Math.random());
             const shufDef = [...defenders].sort(() => 0.5 - Math.random());
-            
             const teams = [
                 [...shufAtt.slice(0,3), ...shufDef.slice(0,3)],
                 [...shufAtt.slice(3,6), ...shufDef.slice(3,6)],
                 [...shufAtt.slice(6,9), ...shufDef.slice(6,9)]
             ];
-            
             const scores = teams.map(t => {
                 const tempRoles = assignRoles(t, null);
                 const gkId = tempRoles['שוער'].id;
                 return t.filter(p => p.id !== gkId).reduce((s, p) => s + (p.defScore||5) + (p.attScore||5), 0);
             });
-            
             const diff = Math.max(...scores) - Math.min(...scores);
             if(diff < min) { min = diff; best = teams; }
         }
-        
         let defaultGks = best.map(t => {
             let tempRoles = assignRoles(t, null); 
             return tempRoles['שוער'].id;
         });
-
         await db.collection("game").doc("current").set({ 
             team1: best[0], team2: best[1], team3: best[2], gkIds: defaultGks, teamWins: [0, 0, 0],
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -765,7 +739,6 @@
     function assignRoles(team, forcedGkId) {
         let pool = [...team];
         let roles = {};
-
         let gkIndex = -1;
         if (forcedGkId) {
             gkIndex = pool.findIndex(p => p.id === forcedGkId);
@@ -776,16 +749,13 @@
             pool.sort((a, b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
             roles['שוער'] = pool.shift();
         }
-
         pool.sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
         roles['חלוץ ימין'] = pool.shift();
         roles['חלוץ שמאל'] = pool.shift();
-
         pool.sort((a, b) => (a.sta||5) - (b.sta||5));
         roles['בלם'] = pool.shift();
         roles['מגן ימין'] = pool.shift();
         roles['מגן שמאל'] = pool.shift();
-
         return roles;
     }
 
@@ -798,39 +768,32 @@
             const defC = getColorStyles(p.defScore);
             const attC = getColorStyles(p.attScore);
             const liveP = players.find(x => x.id === p.id) || p; 
-            
             return `
             <div class="pitch-player">
                 ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
                 <div style="margin-top:4px;">${p.name}</div>
-                
                 <div class="pitch-player-stats">
                     <span style="color:${defC.text};">🛡️${p.defScore||5}</span> 
                     <span style="color:${attC.text};">🎯${p.attScore||5}</span>
                 </div>
-                
                 <div class="stat-ticker">
                     <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button>
                     <span class="ticker-val">⚽ ${liveP.goals || 0}</span>
                     <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button>
                 </div>
-                
                 <span class="pitch-role">${icon} ${roleName}</span>
             </div>
             `;
         };
 
         let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
-        
         content += teams.map((t, i) => {
             const roles = assignRoles(t, gkIds ? gkIds[i] : null);
             const gkId = roles['שוער'].id;
-            
             const fieldPlayers = t.filter(p => p.id !== gkId);
             let defTotal = fieldPlayers.reduce((sum, p) => sum + (p.defScore || 5), 0).toFixed(1);
             let attTotal = fieldPlayers.reduce((sum, p) => sum + (p.attScore || 5), 0).toFixed(1);
             let overallTotal = (parseFloat(defTotal) + parseFloat(attTotal)).toFixed(1);
-            
             return `
             <div class="team-row">
                 <div class="team-header ${classes[i]}">
@@ -863,51 +826,40 @@
             </div>
             `;
         }).join('');
-        
-        content += "</div>"; 
-        
-        content += `
-        <div id="shareButtonsBox" style="margin-top:20px;">
-            <button class="btn btn-whatsapp" onclick="shareImageToWhatsApp()">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                שתף תמונה ל-WhatsApp 📸
-            </button>
-        </div>`;
-
+        content += "</div><div id='shareButtonsBox' style='margin-top:20px;'><button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'><svg viewBox='0 0 24 24' width='20' height='20' fill='currentColor'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z'/></svg> שתף תמונה ל-WhatsApp 📸</button></div>";
         r.innerHTML = content;
         r.style.display = 'block';
-        setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+
+        // הגלילה תקרה *רק* אם לחצו על כפתור חלוקת הקבוצות
+        if (scrollToTeamsFlag) {
+            setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100);
+            scrollToTeamsFlag = false; // מכבים את הדגל מיד אחרי הגלילה
+        }
     }
 
     async function shareImageToWhatsApp() {
         const resultsDiv = document.getElementById('results');
         const shareButtonsBox = document.getElementById('shareButtonsBox');
-        
         shareButtonsBox.style.display = 'none';
-        
         const wasAdmin = document.body.classList.contains('is-admin');
         document.body.classList.remove('is-admin');
-        
         const originalBg = resultsDiv.style.backgroundColor;
         resultsDiv.style.backgroundColor = '#1E293B'; 
         resultsDiv.style.padding = '20px';
         resultsDiv.style.borderRadius = '16px';
-
         try {
             const canvas = await html2canvas(resultsDiv, { scale: 2, useCORS: true, backgroundColor: '#1E293B' });
-            
             shareButtonsBox.style.display = 'block';
             if (wasAdmin) document.body.classList.add('is-admin');
             resultsDiv.style.backgroundColor = originalBg;
             resultsDiv.style.padding = '0';
-
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], "lineups.png", { type: "image/png" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    try { await navigator.share({ files: [file], title: 'תוצאות הערב', text: '⚽ קבוצות הערב - תוצאות לייב!' }); } catch (err) {}
+                    try { await navigator.share({ files: [file], title: 'תוצאות הערב', text: '⚽ קבוצות הערב!' }); } catch (err) {}
                 } else {
                     const link = document.createElement('a'); link.download = 'הרכבים.png'; link.href = canvas.toDataURL('image/png'); link.click();
-                    alert('התמונה ירדה למכשיר! כעת תוכל לגרור/לשלוח אותה בוואטסאפ.');
+                    alert('התמונה ירדה! שתף אותה בוואטסאפ.');
                 }
             });
         } catch (e) {
@@ -915,14 +867,14 @@
             if (wasAdmin) document.body.classList.add('is-admin');
             resultsDiv.style.backgroundColor = originalBg;
             resultsDiv.style.padding = '0';
-            alert('הייתה בעיה ביצירת התמונה, נסה שוב.');
+            alert('שגיאה ביצירת התמונה.');
         }
     }
 
     function shareGlobalVoteLink() {
         const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
         const voteUrl = `${baseUrl}vote.html`;
-        const text = `⚽ *חברים, פורטל הדירוגים נפתח!* ⚽\n\nכנסו עכשיו כדי לדרג את הביצועים של כל החבר'ה בסגל. הציונים שלכם קובעים את חלוקת הכוחות.\n\nלהצבעה לחצו כאן:\n${voteUrl}`;
+        const text = `⚽ *חברים, פורטל הדירוגים נפתח!* ⚽\n\nכנסו לדרג:\n${voteUrl}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }
 </script>
