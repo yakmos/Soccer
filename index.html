@@ -61,8 +61,8 @@
             position: sticky; top: 57px; z-index: 90;
         }
         .tab-btn {
-            flex: 1; padding: 15px 10px; text-align: center; background: none; border: none;
-            color: var(--text-muted); font-size: 1rem; font-weight: 800; cursor: pointer;
+            flex: 1; padding: 15px 5px; text-align: center; background: none; border: none;
+            color: var(--text-muted); font-size: 0.95rem; font-weight: 800; cursor: pointer;
             border-bottom: 3px solid transparent; transition: 0.3s; font-family: 'Heebo', sans-serif;
         }
         .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
@@ -177,6 +177,12 @@
         .stat-bar-fill { height: 100%; border-radius: 4px; }
         .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 1rem; }
         .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
+
+        /* עיצוב לבורר הדירוגים */
+        .lb-toggle-container { display: flex; background: var(--bg-color); border-radius: 12px; padding: 6px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .lb-toggle-btn { flex: 1; padding: 12px; text-align: center; background: transparent; border: none; color: var(--text-muted); font-weight: 800; font-size: 1.05rem; border-radius: 8px; cursor: pointer; transition: 0.3s; font-family: 'Heebo', sans-serif; }
+        .lb-toggle-btn.active-att { background: rgba(239, 68, 68, 0.15); color: var(--att-color); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);}
+        .lb-toggle-btn.active-def { background: rgba(59, 130, 246, 0.15); color: var(--def-color); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);}
     </style>
 </head>
 <body id="mainBody">
@@ -204,6 +210,7 @@
     <div id="appContainer" style="display:none;">
         <div class="tabs-nav">
             <button class="tab-btn active" onclick="switchTab('tab-main', this)">משחק נוכחי</button>
+            <button class="tab-btn" onclick="switchTab('tab-leaderboards', this)">דירוגים 📊</button>
             <button class="tab-btn" onclick="switchTab('tab-scorers', this)">מלכי השערים 🏆</button>
         </div>
 
@@ -267,6 +274,22 @@
                             <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div id="tab-leaderboards" class="tab-content">
+                
+                <div class="lb-toggle-container">
+                    <button id="lb-btn-att" class="lb-toggle-btn active-att" onclick="switchLB('att')">🎯 טופ התקפה</button>
+                    <button id="lb-btn-def" class="lb-toggle-btn" onclick="switchLB('def')">🛡️ טופ הגנה</button>
+                </div>
+
+                <div class="card" id="lb-card-att" style="border-top-width: 4px; border-top-color: var(--att-color);">
+                    <div id="topAttackersList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                </div>
+                
+                <div class="card" id="lb-card-def" style="border-top-width: 4px; border-top-color: var(--def-color); display: none;">
+                    <div id="topDefendersList" style="display: flex; flex-direction: column; gap: 10px;"></div>
                 </div>
             </div>
 
@@ -361,7 +384,6 @@
                     groupPassword = groupData.password;
                     document.getElementById('headerTitle').innerText = `⚽ ${groupData.name}`;
                     
-                    // טעינת הגדרות אם יש
                     if (groupData.settings) {
                         groupSettings.numTeams = groupData.settings.numTeams || 3;
                         groupSettings.playersPerTeam = groupData.settings.playersPerTeam || 6;
@@ -399,7 +421,7 @@
         
         await groupRef.update({ settings: groupSettings });
         closeSettingsModal();
-        render(); // כדי לעדכן את התצוגה של מונה השחקנים המותר
+        render(); 
         alert('ההגדרות נשמרו בהצלחה!');
     }
 
@@ -453,7 +475,6 @@
                 activeWins = data.teamWins || activeTeams.map(() => 0);
                 displayTeams(activeTeams, activeGkIds, activeWins);
             } else if (snap.exists && snap.data().team1) {
-                // תמיכה בגרסה הישנה אם יש משחק פתוח
                 const data = snap.data();
                 activeTeams = [data.team1, data.team2, data.team3].filter(Boolean);
                 activeGkIds = data.gkIds || activeTeams.map(() => null);
@@ -465,6 +486,7 @@
         });
     }
 
+    // מעבר בין טאבים ראשיים
     function switchTab(tabId, btnElement) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
@@ -474,6 +496,26 @@
         const bottomBar = document.getElementById('adminBottomBar');
         if (bottomBar) {
             bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
+        }
+    }
+
+    // מעבר בין טבלת התקפה להגנה בתוך הטאב
+    function switchLB(type) {
+        const btnAtt = document.getElementById('lb-btn-att');
+        const btnDef = document.getElementById('lb-btn-def');
+        const cardAtt = document.getElementById('lb-card-att');
+        const cardDef = document.getElementById('lb-card-def');
+
+        if (type === 'att') {
+            btnAtt.classList.add('active-att');
+            btnDef.classList.remove('active-def');
+            cardAtt.style.display = 'block';
+            cardDef.style.display = 'none';
+        } else {
+            btnDef.classList.add('active-def');
+            btnAtt.classList.remove('active-att');
+            cardDef.style.display = 'block';
+            cardAtt.style.display = 'none';
         }
     }
 
@@ -656,6 +698,41 @@
         }).join('');
     }
 
+    function renderLeaderboards() {
+        const attContainer = document.getElementById('topAttackersList');
+        const defContainer = document.getElementById('topDefendersList');
+        if (!attContainer || !defContainer) return;
+
+        const sortedAtt = [...players].sort((a, b) => (b.attScore || 5) - (a.attScore || 5));
+        const sortedDef = [...players].sort((a, b) => (b.defScore || 5) - (a.defScore || 5));
+
+        const buildList = (list, type) => {
+            if (list.length === 0) return `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`;
+            return list.map((p, index) => {
+                const score = type === 'att' ? (p.attScore || 5) : (p.defScore || 5);
+                const icon = type === 'att' ? '🎯' : '🛡️';
+                const colorClass = type === 'att' ? 'var(--att-color)' : 'var(--def-color)';
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-weight: 900; width: 20px; color: ${index < 3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>
+                            ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                            <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">${p.name} ${medal}</div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); color: ${colorClass}; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 1rem; border: 1px solid ${colorClass};">
+                            ${icon} ${score}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        attContainer.innerHTML = buildList(sortedAtt, 'att');
+        defContainer.innerHTML = buildList(sortedDef, 'def');
+    }
+
     function render() {
         const currentScrollPos = window.scrollY;
         const squadList = document.getElementById('squadList');
@@ -703,10 +780,11 @@
         }
         
         renderTopScorers();
+        renderLeaderboards(); 
+        
         requestAnimationFrame(() => { window.scrollTo(0, currentScrollPos); });
     }
 
-    // --- אלגוריתם חלוקה חכם ודינמי ---
     async function run() {
         const lineup = players.filter(p => p.inLineup);
         const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
@@ -730,7 +808,6 @@
             
             const teams = Array.from({length: groupSettings.numTeams}, () => []);
             
-            // פיזור שחקני התקפה והגנה שווה בשווה בין הקבוצות
             let attIdx = 0, defIdx = 0;
             for (let j = 0; j < groupSettings.numTeams; j++) {
                 let teamAttCount = Math.floor(attackersCount / groupSettings.numTeams) + (j < attackersCount % groupSettings.numTeams ? 1 : 0);
@@ -774,11 +851,9 @@
         await gameRef.update({ gkIds: newGkIds });
     }
 
-    // הקצאת תפקידים דינמית לפי כמות השחקנים בקבוצה
     function assignRoles(team, forcedGkId) {
         let pool = [...team]; let roles = {}; 
         
-        // בחירת שוער
         let gkIndex = -1;
         if (forcedGkId) { gkIndex = pool.findIndex(p => p.id === forcedGkId); }
         if (gkIndex !== -1) { roles['שוער'] = pool.splice(gkIndex, 1)[0]; } 
@@ -786,13 +861,11 @@
         
         pool.sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
         
-        // אם זה בדיוק 6, נשתמש בתפקידים הקלאסיים שלך
         if (groupSettings.playersPerTeam === 6) {
             roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift();
             pool.sort((a, b) => (a.sta||5) - (b.sta||5));
             roles['בלם'] = pool.shift(); roles['מגן ימין'] = pool.shift(); roles['מגן שמאל'] = pool.shift();
         } else {
-            // אם זה כמות אחרת (למשל 5x5 או 7x7), תפקידים כלליים
             let half = Math.ceil(pool.length / 2);
             for(let i=0; i<half; i++) { if(pool.length > 0) roles['התקפה ' + (i+1)] = pool.shift(); }
             let defCount = 1;
@@ -822,7 +895,6 @@
             let attTotal = fieldPlayers.reduce((sum, p) => sum + (p.attScore || 5), 0).toFixed(1); 
             let overallTotal = (parseFloat(defTotal) + parseFloat(attTotal)).toFixed(1);
             
-            // בניית המגרש באופן דינמי
             let pitchRows = '';
             if (roles['שוער']) pitchRows += `<div class="pitch-row">${renderPitchCard(roles['שוער'], '🧤', 'שוער')}</div>`;
             
