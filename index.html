@@ -357,7 +357,6 @@
     let gameRef = null;        
     let groupPassword = null;  
     
-    // הגדרות ברירת מחדל
     let groupSettings = { numTeams: 3, playersPerTeam: 6 };
 
     let players = [];
@@ -368,7 +367,7 @@
     let activeWins = [];
     let scrollToTeamsFlag = false;
 
-    // --- אתחול האפליקציה ---
+    // --- אתחול ---
     window.onload = async () => {
         if (!currentGroupId) {
             document.getElementById('lobbyContainer').style.display = 'block';
@@ -405,7 +404,6 @@
         }
     };
 
-    // --- חלון הגדרות ---
     function openSettingsModal() {
         document.getElementById('setNumTeams').value = groupSettings.numTeams;
         document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
@@ -429,7 +427,6 @@
         alert('ההגדרות נשמרו בהצלחה!');
     }
 
-    // --- יצירת קבוצה ---
     async function createNewGroup() {
         const nameInput = document.getElementById('newGroupName').value.trim();
         const passInput = document.getElementById('newGroupPassword').value.trim();
@@ -472,15 +469,16 @@
         });
 
         gameRef.onSnapshot(snap => {
-            if(snap.exists && snap.data().teams) {
+            // קריאת הקבוצות באופן דינמי שמונע "Nested Arrays Error"
+            if (snap.exists && snap.data().team1) {
                 const data = snap.data();
-                activeTeams = data.teams;
-                activeGkIds = data.gkIds || activeTeams.map(() => null);
-                activeWins = data.teamWins || activeTeams.map(() => 0);
-                displayTeams(activeTeams, activeGkIds, activeWins);
-            } else if (snap.exists && snap.data().team1) {
-                const data = snap.data();
-                activeTeams = [data.team1, data.team2, data.team3].filter(Boolean);
+                let loadedTeams = [];
+                let idx = 1;
+                while(data[`team${idx}`]) {
+                    loadedTeams.push(data[`team${idx}`]);
+                    idx++;
+                }
+                activeTeams = loadedTeams;
                 activeGkIds = data.gkIds || activeTeams.map(() => null);
                 activeWins = data.teamWins || activeTeams.map(() => 0);
                 displayTeams(activeTeams, activeGkIds, activeWins);
@@ -490,7 +488,6 @@
         });
     }
 
-    // מעבר בין טאבים ראשיים
     function switchTab(tabId, btnElement) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         btnElement.classList.add('active');
@@ -682,37 +679,26 @@
         }).join('');
     }
 
-    // פונקציית רינדור הדירוגים הדינמית
     function renderLeaderboards() {
         const listContainer = document.getElementById('dynamicLeaderboardList');
         const selector = document.getElementById('statSelector');
         if (!listContainer || !selector) return;
 
         const statKey = selector.value;
-        const statName = selector.options[selector.selectedIndex].text;
-
-        // התאמת צבעים לפי סוג המדד שבחרנו
         let colorClass = 'var(--primary-color)';
-        if (['attScore', 'fin', 'dri', 'pac', 'vis', 'pos'].includes(statKey)) {
-            colorClass = 'var(--att-color)';
-        } else if (['defScore', 'tac', 'awa', 'str', 'sta', 'com'].includes(statKey)) {
-            colorClass = 'var(--def-color)';
-        }
+        if (['attScore', 'fin', 'dri', 'pac', 'vis', 'pos'].includes(statKey)) { colorClass = 'var(--att-text)'; } 
+        else if (['defScore', 'tac', 'awa', 'str', 'sta', 'com'].includes(statKey)) { colorClass = 'var(--def-text)'; }
 
-        // מיון השחקנים לפי המדד הנבחר בסדר יורד
         const sortedPlayers = [...players].sort((a, b) => (b[statKey] || 5) - (a[statKey] || 5));
 
         if (sortedPlayers.length === 0) {
-            listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`;
-            return;
+            listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`; return;
         }
 
         listContainer.innerHTML = sortedPlayers.map((p, index) => {
             const score = p[statKey] || 5;
-            // מציג עשרוני לממוצעים הכלליים, ומספר שלם למדדים ספציפיים
             const formattedScore = Number.isInteger(score) ? score : score.toFixed(1);
             const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-            
             return `
                 <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
                     <div style="display: flex; align-items: center; gap: 12px;">
@@ -830,12 +816,19 @@
             return tempRoles['שוער'] ? tempRoles['שוער'].id : null; 
         });
         
-        await gameRef.set({ 
-            teams: best, 
+        // השמירה החדשה - הדינמית (פותרת את שגיאת Firebase DocumentReference.set)
+        let gameData = {
             gkIds: defaultGks, 
             teamWins: Array(groupSettings.numTeams).fill(0), 
-            timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        // מוסיף באופן שטוח את הקבוצות (team1, team2, team3...)
+        best.forEach((teamArr, idx) => {
+            gameData[`team${idx + 1}`] = teamArr;
         });
+        
+        await gameRef.set(gameData);
     }
 
     async function rotateGk(teamIndex) {
