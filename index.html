@@ -343,11 +343,11 @@
         storageBucket: "soccer-b30a6.firebasestorage.app",
         messagingSenderId: "295483280442",
         appId: "1:295483280442:web:0633390394600eb6357903",
-        measurementId: "G-425XRT1EVL" //
+        measurementId: "G-425XRT1EVL"
     };
 
     firebase.initializeApp(firebaseConfig);
-    firebase.analytics(); //
+    firebase.analytics(); // הפעלת אנליטיקס
     const db = firebase.firestore();
     
     // --- משתני מערכת ---
@@ -443,6 +443,12 @@
                 settings: { numTeams: 3, playersPerTeam: 6 },
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            // אנליטיקס: דיווח על יצירת קבוצה חדשה
+            firebase.analytics().logEvent('create_new_group', {
+                group_name: nameInput
+            });
+
             alert('הקבוצה נוצרה בהצלחה! שמור את הקישור הזה והעבר אותו לחברים.');
             window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
         } catch (error) {
@@ -771,36 +777,29 @@
         const lineup = players.filter(p => p.inLineup);
         const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
         
-        if(lineup.length !== totalNeeded) return alert(`צריך בדיוק ${totalNeeded} שחקנים בהרכב כדי לחלק ל-${groupSettings.numTeams} קבוצות.`);
+        if(lineup.length !== totalNeeded) {
+            return alert(`צריך בדיוק ${totalNeeded} שחקנים בהרכב כדי לחלק ל-${groupSettings.numTeams} קבוצות של ${groupSettings.playersPerTeam}.`);
+        }
         
         scrollToTeamsFlag = true; 
         
-        let sortedLineup = [...lineup].sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
-        let attackersCount = Math.floor(totalNeeded / 2);
-        let defendersCount = totalNeeded - attackersCount;
-
-        let attackers = sortedLineup.slice(0, attackersCount); 
-        let defenders = sortedLineup.slice(attackersCount, totalNeeded);
+        // מיון כללי לפי כוח (התקפה + הגנה) כדי שנוכל לחלק בצורה מאוזנת
+        let sortedLineup = [...lineup].sort((a, b) => 
+            ((b.attScore || 5) + (b.defScore || 5)) - ((a.attScore || 5) + (a.defScore || 5))
+        );
         
         let best = null, min = Infinity;
         
-        for(let i=0; i<5000; i++) {
-            const shufAtt = [...attackers].sort(() => 0.5 - Math.random()); 
-            const shufDef = [...defenders].sort(() => 0.5 - Math.random());
-            
+        // הרצת סימולציות למציאת האיזון הטוב ביותר
+        for(let i = 0; i < 5000; i++) {
             const teams = Array.from({length: groupSettings.numTeams}, () => []);
+            const tempLineup = [...sortedLineup].sort(() => 0.5 - Math.random()); // ערבוב אקראי
             
-            let attIdx = 0, defIdx = 0;
-            for (let j = 0; j < groupSettings.numTeams; j++) {
-                let teamAttCount = Math.floor(attackersCount / groupSettings.numTeams) + (j < attackersCount % groupSettings.numTeams ? 1 : 0);
-                let teamDefCount = Math.floor(defendersCount / groupSettings.numTeams) + (j < defendersCount % groupSettings.numTeams ? 1 : 0);
-
-                teams[j].push(...shufAtt.slice(attIdx, attIdx + teamAttCount));
-                attIdx += teamAttCount;
-
-                teams[j].push(...shufDef.slice(defIdx, defIdx + teamDefCount));
-                defIdx += teamDefCount;
-            }
+            // חלוקת שחקנים לקבוצות בצורה שיוונית (Snake Draft)
+            tempLineup.forEach((player, index) => {
+                const teamIndex = index % groupSettings.numTeams;
+                teams[teamIndex].push(player);
+            });
 
             const scores = teams.map(t => { 
                 const tempRoles = assignRoles(t, null); 
@@ -809,9 +808,19 @@
             });
             
             const diff = Math.max(...scores) - Math.min(...scores);
-            if(diff < min) { min = diff; best = teams; }
+            if(diff < min) { 
+                min = diff; 
+                best = teams; 
+            }
         }
         
+        // אנליטיקס: דיווח על יצירת חלוקת קבוצות
+        firebase.analytics().logEvent('generate_teams', {
+            group_name: document.getElementById('headerTitle').innerText,
+            num_teams: groupSettings.numTeams,
+            players_per_team: groupSettings.playersPerTeam
+        });
+
         let defaultGks = best.map(t => { 
             let tempRoles = assignRoles(t, null); 
             return tempRoles['שוער'] ? tempRoles['שוער'].id : null; 
