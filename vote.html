@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
     <style>
         :root {
@@ -98,7 +99,7 @@
 
             <h3 class="def-title">🛡️ מדדי הגנה ופיזיות</h3>
             <div class="slider-group"><div class="slider-header"><span>חילוצי כדור ותיקולים</span><span class="val-badge" id="vTac">5</span></div><input type="range" class="def-slider" id="sTac" min="1" max="10" value="5" oninput="document.getElementById('vTac').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('vAwa').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('sAwa').value=this.value; document.getElementById('vAwa').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>פיזיות ועוצמה</span><span class="val-badge" id="vStr">5</span></div><input type="range" class="def-slider" id="sStr" min="1" max="10" value="5" oninput="document.getElementById('vStr').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
@@ -108,29 +109,28 @@
     </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 <script>
     const firebaseConfig = {
-    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
-    authDomain: "soccer-b30a6.firebaseapp.com",
-    projectId: "soccer-b30a6",
-    storageBucket: "soccer-b30a6.firebasestorage.app",
-    messagingSenderId: "295483280442",
-    appId: "1:295483280442:web:0633390394600eb6357903",
-    measurementId: "G-425XRT1EVL" // המזהה שהוספת
-};
+        apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+        authDomain: "soccer-b30a6.firebaseapp.com",
+        projectId: "soccer-b30a6",
+        storageBucket: "soccer-b30a6.firebasestorage.app",
+        messagingSenderId: "295483280442",
+        appId: "1:295483280442:web:0633390394600eb6357903",
+        measurementId: "G-425XRT1EVL"
+    };
     firebase.initializeApp(firebaseConfig);
+    firebase.analytics(); // הפעלת אנליטיקס
     const db = firebase.firestore();
 
-    // --- מערכת קבוצות מרובות ---
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('group');
+    let groupName = "Unknown";
     let playersRef = null;
 
     let playersData = [];
     let currentPlayerId = null;
 
-    // פונקציות עזר לצבעים
     function getColorStyles(val) {
         const v = val || 5;
         let r, g, b, hex;
@@ -138,7 +138,6 @@
         else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } 
         else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } 
         else { r=6; g=182; b=212; hex='#06B6D4'; } 
-        
         return { hex: hex, bg: `rgba(${r}, ${g}, ${b}, 0.15)`, text: hex, border: `rgba(${r}, ${g}, ${b}, 0.3)` };
     }
 
@@ -149,25 +148,24 @@
 
     window.onload = async () => {
         if (!groupId) {
-            showError("לא נמצא מזהה קבוצה בקישור. אנא בקש ממנהל הקבוצה קישור תקין.");
+            showError("לא נמצא מזהה קבוצה בקישור.");
             return;
         }
         
         try {
-            // הבאת שם הקבוצה כדי להציג בכותרת
             const groupDoc = await db.collection('groups').doc(groupId).get();
             if (!groupDoc.exists) {
-                showError("הקבוצה לא נמצאה במסד הנתונים.");
+                showError("הקבוצה לא נמצאה.");
                 return;
             }
-            document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupDoc.data().name} ⚽`;
+            groupName = groupDoc.data().name;
+            document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupName} ⚽`;
             
-            // הגדרת ההפניה לתיקיית השחקנים של הקבוצה הספציפית
             playersRef = db.collection('groups').doc(groupId).collection('players');
             await fetchPlayers();
             
         } catch (error) {
-            showError("שגיאה בהתחברות לשרת. נסה שוב מאוחר יותר.");
+            showError("שגיאה בהתחברות לשרת.");
         }
     };
 
@@ -190,23 +188,16 @@
         }
     }
 
-    function getStorageKey(playerId) {
-        return `voted_${groupId}_${playerId}`;
-    }
-
-    function getDataStorageKey(playerId) {
-        return `voteData_${groupId}_${playerId}`;
-    }
+    function getStorageKey(playerId) { return `voted_${groupId}_${playerId}`; }
+    function getDataStorageKey(playerId) { return `voteData_${groupId}_${playerId}`; }
 
     function renderPortal() {
         const grid = document.getElementById('playersGrid');
         grid.innerHTML = playersData.map(p => {
             const hasVoted = localStorage.getItem(getStorageKey(p.id));
             const votesDisplay = p.votesCount || 1;
-            
             const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
             const borderColor = getColorStyles(avgScore).hex;
-            
             const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">` 
                                     : `<div class="list-avatar" style="border-color:${borderColor}">👤</div>`;
             
@@ -229,19 +220,23 @@
         const p = playersData.find(player => player.id === id);
         if(!p) return;
         currentPlayerId = id;
+
+        // אנליטיקס: דיווח שהתחילו לדרג שחקן מסוים
+        firebase.analytics().logEvent('select_player_to_vote', {
+            player_name: p.name,
+            group_name: groupName,
+            is_edit: !!localStorage.getItem(getStorageKey(id))
+        });
         
         document.getElementById('displayPlayerName').innerText = p.name;
-        
         const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
         const borderColor = getColorStyles(avgScore).hex;
-        
         const avatarHtml = p.imgUrl ? `<img src="${p.imgUrl}" class="vote-avatar" style="border-color:${borderColor}">` 
                                     : `<div class="vote-avatar" style="border-color:${borderColor}">👤</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
         
         const hasVoted = localStorage.getItem(getStorageKey(id));
         const savedVoteRaw = localStorage.getItem(getDataStorageKey(id));
-        
         let defaultVals = {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
         
         if (hasVoted && savedVoteRaw) {
@@ -275,6 +270,7 @@
 
     async function submitVote() {
         if(!currentPlayerId) return;
+        const p = playersData.find(player => player.id === currentPlayerId);
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerText = "שומר ציונים... ⏳";
@@ -295,10 +291,8 @@
             await db.runTransaction(async (transaction) => {
                 const doc = await transaction.get(playerRef);
                 if (!doc.exists) throw "Player does not exist!";
-                
                 const data = doc.data();
                 let totalVotesCount = data.votesCount || 1;
-                
                 let sums = {
                     fin: data.sumFin !== undefined ? data.sumFin : (data.fin || 5),
                     dri: data.sumDri !== undefined ? data.sumDri : (data.dri || 5),
@@ -325,19 +319,11 @@
                     sums.com += (newVotes.com - oldVotes.com);
                 } else {
                     totalVotesCount++;
-                    sums.fin += newVotes.fin;
-                    sums.dri += newVotes.dri;
-                    sums.pac += newVotes.pac;
-                    sums.vis += newVotes.vis;
-                    sums.pos += newVotes.pos;
-                    sums.tac += newVotes.tac;
-                    sums.awa += newVotes.awa;
-                    sums.str += newVotes.str;
-                    sums.sta += newVotes.sta;
+                    sums.fin += newVotes.fin; sums.dri += newVotes.dri; sums.pac += newVotes.pac;
+                    sums.vis += newVotes.vis; sums.pos += newVotes.pos; sums.tac += newVotes.tac;
+                    sums.awa += newVotes.awa; sums.str += newVotes.str; sums.sta += newVotes.sta;
                     sums.com += newVotes.com;
                 }
-
-                for (let key in sums) { if (sums[key] < 0) sums[key] = 0; }
 
                 const newAvgs = {
                     fin: parseFloat((sums.fin / totalVotesCount).toFixed(1)),
@@ -365,21 +351,26 @@
                 });
             });
 
+            // אנליטיקס: דיווח על הצבעה שהושלמה
+            firebase.analytics().logEvent('submit_player_vote', {
+                player_name: p.name,
+                group_name: groupName,
+                final_att_score: parseFloat(((newVotes.fin + newVotes.dri + newVotes.pac + newVotes.vis + newVotes.pos) / 5).toFixed(1)),
+                final_def_score: parseFloat(((newVotes.tac + newVotes.awa + newVotes.str + newVotes.sta + newVotes.com) / 5).toFixed(1))
+            });
+
             localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify(newVotes));
             localStorage.setItem(getStorageKey(currentPlayerId), 'true');
             
             btn.disabled = false;
             btn.innerText = "שלח הצבעה לשחקן 🚀";
-            
-            alert(isEditing ? 'ההצבעה שלך עודכנה בהצלחה! ✏️✔️' : 'ההצבעה נקלטה בהצלחה! ✔️');
+            alert(isEditing ? 'ההצבעה עודכנה! ✔️' : 'ההצבעה נקלטה! ✔️');
             await fetchPlayers();
             backToPortal();
 
         } catch (e) {
-            console.error(e);
-            alert("הייתה שגיאה בשליחת ההצבעה. נסה שוב.");
+            alert("שגיאה בשליחה.");
             btn.disabled = false;
-            btn.innerText = "שלח הצבעה לשחקן 🚀";
         }
     }
 </script>
