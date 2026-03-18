@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול מערכת - Soccer Manager Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #0F172A; --surface: #1E293B; --primary: #10B981;
+            --text: #F8FAFC; --muted: #94A3B8; --danger: #EF4444;
+        }
+        body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; direction: rtl; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: var(--surface); border-radius: 16px; padding: 25px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        h1 { color: var(--primary); text-align: center; font-weight: 900; margin-bottom: 30px; }
+        
+        .form-group { margin-bottom: 15px; }
+        input { 
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; 
+            background: var(--bg); color: white; font-family: 'Heebo'; box-sizing: border-box;
+        }
+        .btn { 
+            padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; 
+            font-weight: bold; font-family: 'Heebo'; transition: 0.2s; width: 100%;
+        }
+        .btn-primary { background: var(--primary); color: white; margin-top: 10px; }
+        .btn-danger { background: var(--danger); color: white; width: auto; padding: 6px 12px; font-size: 0.85rem; }
+        .btn-view { background: #3B82F6; color: white; width: auto; padding: 6px 12px; font-size: 0.85rem; text-decoration: none; border-radius: 8px; }
+
+        #loginOverlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; 
+        }
+        .group-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px; border-bottom: 1px solid #334155;
+        }
+        .group-row:last-child { border-bottom: none; }
+        .group-info { flex: 1; }
+        .group-name { font-weight: 800; font-size: 1.1rem; }
+        .group-meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+        .actions { display: flex; gap: 8px; }
+        .logout-link { color: var(--danger); cursor: pointer; font-size: 0.9rem; display: block; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="card" style="width: 100%; max-width: 400px;">
+        <h2 style="text-align: center; margin-top: 0;">כניסת מנהל 🔒</h2>
+        <div class="form-group">
+            <input type="email" id="adminEmail" placeholder="אימייל מנהל">
+        </div>
+        <div class="form-group">
+            <input type="password" id="adminPass" placeholder="סיסמה">
+        </div>
+        <button class="btn btn-primary" onclick="loginWithEmail()">התחבר למערכת</button>
+    </div>
+</div>
+
+<div class="container" id="adminContent" style="display: none;">
+    <h1>לוח בקרה גלובלי ⚽</h1>
+    
+    <div class="card">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">רשימת כל הקבוצות</h3>
+        <div id="groupsList">
+            <p style="text-align: center; color: var(--muted);">טוען קבוצות... ⏳</p>
+        </div>
+    </div>
+
+    <span class="logout-link" onclick="logout()">התנתק מהחשבון</span>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+<script>
+    // --- הגדרות Firebase ---
+    const firebaseConfig = {
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903",
+    measurementId: "G-425XRT1EVL" // המזהה שהוספת
+};
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // בדיקת מצב התחברות בטעינה
+    auth.onAuthStateChanged(user => {
+        if (user && user.uid === "83rxsZbqtANkW6qoj3DlBPGNtNn1") {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+            loadGroups();
+        } else {
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('adminContent').style.display = 'none';
+        }
+    });
+
+    async function loginWithEmail() {
+        const email = document.getElementById('adminEmail').value;
+        const pass = document.getElementById('adminPass').value;
+        
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+        } catch (error) {
+            alert("שגיאה בהתחברות: " + error.message);
+        }
+    }
+
+    async function loadGroups() {
+        const listDiv = document.getElementById('groupsList');
+        try {
+            const snapshot = await db.collection('groups').orderBy('createdAt', 'desc').get();
+            if (snapshot.empty) {
+                listDiv.innerHTML = '<p style="text-align:center;">אין קבוצות רשומות.</p>';
+                return;
+            }
+
+            let html = '';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString('he-IL') : '---';
+                html += `
+                    <div class="group-row">
+                        <div class="group-info">
+                            <div class="group-name">${data.name}</div>
+                            <div class="group-meta">
+                                נוצר: ${date} | סיסמה: <b>${data.password}</b><br>
+                                ID: ${doc.id}
+                            </div>
+                        </div>
+                        <div class="actions">
+                            <a href="index.html?group=${doc.id}" target="_blank" class="btn-view">צפה</a>
+                            <button class="btn-danger" onclick="deleteFullGroup('${doc.id}')">מחק</button>
+                        </div>
+                    </div>
+                `;
+            });
+            listDiv.innerHTML = html;
+        } catch (e) {
+            listDiv.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + e.message + '</p>';
+        }
+    }
+
+    async function deleteFullGroup(groupId) {
+        if (!confirm("מחיקה סופית של הקבוצה וכל השחקנים? לא ניתן לשחזר!")) return;
+        
+        try {
+            const batch = db.batch();
+            
+            // מחיקת שחקנים בתוך תת-קולקשן
+            const players = await db.collection('groups').doc(groupId).collection('players').get();
+            players.forEach(p => batch.delete(p.ref));
+            
+            // מחיקת משחק
+            batch.delete(db.collection('groups').doc(groupId).collection('game').doc('current'));
+            
+            // מחיקת הקבוצה עצמה
+            batch.delete(db.collection('groups').doc(groupId));
+            
+            await batch.commit();
+            alert("הקבוצה נמחקה.");
+            loadGroups();
+        } catch (e) {
+            alert("שגיאה במחיקה: " + e.message);
+        }
+    }
+
+    function logout() {
+        auth.signOut();
+    }
+</script>
+</body>
+</html>

@@ -108,12 +108,17 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 <script>
     const firebaseConfig = {
-        apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
-        authDomain: "soccer-b30a6.firebaseapp.com",
-        projectId: "soccer-b30a6"
-    };
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903",
+    measurementId: "G-425XRT1EVL" // המזהה שהוספת
+};
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
