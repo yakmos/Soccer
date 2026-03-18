@@ -165,7 +165,6 @@
         .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--border-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05);}
         .modal-name { font-size: 1.6rem; font-weight: 900; margin: 0 0 5px 0; }
         .modal-votes { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;}
-        .modal-goals { font-size: 1rem; color: #FCD34D; font-weight: 800; margin-bottom: 20px;}
         .modal-scores { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
         .modal-score-box { border: 2px solid rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; width: 45%; }
         .modal-score-val { font-size: 1.6rem; font-weight: 900; }
@@ -264,7 +263,9 @@
                     
                     <div class="bottom-bar-wrapper">
                         <div class="bottom-bar" id="adminBottomBar">
-                            <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+                            <div style="display:flex; gap:10px;">
+                                <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+<button id="finishGameBtn" class="btn" style="background: var(--danger); flex: 0.6; font-size: 0.95rem; display: none;" onclick="finishGame()">סיום משחק 🏁</button>                            </div>
                         </div>
                     </div>
                 </div>
@@ -335,7 +336,7 @@
     </div>
 
 <script>
-    // --- הגדרות פיירבייס ---
+// --- הגדרות פיירבייס ---
     const firebaseConfig = {
         apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
         authDomain: "soccer-b30a6.firebaseapp.com",
@@ -347,27 +348,19 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    firebase.analytics(); // הפעלת אנליטיקס
+    firebase.analytics();
     const db = firebase.firestore();
     
     // --- משתני מערכת ---
     const urlParams = new URLSearchParams(window.location.search);
     const currentGroupId = urlParams.get('group');
     
-    let groupRef = null;       
-    let playersRef = null;     
-    let gameRef = null;        
-    let groupPassword = null;  
-    
+    let groupRef = null, playersRef = null, gameRef = null, groupPassword = null;
     let groupSettings = { numTeams: 3, playersPerTeam: 6 };
 
-    let players = [];
-    let editingId = null; 
-    let currentEditingImg = null; 
-    let activeTeams = null; 
-    let activeGkIds = []; 
-    let activeWins = [];
-    let scrollToTeamsFlag = false;
+    let players = [], activeTeams = null, activeGkIds = [], activeWins = [];
+    let historyCache = []; // מטמון לשמירת ההיסטוריה בזמן אמת ללא עומס על פיירבייס
+    let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
 
     // --- אתחול ---
     window.onload = async () => {
@@ -388,7 +381,6 @@
                     const groupData = doc.data();
                     groupPassword = groupData.password;
                     document.getElementById('headerTitle').innerText = `⚽ ${groupData.name}`;
-                    
                     if (groupData.settings) {
                         groupSettings.numTeams = groupData.settings.numTeams || 3;
                         groupSettings.playersPerTeam = groupData.settings.playersPerTeam || 6;
@@ -398,77 +390,13 @@
                     window.location.href = window.location.pathname;
                     return;
                 }
-            } catch (error) {
-                console.error("Error loading group:", error);
-            }
+            } catch (error) { console.error("Error loading group:", error); }
 
             startRealtimeListeners();
         }
     };
 
-    function openSettingsModal() {
-        document.getElementById('setNumTeams').value = groupSettings.numTeams;
-        document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
-        document.getElementById('settingsModalOverlay').style.display = 'flex';
-    }
-
-    function closeSettingsModal() {
-        document.getElementById('settingsModalOverlay').style.display = 'none';
-    }
-
-    async function saveGroupSettings() {
-        const num = parseInt(document.getElementById('setNumTeams').value) || 3;
-        const ppt = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
-        
-        groupSettings.numTeams = num;
-        groupSettings.playersPerTeam = ppt;
-        
-        await groupRef.update({ settings: groupSettings });
-        closeSettingsModal();
-        render(); 
-        alert('ההגדרות נשמרו בהצלחה!');
-    }
-
-    async function createNewGroup() {
-        const nameInput = document.getElementById('newGroupName').value.trim();
-        const passInput = document.getElementById('newGroupPassword').value.trim();
-        const btn = document.getElementById('createGroupBtn');
-
-        if (!nameInput || !passInput) { alert('נא להזין שם קבוצה וסיסמה.'); return; }
-        btn.innerText = 'יוצר קבוצה... ⏳'; btn.disabled = true;
-
-        try {
-            const newGroupRef = await db.collection('groups').add({
-                name: nameInput, password: passInput,
-                settings: { numTeams: 3, playersPerTeam: 6 },
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            // אנליטיקס: דיווח על יצירת קבוצה חדשה
-            firebase.analytics().logEvent('create_new_group', {
-                group_name: nameInput
-            });
-
-            alert('הקבוצה נוצרה בהצלחה! שמור את הקישור הזה והעבר אותו לחברים.');
-            window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
-        } catch (error) {
-            alert('שגיאה ביצירת הקבוצה.'); btn.innerText = 'צור קבוצה עכשיו ✨'; btn.disabled = false;
-        }
-    }
-
-    function promptAdmin() { 
-        if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) { 
-            document.body.classList.add('is-admin'); 
-            const bottomBar = document.getElementById('adminBottomBar');
-            if (bottomBar && document.getElementById('tab-main').classList.contains('active')) {
-                bottomBar.style.display = 'block';
-            }
-            render(); 
-        } else {
-            alert("סיסמה שגויה.");
-        }
-    }
-
+    // --- האזנות לנתונים בזמן אמת ---
     function startRealtimeListeners() {
         playersRef.orderBy("name").onSnapshot(snap => {
             players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -477,50 +405,81 @@
         });
 
         gameRef.onSnapshot(snap => {
+            const finishBtn = document.getElementById('finishGameBtn'); // תופסים את הכפתור
+            
             if (snap.exists && snap.data().team1) {
                 const data = snap.data();
-                let loadedTeams = [];
-                let idx = 1;
-                while(data[`team${idx}`]) {
-                    loadedTeams.push(data[`team${idx}`]);
-                    idx++;
-                }
+                let loadedTeams = [], idx = 1;
+                while(data[`team${idx}`]) { loadedTeams.push(data[`team${idx}`]); idx++; }
                 activeTeams = loadedTeams;
                 activeGkIds = data.gkIds || activeTeams.map(() => null);
                 activeWins = data.teamWins || activeTeams.map(() => 0);
                 displayTeams(activeTeams, activeGkIds, activeWins);
+                
+                // יש משחק פעיל! נציג את כפתור הסיום
+                if(finishBtn) finishBtn.style.display = 'flex'; 
             } else {
                 document.getElementById('results').style.display = 'none';
+                activeTeams = null;
+                
+                // אין משחק פעיל - נסתיר את כפתור הסיום
+                if(finishBtn) finishBtn.style.display = 'none'; 
             }
+        });
+
+        // האזנה רציפה וקלילה להיסטוריית הקבוצה
+        groupRef.collection('history').onSnapshot(snap => {
+            historyCache = snap.docs.map(doc => doc.data());
+            renderTopScorers(); // מעדכן את מלכי השערים אוטומטית
         });
     }
 
+    // --- פונקציות ניהול והגדרות ---
+    function openSettingsModal() { document.getElementById('setNumTeams').value = groupSettings.numTeams; document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam; document.getElementById('settingsModalOverlay').style.display = 'flex'; }
+    function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
+    async function saveGroupSettings() {
+        groupSettings.numTeams = parseInt(document.getElementById('setNumTeams').value) || 3;
+        groupSettings.playersPerTeam = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
+        await groupRef.update({ settings: groupSettings });
+        closeSettingsModal(); render(); alert('ההגדרות נשמרו בהצלחה!');
+    }
+    
+    async function createNewGroup() {
+        const nameInput = document.getElementById('newGroupName').value.trim(), passInput = document.getElementById('newGroupPassword').value.trim();
+        const btn = document.getElementById('createGroupBtn');
+        if (!nameInput || !passInput) return alert('נא להזין שם קבוצה וסיסמה.');
+        btn.innerText = 'יוצר קבוצה... ⏳'; btn.disabled = true;
+        try {
+            const newGroupRef = await db.collection('groups').add({ name: nameInput, password: passInput, settings: { numTeams: 3, playersPerTeam: 6 }, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            firebase.analytics().logEvent('create_new_group', { group_name: nameInput });
+            alert('הקבוצה נוצרה בהצלחה!'); window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
+        } catch (error) { alert('שגיאה ביצירת הקבוצה.'); btn.innerText = 'צור קבוצה עכשיו ✨'; btn.disabled = false; }
+    }
+
+    function promptAdmin() { 
+        if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) { 
+            document.body.classList.add('is-admin'); 
+            const bottomBar = document.getElementById('adminBottomBar');
+            if (bottomBar && document.getElementById('tab-main').classList.contains('active')) bottomBar.style.display = 'block';
+            render(); 
+        } else alert("סיסמה שגויה.");
+    }
+
     function switchTab(tabId, btnElement) {
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        btnElement.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active')); document.getElementById(tabId).classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         const bottomBar = document.getElementById('adminBottomBar');
-        if (bottomBar) {
-            bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
-        }
+        if (bottomBar) bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
     }
 
     function getColorStyles(val) {
-        const v = val || 5;
-        let r, g, b, hex;
-        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } 
-        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } 
-        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } 
-        else { r=6; g=182; b=212; hex='#06B6D4'; } 
+        const v = val || 5; let r, g, b, hex;
+        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } else { r=6; g=182; b=212; hex='#06B6D4'; } 
         return { hex: hex, bg: `rgba(${r}, ${g}, ${b}, 0.15)`, text: hex, border: `rgba(${r}, ${g}, ${b}, 0.3)` };
     }
-
-    function getColoredBadge(icon, val) {
-        const v = val || 5; const c = getColorStyles(v);
-        return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
-    }
+    function getColoredBadge(icon, val) { const v = val || 5; const c = getColorStyles(v); return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`; }
+    function getAvatarHTML(url, className, id) { return url ? `<img src="${url}" class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">` : `<div class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">👤</div>`; }
 
     async function resizeImage(file) {
         return new Promise((resolve) => {
@@ -529,120 +488,133 @@
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas'); const MAX_SIZE = 150;
-                    let width = img.width; let height = img.height;
-                    if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
-                    else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.8)); 
+                    let width = img.width, height = img.height;
+                    if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', 0.8)); 
                 }; img.src = e.target.result;
             }; reader.readAsDataURL(file);
         });
     }
 
+    // --- ניהול שחקנים ועריכה ---
     async function savePlayer() {
-        const name = document.getElementById('pName').value.trim();
-        if(!name) return;
+        const name = document.getElementById('pName').value.trim(); if(!name) return;
+        const vals = ['pFin', 'pDri', 'pPac', 'pVis', 'pPos', 'pTac', 'pAwa', 'pStr', 'pSta', 'pCom'].map(id => parseFloat(document.getElementById(id).value) || 5);
+        const attScore = parseFloat(((vals[0]+vals[1]+vals[2]+vals[3]+vals[4])/5).toFixed(1)), defScore = parseFloat(((vals[5]+vals[6]+vals[7]+vals[8]+vals[9])/5).toFixed(1));
+        let finalImgUrl = currentEditingImg; const fileInput = document.getElementById('pImage');
+        if (fileInput.files.length > 0) { document.getElementById('saveBtn').innerText = "מעלה תמונה... ⏳"; finalImgUrl = await resizeImage(fileInput.files[0]); }
+        const playerData = { name, fin:vals[0], dri:vals[1], pac:vals[2], vis:vals[3], pos:vals[4], tac:vals[5], awa:vals[6], str:vals[7], sta:vals[8], com:vals[9], attScore, defScore, imgUrl: finalImgUrl };
 
-        const fin = parseFloat(document.getElementById('pFin').value) || 5;
-        const dri = parseFloat(document.getElementById('pDri').value) || 5;
-        const pac = parseFloat(document.getElementById('pPac').value) || 5;
-        const vis = parseFloat(document.getElementById('pVis').value) || 5;
-        const pos = parseFloat(document.getElementById('pPos').value) || 5;
-        const tac = parseFloat(document.getElementById('pTac').value) || 5;
-        const awa = parseFloat(document.getElementById('pAwa').value) || 5;
-        const str = parseFloat(document.getElementById('pStr').value) || 5;
-        const sta = parseFloat(document.getElementById('pSta').value) || 5;
-        const com = parseFloat(document.getElementById('pCom').value) || 5;
-
-        const attScore = parseFloat(((fin + dri + pac + vis + pos) / 5).toFixed(1));
-        const defScore = parseFloat(((tac + awa + str + sta + com) / 5).toFixed(1));
-
-        let finalImgUrl = currentEditingImg; 
-        const fileInput = document.getElementById('pImage');
-        if (fileInput.files.length > 0) {
-            document.getElementById('saveBtn').innerText = "מעלה תמונה... ⏳";
-            finalImgUrl = await resizeImage(fileInput.files[0]);
-        }
-
-        const playerData = { name, fin, dri, pac, vis, pos, tac, awa, str, sta, com, attScore, defScore, imgUrl: finalImgUrl };
-
-        if(editingId) {
-            await playersRef.doc(editingId).update(playerData);
-            cancelEdit();
-        } else {
-            playerData.inLineup = false;
-            playerData.goals = 0; 
-            await playersRef.add(playerData);
-            document.getElementById('pName').value = ''; 
-            document.getElementById('pImage').value = '';
-            document.getElementById('saveBtn').innerText = "שמור שחקן";
-        }
+        if(editingId) { await playersRef.doc(editingId).update(playerData); cancelEdit(); } 
+        else { playerData.inLineup = false; playerData.goals = 0; await playersRef.add(playerData); document.getElementById('pName').value = ''; document.getElementById('pImage').value = ''; document.getElementById('saveBtn').innerText = "שמור שחקן"; }
     }
 
     function startEdit(id, p) {
-        editingId = id; currentEditingImg = p.imgUrl || null;
-        document.getElementById('formTitle').innerText = "עריכת שחקן: " + p.name;
-        document.getElementById('pName').value = p.name;
-        document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
-        document.getElementById('pImage').value = '';
-        document.getElementById('pFin').value = p.fin || 5; document.getElementById('pDri').value = p.dri || 5;
-        document.getElementById('pPac').value = p.pac || 5; document.getElementById('pVis').value = p.vis || 5;
-        document.getElementById('pPos').value = p.pos || 5; document.getElementById('pTac').value = p.tac || 5;
-        document.getElementById('pAwa').value = p.awa || 5; document.getElementById('pStr').value = p.str || 5;
-        document.getElementById('pSta').value = p.sta || 5; document.getElementById('pCom').value = p.com || 5;
-        document.getElementById('saveBtn').innerText = "עדכן נתונים";
-        document.getElementById('cancelBtn').style.display = "block";
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        editingId = id; currentEditingImg = p.imgUrl || null; document.getElementById('formTitle').innerText = "עריכת שחקן: " + p.name; document.getElementById('pName').value = p.name;
+        document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none'; document.getElementById('pImage').value = '';
+        ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = p[id.toLowerCase().replace('p','')] || 5);
+        document.getElementById('saveBtn').innerText = "עדכן נתונים"; document.getElementById('cancelBtn').style.display = "block"; window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function cancelEdit() {
-        editingId = null; currentEditingImg = null;
-        document.getElementById('formTitle').innerText = "הוספת שחקן חדש";
-        document.getElementById('pName').value = ''; document.getElementById('pImage').value = '';
-        document.getElementById('imgPreviewText').style.display = 'none';
-        const inputs = ['pFin', 'pDri', 'pPac', 'pVis', 'pPos', 'pTac', 'pAwa', 'pStr', 'pSta', 'pCom'];
-        inputs.forEach(id => document.getElementById(id).value = 5);
-        document.getElementById('saveBtn').innerText = "שמור שחקן";
-        document.getElementById('cancelBtn').style.display = "none";
+        editingId = null; currentEditingImg = null; document.getElementById('formTitle').innerText = "הוספת שחקן חדש"; document.getElementById('pName').value = ''; document.getElementById('pImage').value = '';
+        document.getElementById('imgPreviewText').style.display = 'none'; ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
+        document.getElementById('saveBtn').innerText = "שמור שחקן"; document.getElementById('cancelBtn').style.display = "none";
     }
 
-    async function toggleLineup(id, currentState) {
-        await playersRef.doc(id).update({ inLineup: !currentState });
+    async function toggleLineup(id, currentState) { await playersRef.doc(id).update({ inLineup: !currentState }); }
+    async function clearLineup() { if(!confirm("להסיר את כולם מההרכב הנוכחי?")) return; const batch = db.batch(); players.filter(p => p.inLineup).forEach(p => batch.update(playersRef.doc(p.id), { inLineup: false })); await batch.commit(); await gameRef.delete(); }
+
+    // --- עדכון גולים להיסטוריה ---
+    async function updatePlayerGoal(id, delta) {
+        try {
+            const pRef = playersRef.doc(id); const pDoc = await pRef.get();
+            if(pDoc.exists) {
+                let newGoals = Math.max(0, (pDoc.data().goals || 0) + delta);
+                await pRef.update({ goals: newGoals });
+                if (delta > 0) await groupRef.collection('history').add({ playerId: id, type: 'goal', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+        } catch(e) { console.error("שגיאה בעדכון גול:", e); }
     }
 
-    async function clearLineup() {
-        if(!confirm("להסיר את כולם מההרכב הנוכחי?")) return;
-        const batch = db.batch();
-        players.filter(p => p.inLineup).forEach(p => {
-            const ref = playersRef.doc(p.id);
-            batch.update(ref, { inLineup: false });
+    async function updateTeamWin(index, delta) {
+        if(!activeTeams) return; let currentWins = activeWins ? [...activeWins] : Array(groupSettings.numTeams).fill(0);
+        currentWins[index] = Math.max(0, currentWins[index] + delta); await gameRef.update({ teamWins: currentWins });
+    }
+
+    async function finishGame() {
+        if (!activeTeams) return alert("אין משחק פעיל לסיום.");
+        if (!confirm("לסיים את הערב? הגולים של המגרש יאופסו והתוצאות יישמרו בקריירה של השחקנים.")) return;
+
+        const batch = db.batch(), historyRef = groupRef.collection('history'), now = firebase.firestore.FieldValue.serverTimestamp();
+        activeWins.forEach((wins, index) => {
+            if (wins > 0) activeTeams[index].forEach(player => { for(let i=0; i<wins; i++) batch.set(historyRef.doc(), { playerId: player.id, type: 'win', timestamp: now }); });
         });
-        await batch.commit();
-        await gameRef.delete();
+        players.forEach(p => { if (p.goals > 0 || p.inLineup) batch.update(playersRef.doc(p.id), { goals: 0 }); });
+        batch.delete(gameRef); await batch.commit(); alert("הערב סוכם בהצלחה! הנתונים נשמרו בקריירת השחקנים.");
     }
 
-    function getAvatarHTML(url, className, id) {
-        return url ? `<img src="${url}" class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">` 
-                   : `<div class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">👤</div>`;
+    // --- עריכת גולי קריירה ע"י המנהל ---
+    async function editCareerGoals(playerId) {
+        // חישוב המצב הנוכחי מתוך המטמון
+        const currentGoals = historyCache.filter(h => h.playerId === playerId && h.type === 'goal').length + 
+                             historyCache.filter(h => h.playerId === playerId && h.type === 'goal_adjustment').reduce((sum, h) => sum + (h.count || 0), 0);
+        
+        const newValStr = prompt(`עריכת גולי קריירה מוחלטת:\nהזן את כמות הגולים הכוללת הרצויה לשחקן זה (נוכחי: ${currentGoals})`, currentGoals);
+        if (newValStr === null) return; 
+        const newVal = parseInt(newValStr);
+        if (isNaN(newVal) || newVal < 0) return alert("נא להזין מספר חוקי גדול או שווה ל-0.");
+
+        const diff = newVal - currentGoals;
+        if (diff === 0) return;
+
+        try {
+            await groupRef.collection('history').add({
+                playerId: playerId,
+                type: 'goal_adjustment', // סוג רשומה מיוחד לתיקוני מנהל
+                count: diff,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            setTimeout(() => showPlayerCard(playerId), 500); // פתיחה מחדש כדי לראות את השינוי
+        } catch(e) { console.error(e); alert("שגיאה בעדכון גולי הקריירה."); }
     }
 
+    // --- הצגת כרטיס שחקן (מהיר, מבוסס מטמון) ---
     function showPlayerCard(id) {
         const p = players.find(x => x.id === id); if(!p) return;
+        
+        // עבודה מול ה-Cache (אפס זמן טעינה!)
+        const pHistory = historyCache.filter(h => h.playerId === id).sort((a,b) => (b.timestamp?.toMillis()||0) - (a.timestamp?.toMillis()||0));
+        const totalWins = pHistory.filter(h => h.type === 'win').length;
+        const totalGoals = pHistory.filter(h => h.type === 'goal').length + pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum, h) => sum + (h.count || 0), 0);
+        const formaHTML = pHistory.filter(h => h.type === 'win').slice(0, 5).map(() => `<span style="color:#10B981; font-weight:900;">W</span>`).join(' ') || '<span style="color:var(--text-muted);">אין נתונים</span>';
+
+        const isAdmin = document.body.classList.contains('is-admin');
+        const editBtn = isAdmin ? `<button onclick="editCareerGoals('${p.id}')" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px;" title="ערוך גולי קריירה">✏️</button>` : '';
+
         const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">` : `<div class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">👤</div>`;
-        const votesText = p.votesCount ? `מבוסס על ${p.votesCount} דירוגים משחקנים` : `טרם דורג על ידי שחקנים`;
-        const goalsText = p.goals ? `⚽ כבש ${p.goals} שערים העונה` : `עדיין לא כבש העונה`;
-        const getBar = (label, val) => {
-            const v = val || 5; const percent = (v / 10) * 100; const c = getColorStyles(v);
-            return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${percent}%; background-color: ${c.hex}; box-shadow: 0 0 8px ${c.bg};"></div></div><div class="stat-bar-val" style="color: ${c.text};">${v}</div></div>`;
-        };
-        const attC = getColorStyles(p.attScore); const defC = getColorStyles(p.defScore);
+        const getBar = (label, val) => `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${(val||5)*10}%; background-color: ${getColorStyles(val||5).hex};"></div></div><div class="stat-bar-val" style="color: ${getColorStyles(val||5).text};">${val||5}</div></div>`;
+        
         const content = `
             ${avatar}
-            <h2 class="modal-name">${p.name}</h2><div class="modal-votes">${votesText}</div><div class="modal-goals">${goalsText}</div>
+            <h2 class="modal-name">${p.name}</h2><div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
+            <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
+            
+            <div style="display:flex; justify-content:center; gap:10px; margin-bottom: 25px;">
+                <div class="modal-score-box" style="position:relative; background:rgba(252, 211, 77, 0.1); border: 1px solid rgba(252, 211, 77, 0.3); width:45%;">
+                    ${editBtn}
+                    <div class="modal-score-val" style="color: #FCD34D;">${totalGoals}</div>
+                    <div class="modal-score-label" style="color: #FCD34D;">⚽ גולי קריירה</div>
+                </div>
+                <div class="modal-score-box" style="background:rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); width:45%;">
+                    <div class="modal-score-val" style="color: #10B981;">${totalWins}</div>
+                    <div class="modal-score-label" style="color: #10B981;">🏆 ניצחונות</div>
+                </div>
+            </div>
+            
             <div class="modal-scores">
-                <div class="modal-score-box" style="border-color: ${attC.border}; background: ${attC.bg};"><div class="modal-score-val" style="color: ${attC.text};">${p.attScore||5}</div><div class="modal-score-label" style="color: ${attC.text};">התקפה</div></div>
-                <div class="modal-score-box" style="border-color: ${defC.border}; background: ${defC.bg};"><div class="modal-score-val" style="color: ${defC.text};">${p.defScore||5}</div><div class="modal-score-label" style="color: ${defC.text};">הגנה</div></div>
+                <div class="modal-score-box" style="border-color: ${getColorStyles(p.attScore).border}; background: ${getColorStyles(p.attScore).bg};"><div class="modal-score-val" style="color: ${getColorStyles(p.attScore).text};">${p.attScore||5}</div><div class="modal-score-label" style="color: ${getColorStyles(p.attScore).text};">התקפה</div></div>
+                <div class="modal-score-box" style="border-color: ${getColorStyles(p.defScore).border}; background: ${getColorStyles(p.defScore).bg};"><div class="modal-score-val" style="color: ${getColorStyles(p.defScore).text};">${p.defScore||5}</div><div class="modal-score-label" style="color: ${getColorStyles(p.defScore).text};">הגנה</div></div>
             </div>
             <div class="modal-section-title">מדדי התקפה</div>
             ${getBar('סיומת מול שער', p.fin)} ${getBar('דריבל ושליטה', p.dri)} ${getBar('מהירות וזריזות', p.pac)} ${getBar('ראיית משחק', p.vis)} ${getBar('תנועה ללא כדור', p.pos)}
@@ -651,310 +623,108 @@
         `;
         document.getElementById('modalContent').innerHTML = content; document.getElementById('playerModalOverlay').style.display = 'flex';
     }
-
     function closePlayerCard() { document.getElementById('playerModalOverlay').style.display = 'none'; }
 
-    async function updatePlayerGoal(id, delta) {
-        try {
-            const pRef = playersRef.doc(id);
-            const pDoc = await pRef.get();
-            if(pDoc.exists) {
-                let newGoals = (pDoc.data().goals || 0) + delta;
-                if(newGoals < 0) newGoals = 0;
-                await pRef.update({ goals: newGoals });
-            }
-        } catch(e) { console.error("שגיאה בעדכון גול:", e); }
-    }
-
-    async function updateTeamWin(index, delta) {
-        if(!activeTeams) return;
-        try {
-            let currentWins = activeWins ? [...activeWins] : Array(groupSettings.numTeams).fill(0);
-            currentWins[index] += delta;
-            if(currentWins[index] < 0) currentWins[index] = 0;
-            await gameRef.update({ teamWins: currentWins });
-        } catch(e) { console.error("שגיאה בעדכון ניצחון:", e); }
-    }
-
+    // --- טבלת מלכי השערים משודרגת (קריירה שלמה) ---
     function renderTopScorers() {
         const container = document.getElementById('topScorersList'); if (!container) return;
-        const scorers = players.filter(p => p.goals && p.goals > 0).sort((a, b) => b.goals - a.goals);
+        
+        // חישוב דינמי של גולי קריירה מתוך המטמון
+        const goalsMap = {};
+        historyCache.forEach(h => {
+            if (h.type === 'goal') goalsMap[h.playerId] = (goalsMap[h.playerId] || 0) + 1;
+            else if (h.type === 'goal_adjustment') goalsMap[h.playerId] = (goalsMap[h.playerId] || 0) + (h.count || 0);
+        });
+
+        const scorers = players.map(p => ({ ...p, careerGoals: goalsMap[p.id] || 0 })).filter(p => p.careerGoals > 0).sort((a, b) => b.careerGoals - a.careerGoals);
         if (scorers.length === 0) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">עוד לא נכבשו שערים העונה ⚽</div>`; return; }
+        
         container.innerHTML = scorers.map((p, index) => {
             const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-            return `<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);"><div style="display: flex; align-items: center; gap: 12px;"><span style="font-weight: 900; width: 20px; color: ${index < 3 ? 'var(--primary-color)' : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}<div style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">${p.name} ${medal}</div></div><div style="background: ${index === 0 ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)'}; color: #fff; padding: 6px 14px; border-radius: 20px; font-weight: 900; font-size: 1.05rem;">${p.goals} שערים</div></div>`;
+            return `<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);"><div style="display: flex; align-items: center; gap: 12px;"><span style="font-weight: 900; width: 20px; color: ${index < 3 ? 'var(--primary-color)' : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}<div style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">${p.name} ${medal}</div></div><div style="background: ${index === 0 ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)'}; color: #fff; padding: 6px 14px; border-radius: 20px; font-weight: 900; font-size: 1.05rem;">${p.careerGoals} שערים</div></div>`;
         }).join('');
     }
 
+    // --- רינדור המסכים והרכבים ---
     function renderLeaderboards() {
-        const listContainer = document.getElementById('dynamicLeaderboardList');
-        const selector = document.getElementById('statSelector');
-        if (!listContainer || !selector) return;
-
-        const statKey = selector.value;
-        let colorClass = 'var(--primary-color)';
-        if (['attScore', 'fin', 'dri', 'pac', 'vis', 'pos'].includes(statKey)) { colorClass = 'var(--att-text)'; } 
-        else if (['defScore', 'tac', 'awa', 'str', 'sta', 'com'].includes(statKey)) { colorClass = 'var(--def-text)'; }
-
+        const listContainer = document.getElementById('dynamicLeaderboardList'), selector = document.getElementById('statSelector'); if (!listContainer || !selector) return;
+        const statKey = selector.value; let colorClass = 'var(--primary-color)';
+        if (['attScore', 'fin', 'dri', 'pac', 'vis', 'pos'].includes(statKey)) colorClass = 'var(--att-text)'; else if (['defScore', 'tac', 'awa', 'str', 'sta', 'com'].includes(statKey)) colorClass = 'var(--def-text)';
         const sortedPlayers = [...players].sort((a, b) => (b[statKey] || 5) - (a[statKey] || 5));
-
-        if (sortedPlayers.length === 0) {
-            listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`; return;
-        }
-
-        listContainer.innerHTML = sortedPlayers.map((p, index) => {
-            const score = p[statKey] || 5;
-            const formattedScore = Number.isInteger(score) ? score : score.toFixed(1);
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
-            return `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-weight: 900; width: 20px; color: ${index < 3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${index + 1}.</span>
-                        ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                        <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">${p.name} ${medal}</div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.1); color: ${colorClass}; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 1rem; border: 1px solid ${colorClass};">
-                        ${formattedScore}
-                    </div>
-                </div>
-            `;
-        }).join('');
+        if (sortedPlayers.length === 0) { listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:10px;">אין שחקנים במערכת</div>`; return; }
+        listContainer.innerHTML = sortedPlayers.map((p, i) => `<div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);"><div style="display: flex; align-items: center; gap: 12px;"><span style="font-weight: 900; width: 20px; color: ${i < 3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${i + 1}.</span>${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}<div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main);">${p.name} ${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : ''}</div></div><div style="background: rgba(255,255,255,0.1); color: ${colorClass}; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 1rem; border: 1px solid ${colorClass};">${Number.isInteger(p[statKey]||5) ? (p[statKey]||5) : (p[statKey]||5).toFixed(1)}</div></div>`).join('');
     }
 
     function render() {
-        const currentScrollPos = window.scrollY;
-        const squadList = document.getElementById('squadList');
-        const lineupGrid = document.getElementById('lineupGrid');
-        const isAdmin = document.body.classList.contains('is-admin');
-        const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
-        
-        squadList.innerHTML = players.map(p => `
-            <div class="squad-item">
-                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div class="squad-info">
-                    <div class="squad-name">${p.name} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals||0})</span></div>
-                    <div class="chip-stats-container" style="justify-content: flex-start;">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div>
-                </div>
-                <div class="squad-actions">
-                    <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})" title="הוסף/הסר מהרכב">${p.inLineup ? '✓' : '+'}</button>
-                    <button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})' title="ערוך">✏️</button>
-                </div>
-            </div>
-        `).join('');
-
+        const currentScrollPos = window.scrollY, totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam, isAdmin = document.body.classList.contains('is-admin');
+        document.getElementById('squadList').innerHTML = players.map(p => `<div class="squad-item">${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}<div class="squad-info"><div class="squad-name">${p.name} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ משחק: ${p.goals||0})</span></div><div class="chip-stats-container" style="justify-content: flex-start;">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div></div><div class="squad-actions"><button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button><button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})'>✏️</button></div></div>`).join('');
         const lineupPlayers = players.filter(p => p.inLineup);
-        if(lineupPlayers.length === 0) { lineupGrid.innerHTML = "<div style='grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;'>עדיין לא נבחר הרכב להערב.</div>"; } 
-        else {
-            lineupGrid.innerHTML = lineupPlayers.map(p => `
-                <div class="player-chip">
-                    ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
-                    <div class="chip-name">${p.name}</div>
-                    <div class="chip-stats-container">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div>
-                    ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}
-                </div>
-            `).join('');
-        }
-
-        const count = lineupPlayers.length;
-        const badge = document.getElementById('counterBadge'); 
-        badge.innerText = `${count} / ${totalNeeded}`;
-        
-        if(count === totalNeeded) { 
-            badge.classList.add('ready'); 
-            document.getElementById('calcBtn').disabled = false; 
-        } else { 
-            badge.classList.remove('ready'); 
-            document.getElementById('calcBtn').disabled = true; 
-        }
-        
-        renderTopScorers();
-        renderLeaderboards(); 
-        
-        requestAnimationFrame(() => { window.scrollTo(0, currentScrollPos); });
+        if(lineupPlayers.length === 0) { document.getElementById('lineupGrid').innerHTML = "<div style='grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;'>עדיין לא נבחר הרכב להערב.</div>"; } 
+        else { document.getElementById('lineupGrid').innerHTML = lineupPlayers.map(p => `<div class="player-chip">${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}<div class="chip-name">${p.name}</div><div class="chip-stats-container">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div>${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}</div>`).join(''); }
+        const badge = document.getElementById('counterBadge'); badge.innerText = `${lineupPlayers.length} / ${totalNeeded}`;
+        if(lineupPlayers.length === totalNeeded) { badge.classList.add('ready'); document.getElementById('calcBtn').disabled = false; } else { badge.classList.remove('ready'); document.getElementById('calcBtn').disabled = true; }
+        renderTopScorers(); renderLeaderboards(); requestAnimationFrame(() => { window.scrollTo(0, currentScrollPos); });
     }
 
+    // --- אלגוריתם חלוקת הקבוצות ---
     async function run() {
-        const lineup = players.filter(p => p.inLineup);
-        const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
-        
-        if(lineup.length !== totalNeeded) {
-            return alert(`צריך בדיוק ${totalNeeded} שחקנים בהרכב כדי לחלק ל-${groupSettings.numTeams} קבוצות של ${groupSettings.playersPerTeam}.`);
-        }
-        
+        const lineup = players.filter(p => p.inLineup), totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
+        if(lineup.length !== totalNeeded) return alert(`צריך בדיוק ${totalNeeded} שחקנים בהרכב כדי לחלק ל-${groupSettings.numTeams} קבוצות של ${groupSettings.playersPerTeam}.`);
         scrollToTeamsFlag = true; 
-        
-        // מיון כללי לפי כוח (התקפה + הגנה) כדי שנוכל לחלק בצורה מאוזנת
-        let sortedLineup = [...lineup].sort((a, b) => 
-            ((b.attScore || 5) + (b.defScore || 5)) - ((a.attScore || 5) + (a.defScore || 5))
-        );
-        
+        let sortedLineup = [...lineup].sort((a, b) => ((b.attScore || 5) + (b.defScore || 5)) - ((a.attScore || 5) + (a.defScore || 5)));
         let best = null, min = Infinity;
-        
-        // הרצת סימולציות למציאת האיזון הטוב ביותר
         for(let i = 0; i < 5000; i++) {
-            const teams = Array.from({length: groupSettings.numTeams}, () => []);
-            const tempLineup = [...sortedLineup].sort(() => 0.5 - Math.random()); // ערבוב אקראי
-            
-            // חלוקת שחקנים לקבוצות בצורה שיוונית (Snake Draft)
-            tempLineup.forEach((player, index) => {
-                const teamIndex = index % groupSettings.numTeams;
-                teams[teamIndex].push(player);
-            });
-
-            const scores = teams.map(t => { 
-                const tempRoles = assignRoles(t, null); 
-                const gkId = tempRoles['שוער'] ? tempRoles['שוער'].id : null; 
-                return t.filter(p => p.id !== gkId).reduce((s, p) => s + (p.defScore||5) + (p.attScore||5), 0); 
-            });
-            
+            const teams = Array.from({length: groupSettings.numTeams}, () => []); const tempLineup = [...sortedLineup].sort(() => 0.5 - Math.random()); 
+            tempLineup.forEach((player, index) => teams[index % groupSettings.numTeams].push(player));
+            const scores = teams.map(t => { const tempRoles = assignRoles(t, null); const gkId = tempRoles['שוער'] ? tempRoles['שוער'].id : null; return t.filter(p => p.id !== gkId).reduce((s, p) => s + (p.defScore||5) + (p.attScore||5), 0); });
             const diff = Math.max(...scores) - Math.min(...scores);
-            if(diff < min) { 
-                min = diff; 
-                best = teams; 
-            }
+            if(diff < min) { min = diff; best = teams; }
         }
-        
-        // אנליטיקס: דיווח על יצירת חלוקת קבוצות
-        firebase.analytics().logEvent('generate_teams', {
-            group_name: document.getElementById('headerTitle').innerText,
-            num_teams: groupSettings.numTeams,
-            players_per_team: groupSettings.playersPerTeam
-        });
-
-        let defaultGks = best.map(t => { 
-            let tempRoles = assignRoles(t, null); 
-            return tempRoles['שוער'] ? tempRoles['שוער'].id : null; 
-        });
-        
-        let gameData = {
-            gkIds: defaultGks, 
-            teamWins: Array(groupSettings.numTeams).fill(0), 
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        best.forEach((teamArr, idx) => {
-            gameData[`team${idx + 1}`] = teamArr;
-        });
-        
-        await gameRef.set(gameData);
+        firebase.analytics().logEvent('generate_teams', { group_name: document.getElementById('headerTitle').innerText, num_teams: groupSettings.numTeams, players_per_team: groupSettings.playersPerTeam });
+        let gameData = { gkIds: best.map(t => { let r = assignRoles(t, null); return r['שוער'] ? r['שוער'].id : null; }), teamWins: Array(groupSettings.numTeams).fill(0), timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+        best.forEach((teamArr, idx) => { gameData[`team${idx + 1}`] = teamArr; }); await gameRef.set(gameData);
     }
 
     async function rotateGk(teamIndex) {
-        if(!activeTeams || !activeGkIds) return;
-        let team = activeTeams[teamIndex]; let currentGkId = activeGkIds[teamIndex];
-        let currentIndex = team.findIndex(p => p.id === currentGkId); let nextIndex = (currentIndex + 1) % team.length; 
-        let newGkIds = [...activeGkIds]; newGkIds[teamIndex] = team[nextIndex].id;
-        await gameRef.update({ gkIds: newGkIds });
+        if(!activeTeams || !activeGkIds) return; let team = activeTeams[teamIndex], currentGkId = activeGkIds[teamIndex], nextIndex = (team.findIndex(p => p.id === currentGkId) + 1) % team.length; 
+        let newGkIds = [...activeGkIds]; newGkIds[teamIndex] = team[nextIndex].id; await gameRef.update({ gkIds: newGkIds });
     }
 
     function assignRoles(team, forcedGkId) {
-        let pool = [...team]; let roles = {}; 
-        
-        let gkIndex = -1;
-        if (forcedGkId) { gkIndex = pool.findIndex(p => p.id === forcedGkId); }
-        if (gkIndex !== -1) { roles['שוער'] = pool.splice(gkIndex, 1)[0]; } 
-        else { pool.sort((a, b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
-        
+        let pool = [...team], roles = {}, gkIndex = forcedGkId ? pool.findIndex(p => p.id === forcedGkId) : -1;
+        if (gkIndex !== -1) roles['שוער'] = pool.splice(gkIndex, 1)[0]; else { pool.sort((a, b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
         pool.sort((a, b) => ((b.attScore||5) - (b.defScore||5)) - ((a.attScore||5) - (a.defScore||5)));
-        
-        if (groupSettings.playersPerTeam === 6) {
-            roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift();
-            pool.sort((a, b) => (a.sta||5) - (b.sta||5));
-            roles['בלם'] = pool.shift(); roles['מגן ימין'] = pool.shift(); roles['מגן שמאל'] = pool.shift();
-        } else {
-            let half = Math.ceil(pool.length / 2);
-            for(let i=0; i<half; i++) { if(pool.length > 0) roles['התקפה ' + (i+1)] = pool.shift(); }
-            let defCount = 1;
-            while(pool.length > 0) { roles['הגנה ' + defCount] = pool.shift(); defCount++; }
-        }
-        
+        if (groupSettings.playersPerTeam === 6) { roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift(); pool.sort((a, b) => (a.sta||5) - (b.sta||5)); roles['בלם'] = pool.shift(); roles['מגן ימין'] = pool.shift(); roles['מגן שמאל'] = pool.shift(); } 
+        else { let half = Math.ceil(pool.length / 2); for(let i=0; i<half; i++) { if(pool.length > 0) roles['התקפה ' + (i+1)] = pool.shift(); } let defCount = 1; while(pool.length > 0) { roles['הגנה ' + defCount] = pool.shift(); defCount++; } }
         return roles;
     }
 
     function displayTeams(teams, gkIds, wins) {
-        const r = document.getElementById('results'); 
-        const teamNames = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה", "קבוצה אדומה", "קבוצה ירוקה"];
-        
-        const renderPitchCard = (p, icon, roleName) => {
-            const defC = getColorStyles(p.defScore); const attC = getColorStyles(p.attScore); const liveP = players.find(x => x.id === p.id) || p; 
-            return `<div class="pitch-player">${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}<div style="margin-top:4px;">${p.name}</div><div class="pitch-player-stats"><span style="color:${defC.text};">🛡️${p.defScore||5}</span> <span style="color:${attC.text};">🎯${p.attScore||5}</span></div><div class="stat-ticker"><button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button><span class="ticker-val">⚽ ${liveP.goals || 0}</span><button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button></div><span class="pitch-role">${icon} ${roleName}</span></div>`;
-        };
-
-        let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
-        
-        content += teams.map((t, i) => {
-            const roles = assignRoles(t, gkIds ? gkIds[i] : null); 
-            const gkId = roles['שוער'] ? roles['שוער'].id : null; 
-            const fieldPlayers = t.filter(p => p.id !== gkId);
-            
-            let defTotal = fieldPlayers.reduce((sum, p) => sum + (p.defScore || 5), 0).toFixed(1); 
-            let attTotal = fieldPlayers.reduce((sum, p) => sum + (p.attScore || 5), 0).toFixed(1); 
-            let overallTotal = (parseFloat(defTotal) + parseFloat(attTotal)).toFixed(1);
-            
-            let pitchRows = '';
-            if (roles['שוער']) pitchRows += `<div class="pitch-row">${renderPitchCard(roles['שוער'], '🧤', 'שוער')}</div>`;
-            
-            let keys = Object.keys(roles).filter(k => k !== 'שוער');
-            let defKeys = keys.filter(k => k.includes('הגנה') || k.includes('מגן') || k.includes('בלם'));
-            let attKeys = keys.filter(k => !defKeys.includes(k));
-            
-            if (defKeys.length > 0) {
-                pitchRows += `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k], '🛡️', k)).join('')}</div>`;
-            }
-            if (attKeys.length > 0) {
-                pitchRows += `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k], '⚽', k)).join('')}</div>`;
-            }
-
-            return `
-            <div class="team-row">
-                <div class="team-header t-${i}">
-                    <div class="team-header-name">${teamNames[i] || `קבוצה ${i+1}`} <span style="font-size:0.9rem; color:var(--text-muted); font-weight:500;">(כוח שדה: ${overallTotal})</span></div>
-                    <div class="team-header-right">
-                        <div class="stat-ticker team-ticker">
-                            <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, -1)">-</button>
-                            <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i] || 0}</span>
-                            <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button>
-                        </div>
-                        <button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>
-                    </div>
-                </div>
-                <div class="team-stats-row">
-                    <span class="stat-badge stat-def">🛡️ שדה הגנה: ${defTotal}</span>
-                    <span class="stat-badge stat-att">🎯 שדה התקפה: ${attTotal}</span>
-                </div>
-                <div class="pitch">
-                    ${pitchRows}
-                </div>
-            </div>`;
-        }).join('');
-        
-        content += "</div><div id='shareButtonsBox' style='margin-top:20px;'><button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'><svg viewBox='0 0 24 24' width='20' height='20' fill='currentColor'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z'/></svg> שתף תמונה ל-WhatsApp 📸</button></div>";
-        r.innerHTML = content; r.style.display = 'block';
-        if (scrollToTeamsFlag) { setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); scrollToTeamsFlag = false; }
+        const r = document.getElementById('results'), teamNames = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה", "קבוצה אדומה", "קבוצה ירוקה"];
+        const renderPitchCard = (p, icon, roleName) => `<div class="pitch-player">${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}<div style="margin-top:4px;">${p.name}</div><div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span> <span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div><div class="stat-ticker"><button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button><span class="ticker-val">⚽ ${(players.find(x => x.id === p.id) || p).goals || 0}</span><button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button></div><span class="pitch-role">${icon} ${roleName}</span></div>`;
+        let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>" + teams.map((t, i) => {
+            const roles = assignRoles(t, gkIds ? gkIds[i] : null), fieldPlayers = t.filter(p => p.id !== (roles['שוער'] ? roles['שוער'].id : null));
+            let defTotal = fieldPlayers.reduce((sum, p) => sum + (p.defScore || 5), 0).toFixed(1), attTotal = fieldPlayers.reduce((sum, p) => sum + (p.attScore || 5), 0).toFixed(1);
+            let keys = Object.keys(roles).filter(k => k !== 'שוער'), defKeys = keys.filter(k => k.includes('הגנה') || k.includes('מגן') || k.includes('בלם')), attKeys = keys.filter(k => !defKeys.includes(k));
+            return `<div class="team-row"><div class="team-header t-${i}"><div class="team-header-name">${teamNames[i] || `קבוצה ${i+1}`} <span style="font-size:0.9rem; color:var(--text-muted); font-weight:500;">(כוח שדה: ${(parseFloat(defTotal) + parseFloat(attTotal)).toFixed(1)})</span></div><div class="team-header-right"><div class="stat-ticker team-ticker"><button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, -1)">-</button><span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i] || 0}</span><button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button></div><button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button></div></div><div class="team-stats-row"><span class="stat-badge stat-def">🛡️ שדה הגנה: ${defTotal}</span><span class="stat-badge stat-att">🎯 שדה התקפה: ${attTotal}</span></div><div class="pitch">${roles['שוער'] ? `<div class="pitch-row">${renderPitchCard(roles['שוער'], '🧤', 'שוער')}</div>` : ''}${defKeys.length > 0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k], '🛡️', k)).join('')}</div>` : ''}${attKeys.length > 0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k], '⚽', k)).join('')}</div>` : ''}</div></div>`;
+        }).join('') + "</div><div id='shareButtonsBox' style='margin-top:20px;'><button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'><svg viewBox='0 0 24 24' width='20' height='20' fill='currentColor'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z'/></svg> שתף תמונה 📸</button></div>";
+        r.innerHTML = content; r.style.display = 'block'; if (scrollToTeamsFlag) { setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); scrollToTeamsFlag = false; }
     }
 
     async function shareImageToWhatsApp() {
-        const resultsDiv = document.getElementById('results'); const shareButtonsBox = document.getElementById('shareButtonsBox');
-        shareButtonsBox.style.display = 'none'; const wasAdmin = document.body.classList.contains('is-admin'); document.body.classList.remove('is-admin');
-        const originalBg = resultsDiv.style.backgroundColor; resultsDiv.style.backgroundColor = '#1E293B'; resultsDiv.style.padding = '20px'; resultsDiv.style.borderRadius = '16px';
+        const r = document.getElementById('results'), b = document.getElementById('shareButtonsBox'); b.style.display = 'none'; const wasAdmin = document.body.classList.contains('is-admin'); document.body.classList.remove('is-admin');
+        const bg = r.style.backgroundColor; r.style.backgroundColor = '#1E293B'; r.style.padding = '20px'; r.style.borderRadius = '16px';
         try {
-            const canvas = await html2canvas(resultsDiv, { scale: 2, useCORS: true, backgroundColor: '#1E293B' });
-            shareButtonsBox.style.display = 'block'; if (wasAdmin) document.body.classList.add('is-admin');
-            resultsDiv.style.backgroundColor = originalBg; resultsDiv.style.padding = '0';
+            const canvas = await html2canvas(r, { scale: 2, useCORS: true, backgroundColor: '#1E293B' });
+            b.style.display = 'block'; if (wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor = bg; r.style.padding = '0';
             canvas.toBlob(async (blob) => {
                 const file = new File([blob], "lineups.png", { type: "image/png" });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'תוצאות הערב', text: '⚽ קבוצות הערב!' }); } catch (err) {} } 
-                else { const link = document.createElement('a'); link.download = 'הרכבים.png'; link.href = canvas.toDataURL('image/png'); link.click(); alert('התמונה ירדה! שתף אותה בוואטסאפ.'); }
+                if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'תוצאות הערב' }); } catch (err) {} } 
+                else { const link = document.createElement('a'); link.download = 'הרכבים.png'; link.href = canvas.toDataURL('image/png'); link.click(); }
             });
-        } catch (e) { shareButtonsBox.style.display = 'block'; if (wasAdmin) document.body.classList.add('is-admin'); resultsDiv.style.backgroundColor = originalBg; resultsDiv.style.padding = '0'; alert('שגיאה ביצירת התמונה.'); }
+        } catch (e) { b.style.display = 'block'; if (wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor = bg; r.style.padding = '0'; }
     }
-
-    function shareGlobalVoteLink() {
-        const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-        const voteUrl = `${baseUrl}vote.html?group=${currentGroupId}`;
-        const text = `⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${voteUrl}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    }
+    function shareGlobalVoteLink() { window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html', '')}vote.html?group=${currentGroupId}`)}`, '_blank'); }
 </script>
 </body>
 </html>
