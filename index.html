@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -50,7 +51,6 @@
         .admin-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 5px; transition: 0.2s;}
         .admin-btn:active { transform: scale(0.9); }
 
-        /* מסך לובי / יצירת קבוצה */
         #lobbyContainer { display: none; text-align: center; margin-top: 50px; }
         .lobby-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px 20px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .lobby-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 20px; color: var(--primary-color); }
@@ -334,21 +334,20 @@
         </div>
     </div>
 
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 <script>
-
     // --- הגדרות פיירבייס ---
     const firebaseConfig = {
-    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
-    authDomain: "soccer-b30a6.firebaseapp.com",
-    projectId: "soccer-b30a6",
-    storageBucket: "soccer-b30a6.firebasestorage.app",
-    messagingSenderId: "295483280442",
-    appId: "1:295483280442:web:0633390394600eb6357903",
-    measurementId: "G-425XRT1EVL" // המזהה שהוספת
-};
+        apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+        authDomain: "soccer-b30a6.firebaseapp.com",
+        projectId: "soccer-b30a6",
+        storageBucket: "soccer-b30a6.firebasestorage.app",
+        messagingSenderId: "295483280442",
+        appId: "1:295483280442:web:0633390394600eb6357903",
+        measurementId: "G-425XRT1EVL" //
+    };
 
     firebase.initializeApp(firebaseConfig);
+    firebase.analytics(); //
     const db = firebase.firestore();
     
     // --- משתני מערכת ---
@@ -472,7 +471,6 @@
         });
 
         gameRef.onSnapshot(snap => {
-            // קריאת הקבוצות באופן דינמי שמונע "Nested Arrays Error"
             if (snap.exists && snap.data().team1) {
                 const data = snap.data();
                 let loadedTeams = [];
@@ -819,14 +817,12 @@
             return tempRoles['שוער'] ? tempRoles['שוער'].id : null; 
         });
         
-        // השמירה החדשה - הדינמית (פותרת את שגיאת Firebase DocumentReference.set)
         let gameData = {
             gkIds: defaultGks, 
             teamWins: Array(groupSettings.numTeams).fill(0), 
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        // מוסיף באופן שטוח את הקבוצות (team1, team2, team3...)
         best.forEach((teamArr, idx) => {
             gameData[`team${idx + 1}`] = teamArr;
         });
