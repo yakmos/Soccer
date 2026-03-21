@@ -469,11 +469,23 @@ function copyGroupLink() {
     function openSettingsModal() { document.getElementById('setNumTeams').value = groupSettings.numTeams; document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam; document.getElementById('settingsModalOverlay').style.display = 'flex'; }
     function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
     async function saveGroupSettings() {
-        groupSettings.numTeams = parseInt(document.getElementById('setNumTeams').value) || 3;
-        groupSettings.playersPerTeam = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
+    const numTeams = parseInt(document.getElementById('setNumTeams').value) || 3;
+    const playersPerTeam = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
+    
+    // עדכון מקומי מיידי
+    groupSettings.numTeams = numTeams;
+    groupSettings.playersPerTeam = playersPerTeam;
+    
+    try {
         await groupRef.update({ settings: groupSettings });
-        closeSettingsModal(); render(); alert('ההגדרות נשמרו בהצלחה!');
+        closeSettingsModal();
+        render(); // רינדור מחדש של הקאונטר והסגל
+        alert('ההגדרות נשמרו בהצלחה!');
+    } catch (error) {
+        console.error("Error updating settings:", error);
+        alert('שגיאה בשמירת ההגדרות.');
     }
+}
     
     async function createNewGroup() {
         const nameInput = document.getElementById('newGroupName').value.trim(), passInput = document.getElementById('newGroupPassword').value.trim();
