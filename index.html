@@ -200,6 +200,21 @@
     </div>
 
     <div id="appContainer" style="display:none;">
+        <div class="container" style="padding-bottom: 0;">
+    <div class="card" style="margin-bottom: 10px; border-style: dashed; border-color: var(--primary-color); background: rgba(16, 185, 129, 0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 800; font-size: 0.9rem; color: var(--primary-color);">🔗 קישור ישיר לקבוצה זו:</span>
+            <button onclick="copyGroupLink()" style="background: var(--primary-color); border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 700;">העתק</button>
+        </div>
+        <div id="groupLinkDisplay" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted); word-break: break-all; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">
+            טוען קישור...
+        </div>
+        
+        <div class="admin-only" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #FCD34D;">
+            <strong>📢 תזכורת למנהל:</strong> שמור את הקישור הזה בקיצורי הדרך או בתיאור קבוצת הוואטסאפ כדי שלא תאבד את הגישה לניהול!
+        </div>
+    </div>
+</div>
         <div class="tabs-nav">
             <button class="tab-btn active" onclick="switchTab('tab-main', this)">משחק נוכחי</button>
             <button class="tab-btn" onclick="switchTab('tab-leaderboards', this)">דירוגים 📊</button>
@@ -362,6 +377,22 @@
     let historyCache = []; // מטמון לשמירת ההיסטוריה בזמן אמת ללא עומס על פיירבייס
     let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
 
+    // פונקציה לעדכון הקישור בתצוגה (לקרוא לה בתוך ה-onload)
+function updateGroupLinkUI() {
+    const currentUrl = window.location.origin + window.location.pathname + '?group=' + currentGroupId;
+    const displayElement = document.getElementById('groupLinkDisplay');
+    if (displayElement) {
+        displayElement.innerText = currentUrl;
+    }
+}
+
+// פונקציה להעתקת הקישור
+function copyGroupLink() {
+    const link = document.getElementById('groupLinkDisplay').innerText;
+    navigator.clipboard.writeText(link).then(() => {
+        alert("הקישור הועתק ללוח! 📋");
+    });
+}
     // --- אתחול ---
     window.onload = async () => {
         if (!currentGroupId) {
@@ -391,7 +422,7 @@
                     return;
                 }
             } catch (error) { console.error("Error loading group:", error); }
-
+            updateGroupLinkUI();
             startRealtimeListeners();
         }
     };
