@@ -487,33 +487,46 @@ function copyGroupLink() {
     }
 }
   async function saveGroupSettings() {
+    // 1. שליפת הערכים מהאינפוטים במודל
     const numInput = document.getElementById('setNumTeams');
     const playersInput = document.getElementById('setPlayersPerTeam');
     
     const numTeams = parseInt(numInput.value) || 3;
     const playersPerTeam = parseInt(playersInput.value) || 6;
     
-    // יצירת אובייקט הגדרות נקי
+    // 2. יצירת אובייקט הגדרות חדש
     const newSettings = {
         numTeams: numTeams,
         playersPerTeam: playersPerTeam
     };
 
     try {
-        // עדכון ב-Firebase
+        // 3. עדכון ב-Firebase (שימוש ב-merge: true כדי לא לדרוס שדות אחרים בקבוצה)
         await groupRef.set({ settings: newSettings }, { merge: true });
         
-        // עדכון מקומי רק אחרי שהצלחנו ב-DB
+        // 4. עדכון המשתנה המקומי באפליקציה
         groupSettings = newSettings;
         
+        // 5. צעד מניעתי: מחיקת המשחק הנוכחי ב-Firebase
+        // זה מבטיח שלא נקרוס כשננסה להציג חלוקה של 18 שחקנים כשהגדרנו עכשיו 14
+        await gameRef.delete(); 
+        
+        // 6. סגירת המודל ועדכון ה-UI (הקאונטר יתאפס ל-0 / X החדש)
         closeSettingsModal();
-        render(); // רינדור מחדש כדי לעדכן את הקאונטר (למשל 0/14 במקום 0/18)
-        alert('ההגדרות נשמרו בהצלחה!');
+        render(); 
+        
+        alert('ההגדרות נשמרו בהצלחה! המשחק הקודם אופסה כדי להתאים למבנה החדש.');
+        
     } catch (error) {
         console.error("Error updating settings:", error);
-        alert('שגיאה בשמירת ההגדרות. וודא שאתה במצב ניהול.');
+        // בדיקה אם השגיאה היא בגלל הרשאות
+        if (error.code === 'permission-denied') {
+            alert('שגיאת הרשאות: וודא שעדכנת את ה-Rules ב-Firebase Console כפי שסידרנו.');
+        } else {
+            alert('שגיאה בשמירת ההגדרות. נסה שוב.');
+        }
     }
-}  
+}
     async function createNewGroup() {
         const nameInput = document.getElementById('newGroupName').value.trim(), passInput = document.getElementById('newGroupPassword').value.trim();
         const btn = document.getElementById('createGroupBtn');
@@ -849,16 +862,93 @@ function copyGroupLink() {
     }
 
     function displayTeams(teams, gkIds, wins) {
-        const r = document.getElementById('results'), teamNames = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה", "קבוצה אדומה", "קבוצה ירוקה"];
-        const renderPitchCard = (p, icon, roleName) => `<div class="pitch-player">${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}<div style="margin-top:4px;">${p.name}</div><div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span> <span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div><div class="stat-ticker"><button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button><span class="ticker-val">⚽ ${(players.find(x => x.id === p.id) || p).goals || 0}</span><button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button></div><span class="pitch-role">${icon} ${roleName}</span></div>`;
-        let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>" + teams.map((t, i) => {
-            const roles = assignRoles(t, gkIds ? gkIds[i] : null), fieldPlayers = t.filter(p => p.id !== (roles['שוער'] ? roles['שוער'].id : null));
-            let defTotal = fieldPlayers.reduce((sum, p) => sum + (p.defScore || 5), 0).toFixed(1), attTotal = fieldPlayers.reduce((sum, p) => sum + (p.attScore || 5), 0).toFixed(1);
-            let keys = Object.keys(roles).filter(k => k !== 'שוער'), defKeys = keys.filter(k => k.includes('הגנה') || k.includes('מגן') || k.includes('בלם')), attKeys = keys.filter(k => !defKeys.includes(k));
-            return `<div class="team-row"><div class="team-header t-${i}"><div class="team-header-name">${teamNames[i] || `קבוצה ${i+1}`} <span style="font-size:0.9rem; color:var(--text-muted); font-weight:500;">(כוח שדה: ${(parseFloat(defTotal) + parseFloat(attTotal)).toFixed(1)})</span></div><div class="team-header-right"><div class="stat-ticker team-ticker"><button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, -1)">-</button><span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i] || 0}</span><button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button></div><button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button></div></div><div class="team-stats-row"><span class="stat-badge stat-def">🛡️ שדה הגנה: ${defTotal}</span><span class="stat-badge stat-att">🎯 שדה התקפה: ${attTotal}</span></div><div class="pitch">${roles['שוער'] ? `<div class="pitch-row">${renderPitchCard(roles['שוער'], '🧤', 'שוער')}</div>` : ''}${defKeys.length > 0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k], '🛡️', k)).join('')}</div>` : ''}${attKeys.length > 0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k], '⚽', k)).join('')}</div>` : ''}</div></div>`;
-        }).join('') + "</div><div id='shareButtonsBox' style='margin-top:20px;'><button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'><svg viewBox='0 0 24 24' width='20' height='20' fill='currentColor'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z'/></svg> שתף תמונה 📸</button></div>";
-        r.innerHTML = content; r.style.display = 'block'; if (scrollToTeamsFlag) { setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); scrollToTeamsFlag = false; }
+    const r = document.getElementById('results');
+    const teamNames = ["קבוצה כחולה", "קבוצה לבנה", "קבוצה צהובה", "קבוצה אדומה", "קבוצה ירוקה"];
+
+    // פונקציית עזר פנימית לרינדור כרטיס שחקן על המגרש
+    const renderPitchCard = (p, icon, roleName) => {
+        // הגנה: אם השחקן לא נמצא (undefined), נציג ריבוע ריק ולא נקרוס
+        if (!p) {
+            return `<div class="pitch-player" style="opacity: 0.5; border: 1px dashed var(--border-color);">
+                        <div style="font-size: 0.7rem;">שחקן חסר</div>
+                    </div>`;
+        }
+
+        // ניסיון למצוא את נתוני השחקן המעודכנים ביותר מרשימת ה-players הכללית (בשביל הגולים)
+        const latestPlayerData = players.find(x => x.id === p.id) || p;
+        const goals = latestPlayerData.goals || 0;
+
+        return `
+            <div class="pitch-player">
+                ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
+                <div style="margin-top:4px; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${p.name}</div>
+                <div class="pitch-player-stats">
+                    <span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore || 5}</span> 
+                    <span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore || 5}</span>
+                </div>
+                <div class="stat-ticker">
+                    <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button>
+                    <span class="ticker-val">⚽ ${goals}</span>
+                    <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button>
+                </div>
+                <span class="pitch-role">${icon} ${roleName}</span>
+            </div>`;
+    };
+
+    // בניית תוכן התצוגה לכל הקבוצות
+    let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
+    
+    content += teams.map((t, i) => {
+        const roles = assignRoles(t, gkIds ? gkIds[i] : null);
+        const fieldPlayers = t.filter(p => p && p.id !== (roles['שוער'] ? roles['שוער'].id : null));
+        
+        let defTotal = fieldPlayers.reduce((sum, p) => sum + (p.defScore || 5), 0).toFixed(1);
+        let attTotal = fieldPlayers.reduce((sum, p) => sum + (p.attScore || 5), 0).toFixed(1);
+        
+        let keys = Object.keys(roles).filter(k => k !== 'שוער');
+        let defKeys = keys.filter(k => k.includes('הגנה') || k.includes('מגן') || k.includes('בלם'));
+        let attKeys = keys.filter(k => !defKeys.includes(k));
+
+        return `
+            <div class="team-row">
+                <div class="team-header t-${i}">
+                    <div class="team-header-name">
+                        ${teamNames[i] || `קבוצה ${i + 1}`} 
+                        <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">
+                            (כוח: ${(parseFloat(defTotal) + parseFloat(attTotal)).toFixed(1)})
+                        </span>
+                    </div>
+                    <div class="team-header-right">
+                        <div class="stat-ticker team-ticker">
+                            <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, -1)">-</button>
+                            <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i] || 0}</span>
+                            <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button>
+                        </div>
+                        <button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>
+                    </div>
+                </div>
+                <div class="team-stats-row">
+                    <span class="stat-badge stat-def">🛡️ הגנה: ${defTotal}</span>
+                    <span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span>
+                </div>
+                <div class="pitch">
+                    ${roles['שוער'] ? `<div class="pitch-row">${renderPitchCard(roles['שוער'], '🧤', 'שוער')}</div>` : ''}
+                    ${defKeys.length > 0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k], '🛡️', k)).join('')}</div>` : ''}
+                    ${attKeys.length > 0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k], '⚽', k)).join('')}</div>` : ''}
+                </div>
+            </div>`;
+    }).join('');
+
+    content += "</div><div id='shareButtonsBox' style='margin-top:20px;'><button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'>שתף תמונה 📸</button></div>";
+    
+    r.innerHTML = content; 
+    r.style.display = 'block'; 
+    
+    if (scrollToTeamsFlag) { 
+        setTimeout(() => r.scrollIntoView({ behavior: 'smooth', block: 'end' }), 100); 
+        scrollToTeamsFlag = false; 
     }
+}
 
     async function shareImageToWhatsApp() {
         const r = document.getElementById('results'), b = document.getElementById('shareButtonsBox'); b.style.display = 'none'; const wasAdmin = document.body.classList.contains('is-admin'); document.body.classList.remove('is-admin');
