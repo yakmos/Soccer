@@ -486,7 +486,34 @@ function copyGroupLink() {
         alert('שגיאה בשמירת ההגדרות.');
     }
 }
+  async function saveGroupSettings() {
+    const numInput = document.getElementById('setNumTeams');
+    const playersInput = document.getElementById('setPlayersPerTeam');
     
+    const numTeams = parseInt(numInput.value) || 3;
+    const playersPerTeam = parseInt(playersInput.value) || 6;
+    
+    // יצירת אובייקט הגדרות נקי
+    const newSettings = {
+        numTeams: numTeams,
+        playersPerTeam: playersPerTeam
+    };
+
+    try {
+        // עדכון ב-Firebase
+        await groupRef.set({ settings: newSettings }, { merge: true });
+        
+        // עדכון מקומי רק אחרי שהצלחנו ב-DB
+        groupSettings = newSettings;
+        
+        closeSettingsModal();
+        render(); // רינדור מחדש כדי לעדכן את הקאונטר (למשל 0/14 במקום 0/18)
+        alert('ההגדרות נשמרו בהצלחה!');
+    } catch (error) {
+        console.error("Error updating settings:", error);
+        alert('שגיאה בשמירת ההגדרות. וודא שאתה במצב ניהול.');
+    }
+}  
     async function createNewGroup() {
         const nameInput = document.getElementById('newGroupName').value.trim(), passInput = document.getElementById('newGroupPassword').value.trim();
         const btn = document.getElementById('createGroupBtn');
@@ -699,15 +726,94 @@ function copyGroupLink() {
     }
 
     function render() {
-        const currentScrollPos = window.scrollY, totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam, isAdmin = document.body.classList.contains('is-admin');
-        document.getElementById('squadList').innerHTML = players.map(p => `<div class="squad-item">${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}<div class="squad-info"><div class="squad-name">${p.name} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ משחק: ${p.goals||0})</span></div><div class="chip-stats-container" style="justify-content: flex-start;">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div></div><div class="squad-actions"><button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button><button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})'>✏️</button></div></div>`).join('');
-        const lineupPlayers = players.filter(p => p.inLineup);
-        if(lineupPlayers.length === 0) { document.getElementById('lineupGrid').innerHTML = "<div style='grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;'>עדיין לא נבחר הרכב להערב.</div>"; } 
-        else { document.getElementById('lineupGrid').innerHTML = lineupPlayers.map(p => `<div class="player-chip">${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}<div class="chip-name">${p.name}</div><div class="chip-stats-container">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div>${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}</div>`).join(''); }
-        const badge = document.getElementById('counterBadge'); badge.innerText = `${lineupPlayers.length} / ${totalNeeded}`;
-        if(lineupPlayers.length === totalNeeded) { badge.classList.add('ready'); document.getElementById('calcBtn').disabled = false; } else { badge.classList.remove('ready'); document.getElementById('calcBtn').disabled = true; }
-        renderTopScorers(); renderLeaderboards(); requestAnimationFrame(() => { window.scrollTo(0, currentScrollPos); });
+    // שמירת מיקום הגלילה הנוכחי כדי שהמסך לא יקפוץ למעלה בכל עדכון
+    const currentScrollPos = window.scrollY;
+    
+    // חישוב כמות השחקנים הנדרשת לפי ההגדרות העדכניות (למשל 3 קבוצות * 6 שחקנים = 18)
+    const numTeams = parseInt(groupSettings.numTeams) || 3;
+    const playersPerTeam = parseInt(groupSettings.playersPerTeam) || 6;
+    const totalNeeded = numTeams * playersPerTeam;
+    
+    const isAdmin = document.body.classList.contains('is-admin');
+
+    // 1. רינדור רשימת כל הסגל (בתוך ה-Card של המנהל)
+    const squadList = document.getElementById('squadList');
+    if (squadList) {
+        squadList.innerHTML = players.map(p => `
+            <div class="squad-item">
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div class="squad-info">
+                    <div class="squad-name">
+                        ${p.name} 
+                        <span style="font-size:0.8rem; color:#FCD34D;">(⚽ משחק: ${p.goals || 0})</span>
+                    </div>
+                    <div class="chip-stats-container" style="justify-content: flex-start;">
+                        ${getColoredBadge('🛡️', p.defScore)} 
+                        ${getColoredBadge('🎯', p.attScore)}
+                    </div>
+                </div>
+                <div class="squad-actions">
+                    <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" 
+                            onclick="toggleLineup('${p.id}', ${!!p.inLineup})">
+                        ${p.inLineup ? '✓' : '+'}
+                    </button>
+                    <button class="action-btn btn-edit" 
+                            onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})'>
+                        ✏️
+                    </button>
+                </div>
+            </div>
+        `).join('');
     }
+
+    // 2. רינדור הגריד של "הרכב למשחק" (הצ'יפים הגדולים)
+    const lineupPlayers = players.filter(p => p.inLineup);
+    const lineupGrid = document.getElementById('lineupGrid');
+    
+    if (lineupGrid) {
+        if (lineupPlayers.length === 0) {
+            lineupGrid.innerHTML = "<div style='grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;'>עדיין לא נבחר הרכב להערב.</div>";
+        } else {
+            lineupGrid.innerHTML = lineupPlayers.map(p => `
+                <div class="player-chip">
+                    ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
+                    <div class="chip-name">${p.name}</div>
+                    <div class="chip-stats-container">
+                        ${getColoredBadge('🛡️', p.defScore)} 
+                        ${getColoredBadge('🎯', p.attScore)}
+                    </div>
+                    ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}
+                </div>
+            `).join('');
+        }
+    }
+
+    // 3. עדכון הקאונטר (הבועה שמראה כמה שחקנים נבחרו מתוך כמה שצריך)
+    const badge = document.getElementById('counterBadge');
+    if (badge) {
+        badge.innerText = `${lineupPlayers.length} / ${totalNeeded}`;
+        
+        // אם הגענו למכסה המדויקת - צובעים בירוק ומאפשרים את כפתור החלוקה
+        if (lineupPlayers.length === totalNeeded) {
+            badge.classList.add('ready');
+            const calcBtn = document.getElementById('calcBtn');
+            if (calcBtn) calcBtn.disabled = false;
+        } else {
+            badge.classList.remove('ready');
+            const calcBtn = document.getElementById('calcBtn');
+            if (calcBtn) calcBtn.disabled = true;
+        }
+    }
+
+    // 4. רינדור שאר הטאבים (דירוגים ומלכי שערים)
+    renderTopScorers();
+    renderLeaderboards();
+
+    // החזרת מיקום הגלילה
+    requestAnimationFrame(() => {
+        window.scrollTo(0, currentScrollPos);
+    });
+}
 
     // --- אלגוריתם חלוקת הקבוצות ---
     async function run() {
