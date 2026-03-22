@@ -219,6 +219,7 @@
             <button class="tab-btn active" onclick="switchTab('tab-main', this)">משחק נוכחי</button>
             <button class="tab-btn" onclick="switchTab('tab-leaderboards', this)">דירוגים 📊</button>
             <button class="tab-btn" onclick="switchTab('tab-scorers', this)">מלכי השערים 🏆</button>
+	    <button class="tab-btn" onclick="switchTab('tab-market', this)">מחפשים שחקנים 🤝</button>
         </div>
 
         <div class="container">
@@ -262,6 +263,7 @@
                         
                         <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
                         <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
+			<button class="btn" onclick="publishToMarket()" style="margin-top:10px; background: #3B82F6;">📢 פרסם גיוס שחקנים לשוק</button>
                     </div>
 
                     <div class="card">
@@ -319,6 +321,20 @@
                     <div id="topScorersList" style="display: flex; flex-direction: column; gap: 15px;">
                         <div style="text-align:center; color:var(--text-muted); padding:10px;">טוען נתונים...</div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div> </div> <div id="tab-market" class="tab-content">
+        <div class="container">
+            <div class="card" style="border-top: 4px solid #3B82F6;">
+                <h2 class="card-title" style="justify-content: center; margin-bottom: 20px;">🏃‍♂️ קבוצות מחפשות שחקנים</h2>
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                    כאן מופיעות קבוצות שחסר להן שחקן למשחק הקרוב. <br>לחיצה על המודעה תפתח שיחת וואטסאפ עם המנהל.
+                </p>
+                <div id="marketList" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="text-align:center; color:var(--text-muted); padding:20px;">טוען מודעות...</div>
                 </div>
             </div>
         </div>
@@ -964,6 +980,91 @@ function copyGroupLink() {
         } catch (e) { b.style.display = 'block'; if (wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor = bg; r.style.padding = '0'; }
     }
     function shareGlobalVoteLink() { window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html', '')}vote.html?group=${currentGroupId}`)}`, '_blank'); }
+// --- לוגיקת שוק השחקנים ---
+
+async function publishToMarket() {
+    const lineupCount = players.filter(p => p.inLineup).length;
+    const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
+    const missing = totalNeeded - lineupCount;
+
+    if (missing <= 0) {
+        alert("הסגל שלך מלא! אין צורך לגייס שחקנים נוספים.");
+        return;
+    }
+
+    const phone = prompt("לאיזה מספר טלפון שחקנים צריכים לפנות? (לדוגמה: 0501234567)");
+    if (!phone || phone.length < 10) return alert("חובה להזין מספר טלפון תקין.");
+
+    const location = prompt("איפה המשחק מתקיים? (לדוגמה: ספורטק חיפה / מגרש השכונה)");
+    if (!location) return alert("חובה להזין מיקום.");
+
+    const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ', '');
+
+    try {
+        await db.collection('market_posts').doc(currentGroupId).set({
+            groupName: groupName,
+            groupId: currentGroupId,
+            location: location,
+            phone: phone,
+            missing: missing,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            // תוקף ל-24 שעות (אופציונלי לסינון)
+            expiresAt: Date.now() + (24 * 60 * 60 * 1000) 
+        });
+        alert("המודעה פורסמה בהצלחה בלוח הכללי! 🎉");
+    } catch (e) {
+        console.error(e);
+        alert("שגיאה בפרסום המודעה.");
+    }
+}
+
+function renderMarket() {
+    const container = document.getElementById('marketList');
+    if (!container) return;
+
+    db.collection('market_posts').orderBy('timestamp', 'desc').onSnapshot(snap => {
+        if (snap.empty) {
+            container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`;
+            return;
+        }
+
+        container.innerHTML = snap.docs.map(doc => {
+            const data = doc.data();
+            const timeStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'}) : 'עכשיו';
+            
+            // יצירת לינק וואטסאפ
+            const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
+            const waLink = `https://wa.me/972${data.phone.substring(1)}?text=${waMsg}`;
+
+            return `
+                <div class="card" style="margin-bottom: 0; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div style="font-weight: 900; font-size: 1.1rem; color: #60A5FA;">📍 ${data.location}</div>
+                            <div style="font-weight: 700; color: var(--text-main); margin: 5px 0;">קבוצת: ${data.groupName}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">פורסם ב-${timeStr}</div>
+                        </div>
+                        <div style="background: var(--danger); color: white; padding: 5px 10px; border-radius: 8px; font-weight: 900; font-size: 0.9rem;">
+                            חסרים: ${data.missing}
+                        </div>
+                    </div>
+                    <a href="${waLink}" target="_blank" class="btn" style="margin-top: 15px; background: #25D366; text-decoration: none; font-size: 0.95rem;">
+                        📩 אני רוצה להצטרף (WhatsApp)
+                    </a>
+                </div>
+            `;
+        }).join('');
+    });
+}
+
+// עדכון פונקציית המעבר בין טאבים כדי שתרנדר את השוק כשנכנסים אליו
+const originalSwitchTab = switchTab;
+window.switchTab = function(tabId, btnElement) {
+    originalSwitchTab(tabId, btnElement);
+    if (tabId === 'tab-market') {
+        renderMarket();
+    }
+};
 </script>
 </body>
 </html>
