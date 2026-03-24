@@ -176,6 +176,94 @@
         .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 1rem; }
         .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
 
+        /* ========== History Tab Styles ========== */
+        .history-card {
+            background: var(--bg-color); border: 1px solid var(--border-color);
+            border-radius: 14px; margin-bottom: 12px; overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .history-card:hover { border-color: rgba(16,185,129,0.4); }
+        .history-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 16px; cursor: pointer; user-select: none;
+        }
+        .history-date {
+            font-weight: 900; font-size: 1rem; color: var(--text-main);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .history-date-sub { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .history-meta { display: flex; align-items: center; gap: 8px; }
+        .history-players-count {
+            font-size: 0.8rem; background: rgba(16,185,129,0.15); color: var(--primary-color);
+            border: 1px solid rgba(16,185,129,0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700;
+        }
+        .history-chevron {
+            color: var(--text-muted); font-size: 0.85rem; transition: transform 0.2s;
+        }
+        .history-chevron.open { transform: rotate(180deg); }
+
+        .history-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border-color); }
+        .history-body.open { display: block; }
+
+        .history-scorers-row {
+            display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap;
+        }
+        .history-scorer-chip {
+            display: flex; align-items: center; gap: 5px;
+            background: rgba(252,211,77,0.1); border: 1px solid rgba(252,211,77,0.2);
+            padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: #FCD34D;
+        }
+        .history-team-block {
+            background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+        }
+        .history-team-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; font-weight: 900; font-size: 0.95rem;
+        }
+        .history-team-wins {
+            background: rgba(16,185,129,0.15); color: var(--primary-color);
+            border: 1px solid rgba(16,185,129,0.3); padding: 2px 8px;
+            border-radius: 6px; font-size: 0.8rem; font-weight: 800;
+        }
+        .history-players-list {
+            display: flex; flex-wrap: wrap; gap: 5px;
+        }
+        .history-player-tag {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);
+            padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: var(--text-muted);
+        }
+        .history-player-tag.scorer { color: #FCD34D; border-color: rgba(252,211,77,0.3); background: rgba(252,211,77,0.08); }
+        .history-section-label {
+            font-size: 0.78rem; color: var(--text-muted); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 6px 0;
+        }
+        .history-empty {
+            text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 0.95rem;
+        }
+
+        /* ========== MVP Vote Styles ========== */
+        .mvp-player-option {
+            background: var(--bg-color); border: 2px solid var(--border-color);
+            border-radius: 12px; padding: 12px 8px; text-align: center;
+            cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
+        }
+        .mvp-player-option:active { transform: scale(0.95); }
+        .mvp-player-option.selected {
+            border-color: #FCD34D; background: rgba(252,211,77,0.1);
+            box-shadow: 0 0 0 2px rgba(252,211,77,0.3);
+        }
+        .mvp-player-option.disabled { opacity: 0.5; cursor: default; }
+        .mvp-player-name { font-weight: 800; font-size: 0.95rem; color: var(--text-main); margin-top: 6px; }
+        .mvp-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 22px; background: rgba(255,255,255,0.05); }
+        .mvp-vote-count { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+        .mvp-result-row { margin-bottom: 10px; }
+        .mvp-result-header { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+        .mvp-result-bar-bg { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+        .mvp-result-bar-fill { height: 100%; border-radius: 4px; background: #FCD34D; transition: width 0.5s ease; }
+        .mvp-result-bar-fill.leader { background: linear-gradient(90deg, #F59E0B, #FCD34D); }
+
         /* ========== Custom Params Styles ========== */
         .custom-param-item {
             display: flex; align-items: center; gap: 8px;
@@ -263,6 +351,7 @@
             <button class="tab-btn active" onclick="switchTab('tab-main', this)">משחק נוכחי</button>
             <button class="tab-btn" onclick="switchTab('tab-leaderboards', this)">דירוגים 📊</button>
             <button class="tab-btn" onclick="switchTab('tab-scorers', this)">מלכי השערים 🏆</button>
+            <button class="tab-btn" onclick="switchTab('tab-history', this)">היסטוריה 📅</button>
             <button class="tab-btn" onclick="switchTab('tab-market', this)">מחפשים שחקנים 🤝</button>
         </div>
 
@@ -341,7 +430,7 @@
                     </div>
 
                     <div id="results" class="card"></div>
-                    
+
                     <div class="bottom-bar-wrapper">
                         <div class="bottom-bar" id="adminBottomBar">
                             <div style="display:flex; gap:10px;">
@@ -389,6 +478,16 @@
                     </div>
                 </div>
             </div>
+            <!-- TAB: HISTORY -->
+            <div id="tab-history" class="tab-content">
+                <div class="card" style="border-top-width: 4px; border-top-color: #8B5CF6;">
+                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">📅 היסטוריית משחקים</h2>
+                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">כל ערב משחק שנסכם נשמר כאן עם כל הפרטים</p>
+                    <div id="historyList">
+                        <div class="history-empty">טוען היסטוריה... ⏳</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- TAB: MARKET -->
@@ -416,6 +515,8 @@
     </div>
 
     <!-- Modal: Settings -->
+    <!-- Modal: MVP Vote - removed, voting is now via dedicated mvp.html link -->
+
     <div id="settingsModalOverlay" class="modal-overlay" onclick="closeSettingsModal()">
         <div class="player-card-modal" onclick="event.stopPropagation()" style="max-width: 480px;">
             <button class="close-btn" onclick="closeSettingsModal()">✕</button>
@@ -483,6 +584,7 @@ let customParams = [];
 
 let players = [], activeTeams = null, activeGkIds = [], activeWins = [];
 let historyCache = [];
+let gamesHistoryCache = [];
 let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
 
 // ========== Utilities ==========
@@ -562,6 +664,12 @@ function startRealtimeListeners() {
     groupRef.collection('history').onSnapshot(snap => {
         historyCache = snap.docs.map(doc => doc.data());
         renderTopScorers();
+    });
+
+    // האזנה להיסטוריית משחקים שנסכמו
+    groupRef.collection('history_games').orderBy('date', 'desc').onSnapshot(snap => {
+        gamesHistoryCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderHistory();
     });
 
     // Listen for group changes (customParams updates)
@@ -831,17 +939,103 @@ async function updateTeamWin(index, delta) {
 
 async function finishGame() {
     if (!activeTeams) return alert("אין משחק פעיל לסיום.");
-    if (!confirm("לסיים את הערב? הגולים יאופסו והתוצאות יישמרו בקריירה.")) return;
-    const batch = db.batch(), historyRef = groupRef.collection('history'), now = firebase.firestore.FieldValue.serverTimestamp();
-    activeWins.forEach((wins, index) => {
-        if (wins > 0) activeTeams[index].forEach(player => {
-            for(let i=0; i<wins; i++) batch.set(historyRef.doc(), { playerId: player.id, type: 'win', timestamp: now });
+    if (!confirm("לסיים את הערב? הגולים יאופסו והתוצאות יישמרו בקריירה ובהיסטוריה.")) return;
+
+    const finishBtn = document.getElementById('finishGameBtn');
+    if (finishBtn) { finishBtn.disabled = true; finishBtn.innerText = "שומר... ⏳"; }
+
+    try {
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const nowDate = new Date(); // תאריך אמיתי לגיבוי
+        const historyRef = groupRef.collection('history');
+        const historyGamesRef = groupRef.collection('history_games');
+
+        // 2. Build game snapshot FIRST (before any batch, so we can catch errors early)
+        const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+        const teamsSnapshot = activeTeams.map((team, i) => ({
+            name: teamNames[i] || `קבוצה ${i+1}`,
+            wins: activeWins[i] || 0,
+            players: team.map(p => {
+                const liveP = players.find(x => x.id === p.id) || p;
+                return {
+                    id: p.id,
+                    name: p.name,
+                    goals: liveP.goals || 0,
+                    attScore: p.attScore || 5,
+                    defScore: p.defScore || 5,
+                    imgUrl: p.imgUrl || null
+                };
+            })
+        }));
+
+        const allPlayersFlat = teamsSnapshot.flatMap(t => t.players);
+        const topScorer = allPlayersFlat.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals)[0] || null;
+
+        // Get current game doc to read any existing MVP votes before we save
+        const currentGameDoc = await gameRef.get();
+        const currentGameData = currentGameDoc.exists ? currentGameDoc.data() : {};
+        const existingMvpVotes = currentGameData.mvpVotes || {};
+        const totalMvpVotes = Object.values(existingMvpVotes).reduce((a, b) => a + b, 0);
+        let mvpWinner = null;
+        if (totalMvpVotes > 0) {
+            const mvpLeaderId = Object.entries(existingMvpVotes).sort((a, b) => b[1] - a[1])[0]?.[0];
+            const mvpLeaderPlayer = players.find(p => p.id === mvpLeaderId);
+            if (mvpLeaderPlayer) {
+                mvpWinner = { id: mvpLeaderId, name: mvpLeaderPlayer.name, votes: existingMvpVotes[mvpLeaderId], totalVotes: totalMvpVotes };
+            }
+        }
+
+        const gameDoc = {
+            date: now,
+            dateISO: nowDate.toISOString(),
+            numPlayers: allPlayersFlat.length,
+            numTeams: activeTeams.length,
+            teams: teamsSnapshot,
+            topScorer: topScorer ? { id: topScorer.id, name: topScorer.name, goals: topScorer.goals } : null,
+            totalGoals: allPlayersFlat.reduce((s,p) => s + (p.goals||0), 0),
+            mvpWinner: mvpWinner,
+            mvpVoteCount: totalMvpVotes,
+            mvpVotes: existingMvpVotes,
+            votingOpen: true  // voting stays open after game ends
+        };
+
+        console.log("שומר משחק לhist...", gameDoc);
+        const savedGameRef = await historyGamesRef.add(gameDoc);
+        // Store the game doc ID back into itself for easy linking
+        await savedGameRef.update({ id: savedGameRef.id });
+        console.log("✅ history_games נשמר, ID:", savedGameRef.id);
+
+        const batch = db.batch();
+
+        // Career wins
+        activeWins.forEach((wins, index) => {
+            if (wins > 0) activeTeams[index].forEach(player => {
+                for(let i=0; i<wins; i++) batch.set(historyRef.doc(), { playerId: player.id, type: 'win', timestamp: now });
+            });
         });
-    });
-    players.forEach(p => { if (p.goals > 0 || p.inLineup) batch.update(playersRef.doc(p.id), { goals: 0 }); });
-    batch.delete(gameRef);
-    await batch.commit();
-    alert("הערב סוכם בהצלחה!");
+
+        // Reset goals
+        players.forEach(p => { if (p.goals > 0 || p.inLineup) batch.update(playersRef.doc(p.id), { goals: 0 }); });
+
+        // Delete game
+        batch.delete(gameRef);
+
+        await batch.commit();
+        console.log("✅ batch הושלם");
+
+        if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
+        alert("הערב סוכם בהצלחה! הנתונים נשמרו בהיסטוריה 📅\n\nבטאב ההיסטוריה תוכל לשתף קישור הצבעה לשחקן המצטיין!");
+
+    } catch(e) {
+        console.error("❌ שגיאה בסיום משחק:", e);
+        if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
+
+        if (e.code === 'permission-denied') {
+            alert("שגיאת הרשאות! עדכן את Firebase Rules:\n\nב-Firestore Rules שנה:\nallow read, write: if true;\n\nאו הוסף הרשאה ל-history_games");
+        } else {
+            alert("שגיאה בסיום המשחק: " + e.message);
+        }
+    }
 }
 
 async function editCareerGoals(playerId) {
@@ -1165,6 +1359,7 @@ function switchTab(tabId, btnElement) {
     if (bottomBar) bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
     if (tabId === 'tab-market') renderMarket();
     if (tabId === 'tab-leaderboards') renderLeaderboards();
+    if (tabId === 'tab-history') renderHistory();
 }
 
 // ========== Team Generation ==========
@@ -1300,6 +1495,139 @@ async function shareImageToWhatsApp() {
 }
 function shareGlobalVoteLink() {
     window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html','')}vote.html?group=${currentGroupId}`)}`, '_blank');
+}
+
+// ========== History Render ==========
+function renderHistory() {
+    const container = document.getElementById('historyList');
+    if (!container) return;
+
+    if (gamesHistoryCache.length === 0) {
+        container.innerHTML = `<div class="history-empty">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📭</div>
+            עוד לא נסכם אף משחק.<br>
+            <span style="font-size:0.85rem;">לאחר סיום משחק הוא יופיע כאן.</span>
+        </div>`;
+        return;
+    }
+
+    const teamColors = ['#3B82F6','#F8FAFC','#EAB308','#EF4444','#10B981'];
+
+    container.innerHTML = gamesHistoryCache.map((game, gameIndex) => {
+        // Format date
+        let dateStr = 'תאריך לא ידוע';
+        let timeStr = '';
+        if (game.date && game.date.toDate) {
+            const d = game.date.toDate();
+            dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Scorers of this game
+        const allPlayers = (game.teams || []).flatMap(t => t.players || []);
+        const scorers = allPlayers.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals);
+        const scorersHTML = scorers.length > 0
+            ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${p.name} × ${p.goals}</div>`).join('')
+            : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
+
+        // Teams blocks
+        const teamsHTML = (game.teams || []).map((team, ti) => {
+            const color = teamColors[ti] || '#10B981';
+            const playersTagsHTML = (team.players || []).map(p => {
+                const isScorer = p.goals > 0;
+                return `<div class="history-player-tag ${isScorer ? 'scorer' : ''}">
+                    ${isScorer ? `⚽×${p.goals} ` : ''}${p.name}
+                </div>`;
+            }).join('');
+            return `<div class="history-team-block">
+                <div class="history-team-header">
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block; box-shadow:0 0 6px ${color};"></span>
+                        ${team.name}
+                    </span>
+                    <span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span>
+                </div>
+                <div class="history-players-list">${playersTagsHTML}</div>
+            </div>`;
+        }).join('');
+
+        // Summary line
+        const topScorerLine = game.topScorer
+            ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${game.topScorer.name} ${game.topScorer.goals} שערים</span>`
+            : '';
+
+        // MVP section
+        const mvpShareUrl = `${window.location.origin}${window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/')}mvp.html?group=${currentGroupId}&game=${game.id}`;
+        
+        let mvpSection = '';
+        if (game.mvpWinner) {
+            // Game already has a winner saved
+            mvpSection = `
+                <div class="history-section-label">🌟 שחקן מצטיין</div>
+                <div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;">
+                    <span style="font-size:1.4rem;">🌟</span>
+                    <div>
+                        <div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div>
+                    </div>
+                </div>`;
+        } else {
+            // Show vote count if any, + share button
+            const voteCount = game.mvpVoteCount || 0;
+            mvpSection = `
+                <div class="history-section-label">🌟 שחקן מצטיין של הערב</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;">
+                    <div style="font-size:0.85rem; color:var(--text-muted);">
+                        ${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}
+                    </div>
+                    <button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap; flex-shrink:0;">
+                        📤 שתף להצבעה
+                    </button>
+                </div>`;
+        }
+
+        const uid = `hist_${gameIndex}`;
+        return `<div class="history-card">
+            <div class="history-header" onclick="toggleHistoryCard('${uid}')">
+                <div class="history-date">
+                    <span>📅 ${dateStr}</span>
+                </div>
+                <div class="history-meta">
+                    ${topScorerLine}
+                    <span class="history-players-count">👥 ${game.numPlayers || allPlayers.length}</span>
+                    <span class="history-chevron" id="chev_${uid}">▼</span>
+                </div>
+            </div>
+            <div class="history-body" id="body_${uid}">
+                <div style="font-size:0.8rem; color:var(--text-muted); margin: 10px 0 10px 0;">
+                    ${timeStr ? `שעת סיום: ${timeStr} •` : ''} ${game.numTeams || (game.teams||[]).length} קבוצות • ${game.totalGoals || 0} שערים סה"כ
+                </div>
+                ${mvpSection}
+                <div class="history-section-label">מלך השערים של הערב</div>
+                <div class="history-scorers-row">${scorersHTML}</div>
+                <div class="history-section-label">קבוצות והרכבים</div>
+                ${teamsHTML}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function shareMvpLink(gameId, event) {
+    if (event) event.stopPropagation();
+    const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+    const url = `${base}mvp.html?group=${currentGroupId}&game=${gameId}`;
+    const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ','');
+    const waText = `🌟 *בחרו את שחקן המצטיין של הערב!* 🌟\n\nקבוצת ${groupName}\nלחצו להצביע:\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
+}
+
+function toggleHistoryCard(uid) {
+    const body = document.getElementById(`body_${uid}`);
+    const chev = document.getElementById(`chev_${uid}`);
+    if (!body) return;
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    if (chev) chev.classList.toggle('open', !isOpen);
 }
 
 // ========== Market ==========

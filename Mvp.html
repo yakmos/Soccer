@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>הצבעה לשחקן מצטיין ⭐</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #0F172A; --surface: #1E293B; --border: #334155;
+            --text: #F8FAFC; --muted: #94A3B8;
+            --gold: #FCD34D; --gold-bg: rgba(252,211,77,0.1); --gold-border: rgba(252,211,77,0.3);
+            --green: #10B981; --danger: #EF4444;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        body {
+            font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text);
+            direction: rtl; min-height: 100vh; padding-bottom: 40px;
+        }
+
+        /* Header */
+        .page-header {
+            background: rgba(15,23,42,0.95); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); padding: 16px 20px;
+            text-align: center; position: sticky; top: 0; z-index: 50;
+        }
+        .page-header h1 { font-size: 1.15rem; font-weight: 900; }
+        .page-header p { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
+
+        .container { max-width: 500px; margin: 0 auto; padding: 16px; }
+
+        /* Game info card */
+        .game-info-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .game-date { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+        .game-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+        .vote-count-badge {
+            background: var(--gold-bg); border: 1px solid var(--gold-border);
+            color: var(--gold); padding: 4px 10px; border-radius: 8px;
+            font-weight: 800; font-size: 0.85rem; white-space: nowrap;
+        }
+
+        /* Section title */
+        .section-title {
+            font-size: 0.78rem; font-weight: 800; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+        }
+
+        /* Player grid for voting */
+        .players-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;
+        }
+        .player-option {
+            background: var(--surface); border: 2px solid var(--border);
+            border-radius: 14px; padding: 14px 8px; text-align: center;
+            cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
+            position: relative; overflow: hidden;
+        }
+        .player-option:active { transform: scale(0.96); }
+        .player-option.selected {
+            border-color: var(--gold); background: var(--gold-bg);
+            box-shadow: 0 0 0 3px rgba(252,211,77,0.2);
+        }
+        .player-option.voted-for-me {
+            border-color: var(--gold); background: var(--gold-bg);
+        }
+        .player-option.disabled { opacity: 0.5; cursor: default; pointer-events: none; }
+        .player-avatar {
+            width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--border); margin-bottom: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; background: rgba(255,255,255,0.05);
+        }
+        .player-option.selected .player-avatar,
+        .player-option.voted-for-me .player-avatar { border-color: var(--gold); }
+        .player-name { font-weight: 800; font-size: 0.95rem; color: var(--text); margin-bottom: 4px; }
+        .player-option.selected .player-name,
+        .player-option.voted-for-me .player-name { color: var(--gold); }
+        .player-votes-mini { font-size: 0.75rem; color: var(--muted); }
+        .selected-check {
+            position: absolute; top: 6px; left: 6px;
+            background: var(--gold); color: #000; border-radius: 50%;
+            width: 20px; height: 20px; font-size: 11px; font-weight: 900;
+            display: none; align-items: center; justify-content: center;
+        }
+        .player-option.selected .selected-check,
+        .player-option.voted-for-me .selected-check { display: flex; }
+
+        /* Submit button */
+        .submit-btn {
+            width: 100%; padding: 16px; border-radius: 12px; border: none;
+            background: var(--gold); color: #000; font-weight: 900; font-size: 1.1rem;
+            cursor: pointer; font-family: 'Heebo', sans-serif; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin-bottom: 20px;
+        }
+        .submit-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+        .submit-btn.change-vote { background: var(--surface); border: 2px solid var(--gold); color: var(--gold); }
+
+        /* Already voted banner */
+        .voted-banner {
+            background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;
+            text-align: center; color: var(--green); font-weight: 700; font-size: 0.9rem;
+            display: none;
+        }
+        .voted-banner.show { display: block; }
+
+        /* Results section */
+        .results-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 16px; margin-bottom: 16px;
+        }
+        .result-row { margin-bottom: 12px; }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .result-name { font-weight: 800; font-size: 0.95rem; }
+        .result-name.leader { color: var(--gold); }
+        .result-stats { font-size: 0.8rem; color: var(--muted); }
+        .result-bar-bg { height: 10px; background: rgba(255,255,255,0.07); border-radius: 5px; overflow: hidden; }
+        .result-bar-fill { height: 100%; border-radius: 5px; background: rgba(255,255,255,0.2); transition: width 0.6s ease; }
+        .result-bar-fill.leader { background: linear-gradient(90deg, #F59E0B, #FCD34D); }
+
+        /* Winner crown */
+        .winner-card {
+            background: var(--gold-bg); border: 2px solid var(--gold-border);
+            border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px;
+            display: none;
+        }
+        .winner-card.show { display: block; }
+        .winner-crown { font-size: 2.5rem; margin-bottom: 8px; }
+        .winner-name { font-size: 1.5rem; font-weight: 900; color: var(--gold); margin-bottom: 4px; }
+        .winner-sub { font-size: 0.85rem; color: var(--muted); }
+
+        /* Loading / error */
+        .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 1rem; }
+        .error-card { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; padding: 20px; text-align: center; color: var(--danger); font-weight: 700; margin-top: 40px; }
+
+        /* Closed banner */
+        .closed-banner {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            border-radius: 12px; padding: 12px 16px; text-align: center;
+            color: var(--muted); font-size: 0.85rem; margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-header">
+    <h1>🌟 שחקן מצטיין של הערב</h1>
+    <p id="headerSub">טוען נתונים...</p>
+</div>
+
+<div class="container">
+    <div id="loadingView" class="loading">⏳ טוען נתוני המשחק...</div>
+    <div id="errorView" class="error-card" style="display:none;"></div>
+
+    <div id="mainView" style="display:none;">
+
+        <!-- Game info -->
+        <div class="game-info-card">
+            <div>
+                <div class="game-date" id="gameDate">—</div>
+                <div class="game-sub" id="gameSub">—</div>
+            </div>
+            <div class="vote-count-badge" id="voteCountBadge">0 קולות</div>
+        </div>
+
+        <!-- Winner (if voting closed) -->
+        <div class="winner-card" id="winnerCard">
+            <div class="winner-crown">🏆</div>
+            <div class="winner-name" id="winnerName">—</div>
+            <div class="winner-sub" id="winnerSub">שחקן מצטיין של הערב</div>
+        </div>
+
+        <!-- Already voted banner -->
+        <div class="voted-banner" id="votedBanner">✅ הצבעת! תוכל לשנות את בחירתך בכל עת</div>
+
+        <!-- Closed banner -->
+        <div class="closed-banner" id="closedBanner" style="display:none;">🔒 ההצבעה נסגרה</div>
+
+        <!-- Voting section -->
+        <div id="votingSection">
+            <div class="section-title">בחר את השחקן הטוב ביותר של הערב</div>
+            <div class="players-grid" id="playersGrid"></div>
+            <button class="submit-btn" id="submitBtn" disabled onclick="submitVote()">בחר שחקן כדי להצביע 🗳️</button>
+        </div>
+
+        <!-- Results section -->
+        <div id="resultsSection" style="display:none;">
+            <div class="section-title">תוצאות ההצבעה בזמן אמת</div>
+            <div class="results-card" id="resultsBars"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const params = new URLSearchParams(window.location.search);
+const groupId = params.get('group');
+const gameId = params.get('game');
+
+let gameData = null;
+let allPlayers = [];
+let mvpVotes = {};
+let selectedPlayerId = null;
+let hasVoted = false;
+let myVotedPlayerId = null;
+
+// LocalStorage key — unique per game so past votes don't bleed
+function getVoteKey() { return `mvp_vote_${groupId}_${gameId}`; }
+
+function showError(msg) {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('errorView').innerText = msg;
+    document.getElementById('errorView').style.display = 'block';
+}
+
+// ========== Init ==========
+window.onload = async () => {
+    if (!groupId || !gameId) return showError("קישור לא תקין — חסרים פרמטרים.");
+
+    try {
+        const groupDoc = await db.collection('groups').doc(groupId).get();
+        if (!groupDoc.exists) return showError("הקבוצה לא נמצאה.");
+        const groupName = groupDoc.data().name;
+        document.getElementById('headerSub').innerText = groupName;
+
+        // Load game + realtime votes
+        const gameRef = db.collection('groups').doc(groupId).collection('history_games').doc(gameId);
+        gameRef.onSnapshot(snap => {
+            if (!snap.exists) return showError("המשחק לא נמצא.");
+            gameData = { id: snap.id, ...snap.data() };
+            mvpVotes = gameData.mvpVotes || {};
+            allPlayers = (gameData.teams || []).flatMap(t => t.players || []);
+
+            // Check localStorage for prior vote
+            const savedVote = localStorage.getItem(getVoteKey());
+            if (savedVote) { hasVoted = true; myVotedPlayerId = savedVote; }
+
+            renderPage();
+        });
+
+    } catch(e) {
+        console.error(e);
+        showError("שגיאה בטעינת הנתונים.");
+    }
+};
+
+// ========== Render ==========
+function renderPage() {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('mainView').style.display = 'block';
+
+    // Game info
+    let dateStr = '—', timeStr = '';
+    if (gameData.date && gameData.date.toDate) {
+        const d = gameData.date.toDate();
+        dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    }
+    document.getElementById('gameDate').innerText = dateStr;
+    document.getElementById('gameSub').innerText = `${allPlayers.length} שחקנים${timeStr ? ' • ' + timeStr : ''}`;
+
+    // Total votes
+    const totalVotes = Object.values(mvpVotes).reduce((a, b) => a + b, 0);
+    document.getElementById('voteCountBadge').innerText = `🗳️ ${totalVotes} קולות`;
+
+    const isClosed = gameData.votingOpen === false; // explicitly closed by admin
+
+    // Winner card
+    if (gameData.mvpWinner) {
+        document.getElementById('winnerName').innerText = gameData.mvpWinner.name;
+        document.getElementById('winnerSub').innerText = `${gameData.mvpWinner.votes} מתוך ${gameData.mvpWinner.totalVotes} קולות`;
+        document.getElementById('winnerCard').classList.add('show');
+    }
+
+    // Voted banner
+    if (hasVoted) {
+        document.getElementById('votedBanner').classList.add('show');
+    }
+
+    // Closed banner
+    if (isClosed) {
+        document.getElementById('closedBanner').style.display = 'block';
+    }
+
+    // Voting grid
+    renderGrid(isClosed);
+
+    // Results (show after voting or if votes exist)
+    if (hasVoted || totalVotes > 0) {
+        document.getElementById('resultsSection').style.display = 'block';
+        renderResults(totalVotes);
+    }
+}
+
+function renderGrid(isClosed) {
+    const grid = document.getElementById('playersGrid');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (isClosed) {
+        document.getElementById('votingSection').style.display = 'none';
+        return;
+    }
+
+    grid.innerHTML = allPlayers.map(p => {
+        const isMyVote = myVotedPlayerId === p.id;
+        const isSelected = selectedPlayerId === p.id;
+        const voteCount = mvpVotes[p.id] || 0;
+        const avatarHTML = p.imgUrl
+            ? `<img src="${p.imgUrl}" class="player-avatar">`
+            : `<div class="player-avatar">👤</div>`;
+
+        return `<div class="player-option ${isMyVote ? 'voted-for-me' : ''} ${isSelected && !hasVoted ? 'selected' : ''}"
+                     onclick="selectPlayer('${p.id}')">
+            <div class="selected-check">✓</div>
+            ${avatarHTML}
+            <div class="player-name">${p.name}</div>
+            ${voteCount > 0 ? `<div class="player-votes-mini">🗳️ ${voteCount}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    // Submit button state
+    if (hasVoted) {
+        submitBtn.innerText = '🔄 שנה את הצבעתי';
+        submitBtn.className = 'submit-btn change-vote';
+        submitBtn.disabled = false;
+        submitBtn.onclick = enableReVote;
+    } else if (selectedPlayerId) {
+        const name = allPlayers.find(p => p.id === selectedPlayerId)?.name || '';
+        submitBtn.innerText = `הצבע עבור ${name} 🌟`;
+        submitBtn.disabled = false;
+        submitBtn.className = 'submit-btn';
+        submitBtn.onclick = submitVote;
+    } else {
+        submitBtn.innerText = 'בחר שחקן כדי להצביע 🗳️';
+        submitBtn.disabled = true;
+        submitBtn.className = 'submit-btn';
+    }
+}
+
+function renderResults(totalVotes) {
+    const container = document.getElementById('resultsBars');
+    const sorted = allPlayers
+        .map(p => ({ ...p, votes: mvpVotes[p.id] || 0 }))
+        .filter(p => p.votes > 0)
+        .sort((a, b) => b.votes - a.votes);
+
+    if (sorted.length === 0) {
+        container.innerHTML = `<div style="text-align:center; color:var(--muted); padding:10px; font-size:0.9rem;">עדיין אין קולות — היה הראשון!</div>`;
+        return;
+    }
+
+    container.innerHTML = sorted.map((p, i) => {
+        const pct = Math.round((p.votes / totalVotes) * 100);
+        const isLeader = i === 0;
+        return `<div class="result-row">
+            <div class="result-header">
+                <div class="result-name ${isLeader ? 'leader' : ''}">${isLeader ? '🌟 ' : ''}${p.name}</div>
+                <div class="result-stats">${p.votes} קולות • ${pct}%</div>
+            </div>
+            <div class="result-bar-bg">
+                <div class="result-bar-fill ${isLeader ? 'leader' : ''}" style="width:${pct}%"></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ========== Actions ==========
+function selectPlayer(playerId) {
+    if (hasVoted) return; // can't re-select while voted - use change button
+    selectedPlayerId = playerId;
+    renderGrid(false);
+}
+
+function enableReVote() {
+    // Remove local vote, allow re-selection
+    hasVoted = false;
+    myVotedPlayerId = null;
+    selectedPlayerId = null;
+    localStorage.removeItem(getVoteKey());
+    document.getElementById('votedBanner').classList.remove('show');
+    renderGrid(false);
+    // Decrement the old vote in Firebase
+    // (handled by submitVote — new vote replaces old)
+}
+
+async function submitVote() {
+    if (!selectedPlayerId) return;
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.innerText = 'שומר... ⏳';
+
+    const gameRef = db.collection('groups').doc(groupId).collection('history_games').doc(gameId);
+
+    try {
+        await db.runTransaction(async tx => {
+            const doc = await tx.get(gameRef);
+            if (!doc.exists) throw new Error('Game not found');
+            const data = doc.data();
+            const currentVotes = data.mvpVotes || {};
+
+            // If user is changing vote — decrement old
+            const oldVote = localStorage.getItem(getVoteKey());
+            if (oldVote && currentVotes[oldVote] > 0) {
+                currentVotes[oldVote] = (currentVotes[oldVote] || 0) - 1;
+            }
+            // Increment new
+            currentVotes[selectedPlayerId] = (currentVotes[selectedPlayerId] || 0) + 1;
+
+            // Recalculate total & winner
+            const totalVotes = Object.values(currentVotes).reduce((a, b) => a + b, 0);
+            const leaderId = Object.entries(currentVotes).sort((a, b) => b[1] - a[1])[0]?.[0];
+            const leaderPlayer = allPlayers.find(p => p.id === leaderId);
+            const mvpWinner = leaderPlayer
+                ? { id: leaderId, name: leaderPlayer.name, votes: currentVotes[leaderId], totalVotes }
+                : null;
+
+            tx.update(gameRef, {
+                mvpVotes: currentVotes,
+                mvpVoteCount: totalVotes,
+                mvpWinner: mvpWinner
+            });
+        });
+
+        // Save locally
+        localStorage.setItem(getVoteKey(), selectedPlayerId);
+        hasVoted = true;
+        myVotedPlayerId = selectedPlayerId;
+
+    } catch(e) {
+        console.error(e);
+        alert('שגיאה בשמירת ההצבעה. נסה שוב.');
+        btn.disabled = false;
+        renderGrid(false);
+    }
+}
+</script>
+</body>
+</html>
