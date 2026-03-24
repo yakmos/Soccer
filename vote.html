@@ -13,8 +13,8 @@
         :root {
             --bg-color: #0F172A; --surface-color: #1E293B; --primary-color: #10B981; 
             --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155;
-            --att-color: #EF4444; --def-color: #3B82F6;
-            --edit-color: #3B82F6;
+            --att-color: #EF4444; --def-color: #3B82F6; --edit-color: #3B82F6;
+            --custom-color: #FCD34D;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; direction: rtl; padding-bottom: 50px;}
@@ -24,7 +24,6 @@
         h1 { text-align: center; color: var(--primary-color); margin-top: 0; font-weight: 900; font-size: 1.6rem;}
         .subtitle { text-align: center; color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px; margin-top: -10px;}
         
-        /* רשת השחקנים */
         .players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .player-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; position: relative;}
         .player-card:active { transform: scale(0.95); }
@@ -33,22 +32,21 @@
         .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
         .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 6px; color: var(--text-main); }
         
-        /* מדדי שחקן בכרטיס */
-        .chip-stats-container { display: flex; gap: 6px; width: 100%; justify-content: center; margin-bottom: 12px; }
+        .chip-stats-container { display: flex; gap: 6px; width: 100%; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
         .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 6px; font-weight: 900; font-size: 0.8rem; }
         
-        /* כמות הצבעות וכפתור */
         .votes-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
         .vote-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
         .voted-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
 
-        /* טופס הצבעה */
         .vote-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 35px; background: rgba(255,255,255,0.05); }
         .player-name-large { text-align: center; font-size: 1.6rem; font-weight: 900; margin-bottom: 20px; color: #fff; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px dashed var(--border-color);}
         
         h3 { margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; font-size: 1.1rem;}
         .att-title { color: var(--att-color); }
         .def-title { color: var(--def-color); }
+        .custom-att-title { color: var(--att-color); border-bottom-color: rgba(239,68,68,0.3); }
+        .custom-def-title { color: var(--def-color); border-bottom-color: rgba(59,130,246,0.3); }
 
         .slider-group { margin-bottom: 18px; }
         .slider-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 500; font-size: 1rem;}
@@ -57,8 +55,8 @@
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: var(--primary-color); cursor: pointer; margin-top: -8px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: var(--border-color); border-radius: 5px; }
-        .att-slider::-webkit-slider-thumb { background: var(--att-color) !important; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5) !important;}
-        .def-slider::-webkit-slider-thumb { background: var(--def-color) !important; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5) !important;}
+        .att-slider::-webkit-slider-thumb { background: var(--att-color) !important; box-shadow: 0 0 10px rgba(239,68,68,0.5) !important;}
+        .def-slider::-webkit-slider-thumb { background: var(--def-color) !important; box-shadow: 0 0 10px rgba(59,130,246,0.5) !important;}
 
         .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif;}
         .btn:active { transform: scale(0.98); }
@@ -68,6 +66,13 @@
         #portalScreen { display: none; }
         #voteScreen { display: none; }
         .error-msg { text-align: center; color: var(--att-color); font-weight: bold; margin-top: 50px; padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; display: none; }
+
+        /* Custom params section separator */
+        .custom-section-note {
+            font-size: 0.8rem; color: var(--text-muted); text-align: center;
+            margin: -8px 0 14px 0; padding: 4px 10px; background: rgba(252,211,77,0.05);
+            border-radius: 6px; border: 1px solid rgba(252,211,77,0.1);
+        }
     </style>
 </head>
 <body>
@@ -90,6 +95,7 @@
             <div class="player-name-large" id="displayPlayerName">---</div>
             <p style="text-align:center; color:var(--text-muted); font-size:0.9rem; margin-top:-10px;">גרור את הסליידרים כדי לדרג (1-10)</p>
 
+            <!-- Fixed Attack Params -->
             <h3 class="att-title">⚔️ מדדי התקפה</h3>
             <div class="slider-group"><div class="slider-header"><span>סיומת מול שער</span><span class="val-badge" id="vFin">5</span></div><input type="range" class="att-slider" id="sFin" min="1" max="10" value="5" oninput="document.getElementById('vFin').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>דריבל ושליטה בכדור</span><span class="val-badge" id="vDri">5</span></div><input type="range" class="att-slider" id="sDri" min="1" max="10" value="5" oninput="document.getElementById('vDri').innerText=this.value"></div>
@@ -97,12 +103,16 @@
             <div class="slider-group"><div class="slider-header"><span>ראיית משחק ובישולים</span><span class="val-badge" id="vVis">5</span></div><input type="range" class="att-slider" id="sVis" min="1" max="10" value="5" oninput="document.getElementById('vVis').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>תנועה ללא כדור</span><span class="val-badge" id="vPos">5</span></div><input type="range" class="att-slider" id="sPos" min="1" max="10" value="5" oninput="document.getElementById('vPos').innerText=this.value"></div>
 
+            <!-- Fixed Defense Params -->
             <h3 class="def-title">🛡️ מדדי הגנה ופיזיות</h3>
             <div class="slider-group"><div class="slider-header"><span>חילוצי כדור ותיקולים</span><span class="val-badge" id="vTac">5</span></div><input type="range" class="def-slider" id="sTac" min="1" max="10" value="5" oninput="document.getElementById('vTac').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('sAwa').value=this.value; document.getElementById('vAwa').innerText=this.value"></div>
+            <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('vAwa').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>פיזיות ועוצמה</span><span class="val-badge" id="vStr">5</span></div><input type="range" class="def-slider" id="sStr" min="1" max="10" value="5" oninput="document.getElementById('vStr').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
             <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
+
+            <!-- Dynamic Custom Params — injected here -->
+            <div id="customParamsSliders"></div>
 
             <button class="btn" id="submitBtn" onclick="submitVote()" style="margin-top: 20px;">שלח הצבעה לשחקן 🚀</button>
         </div>
@@ -120,50 +130,45 @@
         measurementId: "G-425XRT1EVL"
     };
     firebase.initializeApp(firebaseConfig);
-    firebase.analytics(); // הפעלת אנליטיקס
+    firebase.analytics();
     const db = firebase.firestore();
 
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('group');
     let groupName = "Unknown";
     let playersRef = null;
+    let customParams = []; // [{ id, name, type: 'att'|'def' }]
 
     let playersData = [];
     let currentPlayerId = null;
 
+    // ========== Color Helpers ==========
     function getColorStyles(val) {
         const v = val || 5;
         let r, g, b, hex;
-        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; } 
-        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; } 
-        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; } 
-        else { r=6; g=182; b=212; hex='#06B6D4'; } 
-        return { hex: hex, bg: `rgba(${r}, ${g}, ${b}, 0.15)`, text: hex, border: `rgba(${r}, ${g}, ${b}, 0.3)` };
+        if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; }
+        else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; }
+        else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; }
+        else { r=6; g=182; b=212; hex='#06B6D4'; }
+        return { hex, bg: `rgba(${r},${g},${b},0.15)`, text: hex, border: `rgba(${r},${g},${b},0.3)` };
     }
-
     function getColoredBadge(icon, val) {
         const v = val || 5; const c = getColorStyles(v);
         return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
     }
 
+    // ========== Init ==========
     window.onload = async () => {
-        if (!groupId) {
-            showError("לא נמצא מזהה קבוצה בקישור.");
-            return;
-        }
-        
+        if (!groupId) { showError("לא נמצא מזהה קבוצה בקישור."); return; }
         try {
             const groupDoc = await db.collection('groups').doc(groupId).get();
-            if (!groupDoc.exists) {
-                showError("הקבוצה לא נמצאה.");
-                return;
-            }
-            groupName = groupDoc.data().name;
+            if (!groupDoc.exists) { showError("הקבוצה לא נמצאה."); return; }
+            const groupData = groupDoc.data();
+            groupName = groupData.name;
+            customParams = groupData.customParams || [];
             document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupName} ⚽`;
-            
             playersRef = db.collection('groups').doc(groupId).collection('players');
             await fetchPlayers();
-            
         } catch (error) {
             showError("שגיאה בהתחברות לשרת.");
         }
@@ -171,9 +176,8 @@
 
     function showError(msg) {
         document.getElementById('mainCard').style.display = 'none';
-        const errorDiv = document.getElementById('errorScreen');
-        errorDiv.innerText = msg;
-        errorDiv.style.display = 'block';
+        const el = document.getElementById('errorScreen');
+        el.innerText = msg; el.style.display = 'block';
     }
 
     async function fetchPlayers() {
@@ -191,16 +195,16 @@
     function getStorageKey(playerId) { return `voted_${groupId}_${playerId}`; }
     function getDataStorageKey(playerId) { return `voteData_${groupId}_${playerId}`; }
 
+    // ========== Portal ==========
     function renderPortal() {
         const grid = document.getElementById('playersGrid');
         grid.innerHTML = playersData.map(p => {
             const hasVoted = localStorage.getItem(getStorageKey(p.id));
-            const votesDisplay = p.votesCount || 1;
             const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
             const borderColor = getColorStyles(avgScore).hex;
-            const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">` 
-                                    : `<div class="list-avatar" style="border-color:${borderColor}">👤</div>`;
-            
+            const avatar = p.imgUrl
+                ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">`
+                : `<div class="list-avatar" style="border-color:${borderColor}">👤</div>`;
             return `
                 <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="openVote('${p.id}')">
                     ${avatar}
@@ -209,53 +213,104 @@
                         ${getColoredBadge('🛡️', p.defScore)}
                         ${getColoredBadge('🎯', p.attScore)}
                     </div>
-                    <div class="votes-count">📊 ${votesDisplay} דירוגים</div>
+                    <div class="votes-count">📊 ${p.votesCount || 1} דירוגים</div>
                     ${hasVoted ? '<div class="voted-badge">✏️ ערוך דירוג</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
-                </div>
-            `;
+                </div>`;
         }).join('');
     }
 
+    // ========== Build Custom Sliders ==========
+    function buildCustomSliders(savedCustomVotes) {
+        const container = document.getElementById('customParamsSliders');
+        if (!customParams || customParams.length === 0) { container.innerHTML = ''; return; }
+
+        const attParams = customParams.filter(p => p.type === 'att');
+        const defParams = customParams.filter(p => p.type === 'def');
+
+        let html = '';
+
+        if (attParams.length > 0) {
+            html += `<h3 class="custom-att-title">⚔️ מדדי התקפה מותאמים</h3>
+                     <p class="custom-section-note">⭐ מדדים שנוספו ע"י מנהל הקבוצה</p>`;
+            attParams.forEach(p => {
+                const val = (savedCustomVotes && savedCustomVotes[p.id] !== undefined) ? savedCustomVotes[p.id] : 5;
+                html += `<div class="slider-group">
+                    <div class="slider-header">
+                        <span>${p.name}</span>
+                        <span class="val-badge" id="vcp_${p.id}">${val}</span>
+                    </div>
+                    <input type="range" class="att-slider" id="scp_${p.id}" min="1" max="10" value="${val}"
+                        oninput="document.getElementById('vcp_${p.id}').innerText=this.value">
+                </div>`;
+            });
+        }
+
+        if (defParams.length > 0) {
+            html += `<h3 class="custom-def-title">🛡️ מדדי הגנה מותאמים</h3>
+                     <p class="custom-section-note">⭐ מדדים שנוספו ע"י מנהל הקבוצה</p>`;
+            defParams.forEach(p => {
+                const val = (savedCustomVotes && savedCustomVotes[p.id] !== undefined) ? savedCustomVotes[p.id] : 5;
+                html += `<div class="slider-group">
+                    <div class="slider-header">
+                        <span>${p.name}</span>
+                        <span class="val-badge" id="vcp_${p.id}">${val}</span>
+                    </div>
+                    <input type="range" class="def-slider" id="scp_${p.id}" min="1" max="10" value="${val}"
+                        oninput="document.getElementById('vcp_${p.id}').innerText=this.value">
+                </div>`;
+            });
+        }
+
+        container.innerHTML = html;
+    }
+
+    // ========== Open Vote Screen ==========
     function openVote(id) {
         const p = playersData.find(player => player.id === id);
-        if(!p) return;
+        if (!p) return;
         currentPlayerId = id;
 
-        // אנליטיקס: דיווח שהתחילו לדרג שחקן מסוים
         firebase.analytics().logEvent('select_player_to_vote', {
-            player_name: p.name,
-            group_name: groupName,
+            player_name: p.name, group_name: groupName,
             is_edit: !!localStorage.getItem(getStorageKey(id))
         });
-        
+
         document.getElementById('displayPlayerName').innerText = p.name;
         const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
         const borderColor = getColorStyles(avgScore).hex;
-        const avatarHtml = p.imgUrl ? `<img src="${p.imgUrl}" class="vote-avatar" style="border-color:${borderColor}">` 
-                                    : `<div class="vote-avatar" style="border-color:${borderColor}">👤</div>`;
+        const avatarHtml = p.imgUrl
+            ? `<img src="${p.imgUrl}" class="vote-avatar" style="border-color:${borderColor}">`
+            : `<div class="vote-avatar" style="border-color:${borderColor}">👤</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
-        
-        const hasVoted = localStorage.getItem(getStorageKey(id));
-        const savedVoteRaw = localStorage.getItem(getDataStorageKey(id));
-        let defaultVals = {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
-        
-        if (hasVoted && savedVoteRaw) {
-            defaultVals = JSON.parse(savedVoteRaw);
-            document.getElementById('submitBtn').innerText = "עדכן את הדירוג שלך ✏️";
-            document.getElementById('submitBtn').style.background = "var(--edit-color)";
-        } else {
-            document.getElementById('submitBtn').innerText = "שלח הצבעה לשחקן 🚀";
-            document.getElementById('submitBtn').style.background = "var(--primary-color)";
-        }
 
-        const inputs = ['fin', 'dri', 'pac', 'vis', 'pos', 'tac', 'awa', 'str', 'sta', 'com'];
-        inputs.forEach(key => {
-            const val = defaultVals[key] || 5;
-            const sliderId = 's' + key.charAt(0).toUpperCase() + key.slice(1);
-            const valId = 'v' + key.charAt(0).toUpperCase() + key.slice(1);
-            document.getElementById(sliderId).value = val;
-            document.getElementById(valId).innerText = val;
+        const isEditing = !!localStorage.getItem(getStorageKey(id));
+        const savedVoteRaw = localStorage.getItem(getDataStorageKey(id));
+        let savedVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
+
+        const defaultFixed = { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+        const fixedVals = (isEditing && savedVote) ? { ...defaultFixed, ...savedVote } : defaultFixed;
+
+        // Fill fixed sliders
+        ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'].forEach(key => {
+            const val = fixedVals[key] || 5;
+            const sId = 's' + key.charAt(0).toUpperCase() + key.slice(1);
+            const vId = 'v' + key.charAt(0).toUpperCase() + key.slice(1);
+            document.getElementById(sId).value = val;
+            document.getElementById(vId).innerText = val;
         });
+
+        // Build & fill custom sliders
+        const savedCustom = (isEditing && savedVote && savedVote.customStats) ? savedVote.customStats : null;
+        buildCustomSliders(savedCustom);
+
+        const btn = document.getElementById('submitBtn');
+        if (isEditing) {
+            btn.innerText = "עדכן את הדירוג שלך ✏️";
+            btn.style.background = "var(--edit-color)";
+        } else {
+            btn.innerText = "שלח הצבעה לשחקן 🚀";
+            btn.style.background = "var(--primary-color)";
+        }
 
         document.getElementById('portalScreen').style.display = 'none';
         document.getElementById('voteScreen').style.display = 'block';
@@ -268,22 +323,34 @@
         document.getElementById('portalScreen').style.display = 'block';
     }
 
+    // ========== Submit Vote ==========
     async function submitVote() {
-        if(!currentPlayerId) return;
+        if (!currentPlayerId) return;
         const p = playersData.find(player => player.id === currentPlayerId);
         const btn = document.getElementById('submitBtn');
-        btn.disabled = true;
-        btn.innerText = "שומר ציונים... ⏳";
+        btn.disabled = true; btn.innerText = "שומר ציונים... ⏳";
 
         const getVal = (id) => parseInt(document.getElementById(id).value);
+
+        // Fixed params
         const newVotes = {
-            fin: getVal('sFin'), dri: getVal('sDri'), pac: getVal('sPac'), vis: getVal('sVis'), pos: getVal('sPos'),
-            tac: getVal('sTac'), awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
+            fin: getVal('sFin'), dri: getVal('sDri'), pac: getVal('sPac'),
+            vis: getVal('sVis'), pos: getVal('sPos'), tac: getVal('sTac'),
+            awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
         };
 
-        let isEditing = !!localStorage.getItem(getStorageKey(currentPlayerId));
-        let savedVoteRaw = localStorage.getItem(getDataStorageKey(currentPlayerId));
-        let oldVotes = savedVoteRaw ? JSON.parse(savedVoteRaw) : {fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5};
+        // Custom params — read from dynamic sliders
+        const newCustomVotes = {};
+        customParams.forEach(cp => {
+            const el = document.getElementById(`scp_${cp.id}`);
+            newCustomVotes[cp.id] = el ? parseInt(el.value) : 5;
+        });
+
+        const isEditing = !!localStorage.getItem(getStorageKey(currentPlayerId));
+        const savedVoteRaw = localStorage.getItem(getDataStorageKey(currentPlayerId));
+        let oldVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
+        const oldFixed = oldVote || { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+        const oldCustom = (oldVote && oldVote.customStats) ? oldVote.customStats : {};
 
         const playerRef = playersRef.doc(currentPlayerId);
 
@@ -293,84 +360,100 @@
                 if (!doc.exists) throw "Player does not exist!";
                 const data = doc.data();
                 let totalVotesCount = data.votesCount || 1;
-                let sums = {
-                    fin: data.sumFin !== undefined ? data.sumFin : (data.fin || 5),
-                    dri: data.sumDri !== undefined ? data.sumDri : (data.dri || 5),
-                    pac: data.sumPac !== undefined ? data.sumPac : (data.pac || 5),
-                    vis: data.sumVis !== undefined ? data.sumVis : (data.vis || 5),
-                    pos: data.sumPos !== undefined ? data.sumPos : (data.pos || 5),
-                    tac: data.sumTac !== undefined ? data.sumTac : (data.tac || 5),
-                    awa: data.sumAwa !== undefined ? data.sumAwa : (data.awa || 5),
-                    str: data.sumStr !== undefined ? data.sumStr : (data.str || 5),
-                    sta: data.sumSta !== undefined ? data.sumSta : (data.sta || 5),
-                    com: data.sumCom !== undefined ? data.sumCom : (data.com || 5)
-                };
+
+                // ---- Fixed sums ----
+                const fixedKeys = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+                let sums = {};
+                fixedKeys.forEach(k => {
+                    const sumKey = 'sum' + k.charAt(0).toUpperCase() + k.slice(1);
+                    sums[k] = data[sumKey] !== undefined ? data[sumKey] : (data[k] || 5);
+                });
 
                 if (isEditing) {
-                    sums.fin += (newVotes.fin - oldVotes.fin);
-                    sums.dri += (newVotes.dri - oldVotes.dri);
-                    sums.pac += (newVotes.pac - oldVotes.pac);
-                    sums.vis += (newVotes.vis - oldVotes.vis);
-                    sums.pos += (newVotes.pos - oldVotes.pos);
-                    sums.tac += (newVotes.tac - oldVotes.tac);
-                    sums.awa += (newVotes.awa - oldVotes.awa);
-                    sums.str += (newVotes.str - oldVotes.str);
-                    sums.sta += (newVotes.sta - oldVotes.sta);
-                    sums.com += (newVotes.com - oldVotes.com);
+                    fixedKeys.forEach(k => { sums[k] += (newVotes[k] - (oldFixed[k] || 5)); });
                 } else {
                     totalVotesCount++;
-                    sums.fin += newVotes.fin; sums.dri += newVotes.dri; sums.pac += newVotes.pac;
-                    sums.vis += newVotes.vis; sums.pos += newVotes.pos; sums.tac += newVotes.tac;
-                    sums.awa += newVotes.awa; sums.str += newVotes.str; sums.sta += newVotes.sta;
-                    sums.com += newVotes.com;
+                    fixedKeys.forEach(k => { sums[k] += newVotes[k]; });
                 }
 
-                const newAvgs = {
-                    fin: parseFloat((sums.fin / totalVotesCount).toFixed(1)),
-                    dri: parseFloat((sums.dri / totalVotesCount).toFixed(1)),
-                    pac: parseFloat((sums.pac / totalVotesCount).toFixed(1)),
-                    vis: parseFloat((sums.vis / totalVotesCount).toFixed(1)),
-                    pos: parseFloat((sums.pos / totalVotesCount).toFixed(1)),
-                    tac: parseFloat((sums.tac / totalVotesCount).toFixed(1)),
-                    awa: parseFloat((sums.awa / totalVotesCount).toFixed(1)),
-                    str: parseFloat((sums.str / totalVotesCount).toFixed(1)),
-                    sta: parseFloat((sums.sta / totalVotesCount).toFixed(1)),
-                    com: parseFloat((sums.com / totalVotesCount).toFixed(1))
+                const newAvgs = {};
+                fixedKeys.forEach(k => {
+                    newAvgs[k] = parseFloat((sums[k] / totalVotesCount).toFixed(1));
+                });
+
+                // ---- Custom param sums ----
+                let customSums = data.customSums || {};
+                let customAvgs = data.customAvgs || {};
+
+                customParams.forEach(cp => {
+                    const newVal = newCustomVotes[cp.id] || 5;
+                    const oldVal = oldCustom[cp.id] || 5;
+                    const currentSum = customSums[cp.id] !== undefined ? customSums[cp.id] : 5;
+
+                    if (isEditing) {
+                        customSums[cp.id] = currentSum + (newVal - oldVal);
+                    } else {
+                        customSums[cp.id] = currentSum + newVal;
+                    }
+                    customAvgs[cp.id] = parseFloat((customSums[cp.id] / totalVotesCount).toFixed(1));
+                });
+
+                // ---- Recalculate scores (including custom params) ----
+                const attFixedVals = [newAvgs.fin, newAvgs.dri, newAvgs.pac, newAvgs.vis, newAvgs.pos];
+                const defFixedVals = [newAvgs.tac, newAvgs.awa, newAvgs.str, newAvgs.sta, newAvgs.com];
+
+                customParams.forEach(cp => {
+                    if (cp.type === 'att') attFixedVals.push(customAvgs[cp.id] || 5);
+                    else defFixedVals.push(customAvgs[cp.id] || 5);
+                });
+
+                const attScore = parseFloat((attFixedVals.reduce((a,b)=>a+b,0) / attFixedVals.length).toFixed(1));
+                const defScore = parseFloat((defFixedVals.reduce((a,b)=>a+b,0) / defFixedVals.length).toFixed(1));
+
+                // ---- Build update object ----
+                const updateObj = {
+                    votesCount: totalVotesCount,
+                    attScore, defScore,
+                    customSums, customAvgs,
+                    // custom avgs also stored flat for leaderboards
                 };
 
-                const attScore = parseFloat(((newAvgs.fin + newAvgs.dri + newAvgs.pac + newAvgs.vis + newAvgs.pos) / 5).toFixed(1));
-                const defScore = parseFloat(((newAvgs.tac + newAvgs.awa + newAvgs.str + newAvgs.sta + newAvgs.com) / 5).toFixed(1));
-
-                transaction.update(playerRef, {
-                    votesCount: totalVotesCount,
-                    sumFin: sums.fin, sumDri: sums.dri, sumPac: sums.pac, sumVis: sums.vis, sumPos: sums.pos,
-                    sumTac: sums.tac, sumAwa: sums.awa, sumStr: sums.str, sumSta: sums.sta, sumCom: sums.com,
-                    fin: newAvgs.fin, dri: newAvgs.dri, pac: newAvgs.pac, vis: newAvgs.vis, pos: newAvgs.pos,
-                    tac: newAvgs.tac, awa: newAvgs.awa, str: newAvgs.str, sta: newAvgs.sta, com: newAvgs.com,
-                    attScore: attScore, defScore: defScore
+                // Fixed averages & sums
+                fixedKeys.forEach(k => {
+                    const sumKey = 'sum' + k.charAt(0).toUpperCase() + k.slice(1);
+                    updateObj[sumKey] = sums[k];
+                    updateObj[k] = newAvgs[k];
                 });
+
+                // Custom avgs stored in customStats for compatibility with index.html
+                updateObj['customStats'] = customAvgs;
+
+                transaction.update(playerRef, updateObj);
             });
 
-            // אנליטיקס: דיווח על הצבעה שהושלמה
             firebase.analytics().logEvent('submit_player_vote', {
-                player_name: p.name,
-                group_name: groupName,
-                final_att_score: parseFloat(((newVotes.fin + newVotes.dri + newVotes.pac + newVotes.vis + newVotes.pos) / 5).toFixed(1)),
-                final_def_score: parseFloat(((newVotes.tac + newVotes.awa + newVotes.str + newVotes.sta + newVotes.com) / 5).toFixed(1))
+                player_name: p.name, group_name: groupName,
+                final_att_score: parseFloat(((newVotes.fin+newVotes.dri+newVotes.pac+newVotes.vis+newVotes.pos)/5).toFixed(1)),
+                final_def_score: parseFloat(((newVotes.tac+newVotes.awa+newVotes.str+newVotes.sta+newVotes.com)/5).toFixed(1))
             });
 
-            localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify(newVotes));
+            // Save to localStorage (includes custom)
+            localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify({
+                ...newVotes, customStats: newCustomVotes
+            }));
             localStorage.setItem(getStorageKey(currentPlayerId), 'true');
-            
+
             btn.disabled = false;
             btn.innerText = "שלח הצבעה לשחקן 🚀";
             alert(isEditing ? 'ההצבעה עודכנה! ✔️' : 'ההצבעה נקלטה! ✔️');
             await fetchPlayers();
             backToPortal();
 
-        } catch (e) {
+        } catch(e) {
+            console.error(e);
             alert("שגיאה בשליחה.");
             btn.disabled = false;
+            btn.innerText = "שלח הצבעה לשחקן 🚀";
         }
     }
 </script>
