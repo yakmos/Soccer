@@ -325,11 +325,38 @@
 
     <div id="lobbyContainer" class="container">
         <div class="lobby-card">
-            <h2 class="lobby-title">ברוכים הבאים! 👋</h2>
-            <p class="lobby-desc">צור קבוצה חדשה כדי לנהל את החבר'ה שלך, לחלק כוחות ולעקוב אחרי מלכי השערים.</p>
-            <input type="text" id="newGroupName" class="form-input" placeholder="שם הקבוצה (לדוגמה: שישי בשכונה)">
-            <input type="password" id="newGroupPassword" class="form-input" placeholder="בחר סיסמת מנהל">
-            <button class="btn" onclick="createNewGroup()" id="createGroupBtn">צור קבוצה עכשיו ✨</button>
+            <div style="text-align:center; margin-bottom: 24px;">
+                <div style="font-size: 2.5rem; margin-bottom: 8px;">⚽</div>
+                <h2 class="lobby-title" style="margin-bottom: 6px;">Soccer Manager</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin:0;">ברוכים הבאים!</p>
+            </div>
+
+            <!-- מסלול 1: כניסה לקבוצה קיימת -->
+            <div style="background:rgba(59,130,246,0.08); border:2px solid rgba(59,130,246,0.4); border-radius:14px; padding:18px 20px; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="background:rgba(59,130,246,0.2); color:#60A5FA; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:6px;">מומלץ</span>
+                    <span style="font-size:1rem; font-weight:900; color:var(--text-main);">יש לי קישור לקבוצה</span>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 14px 0; line-height:1.5;">קיבלת קישור מהמנהל בוואטסאפ? הדבק אותו כאן</p>
+                <input type="text" id="existingGroupLink" class="form-input" placeholder="הדבק את הקישור לקבוצה..." style="margin-bottom:10px;">
+                <button class="btn" onclick="joinByLink()" style="background:#3B82F6; font-size:1rem; padding:13px;">כניסה לקבוצה ←</button>
+            </div>
+
+            <!-- מפריד -->
+            <div style="display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--text-muted); font-size:0.85rem;">
+                <div style="flex:1; height:1px; background:var(--border-color);"></div>
+                <span>או</span>
+                <div style="flex:1; height:1px; background:var(--border-color);"></div>
+            </div>
+
+            <!-- מסלול 2: יצירת קבוצה חדשה -->
+            <div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:18px 20px;">
+                <div style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:6px;">צור קבוצה חדשה</div>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 14px 0; line-height:1.5;">הפעם הראשונה שלך? צור קבוצה — ושמור את הקישור שתקבל!</p>
+                <input type="text" id="newGroupName" class="form-input" placeholder="שם הקבוצה (לדוגמה: שישי בשכונה)">
+                <input type="password" id="newGroupPassword" class="form-input" placeholder="בחר סיסמת מנהל">
+                <button class="btn" onclick="createNewGroup()" id="createGroupBtn" style="font-size:1rem; padding:13px;">צור קבוצה ✨</button>
+            </div>
         </div>
     </div>
 
@@ -1321,6 +1348,27 @@ async function saveGroupSettings() {
 }
 
 // ========== Create Group ==========
+function joinByLink() {
+    const input = document.getElementById('existingGroupLink').value.trim();
+    if (!input) return alert('נא להדביק קישור לקבוצה.');
+
+    // נסה לחלץ group= מתוך ה-URL
+    let groupId = null;
+    try {
+        const url = new URL(input);
+        groupId = url.searchParams.get('group');
+    } catch(e) {
+        // אולי הזינו רק את ה-ID ישירות
+        if (/^[a-zA-Z0-9_-]{10,}$/.test(input)) groupId = input;
+    }
+
+    if (!groupId) {
+        return alert('הקישור לא נראה תקין.\nוודא שהעתקת את הקישור המלא שקיבלת מהמנהל.');
+    }
+
+    window.location.href = `${window.location.pathname}?group=${groupId}`;
+}
+
 async function createNewGroup() {
     const nameInput = document.getElementById('newGroupName').value.trim();
     const passInput = document.getElementById('newGroupPassword').value.trim();
