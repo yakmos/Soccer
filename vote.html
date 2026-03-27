@@ -15,6 +15,7 @@
             --text-main: #F8FAFC; --text-muted: #94A3B8; --border-color: #334155;
             --att-color: #EF4444; --def-color: #3B82F6; --edit-color: #3B82F6;
             --custom-color: #FCD34D;
+            --gk-bg: rgba(167,139,250,0.15); --gk-text: #A78BFA; --gk-border: rgba(167,139,250,0.35);
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; direction: rtl; padding-bottom: 50px;}
@@ -28,16 +29,19 @@
         .player-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; position: relative;}
         .player-card:active { transform: scale(0.95); }
         .player-card.voted { border-color: var(--edit-color); background: rgba(59, 130, 246, 0.05); }
+        .player-card.is-gk-card { border-color: var(--gk-border); }
         
         .list-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-color); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); }
         .p-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 6px; color: var(--text-main); }
         
         .chip-stats-container { display: flex; gap: 6px; width: 100%; justify-content: center; margin-bottom: 12px; flex-wrap: wrap; }
         .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 6px; font-weight: 900; font-size: 0.8rem; }
+        .gk-badge { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; display: inline-block; margin-bottom: 6px; }
         
         .votes-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
         .vote-badge { background: var(--primary-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
         .voted-badge { background: var(--edit-color); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
+        .gk-vote-badge { background: var(--gk-text); color: #fff; font-size: 0.75rem; padding: 4px 8px; border-radius: 8px; font-weight: 700; display: inline-block;}
 
         .vote-avatar { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 35px; background: rgba(255,255,255,0.05); }
         .player-name-large { text-align: center; font-size: 1.6rem; font-weight: 900; margin-bottom: 20px; color: #fff; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; border: 1px dashed var(--border-color);}
@@ -45,6 +49,7 @@
         h3 { margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px; font-size: 1.1rem;}
         .att-title { color: var(--att-color); }
         .def-title { color: var(--def-color); }
+        .gk-title { color: var(--gk-text); border-bottom-color: var(--gk-border) !important; }
         .custom-att-title { color: var(--att-color); border-bottom-color: rgba(239,68,68,0.3); }
         .custom-def-title { color: var(--def-color); border-bottom-color: rgba(59,130,246,0.3); }
 
@@ -57,6 +62,7 @@
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: var(--border-color); border-radius: 5px; }
         .att-slider::-webkit-slider-thumb { background: var(--att-color) !important; box-shadow: 0 0 10px rgba(239,68,68,0.5) !important;}
         .def-slider::-webkit-slider-thumb { background: var(--def-color) !important; box-shadow: 0 0 10px rgba(59,130,246,0.5) !important;}
+        .gk-slider::-webkit-slider-thumb { background: var(--gk-text) !important; box-shadow: 0 0 10px rgba(167,139,250,0.5) !important;}
 
         .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 900; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif;}
         .btn:active { transform: scale(0.98); }
@@ -67,11 +73,15 @@
         #voteScreen { display: none; }
         .error-msg { text-align: center; color: var(--att-color); font-weight: bold; margin-top: 50px; padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; display: none; }
 
-        /* Custom params section separator */
         .custom-section-note {
             font-size: 0.8rem; color: var(--text-muted); text-align: center;
             margin: -8px 0 14px 0; padding: 4px 10px; background: rgba(252,211,77,0.05);
             border-radius: 6px; border: 1px solid rgba(252,211,77,0.1);
+        }
+        .gk-section-note {
+            font-size: 0.85rem; color: var(--gk-text); text-align: center;
+            margin: -8px 0 18px 0; padding: 8px 14px;
+            background: var(--gk-bg); border-radius: 8px; border: 1px solid var(--gk-border);
         }
     </style>
 </head>
@@ -95,24 +105,36 @@
             <div class="player-name-large" id="displayPlayerName">---</div>
             <p style="text-align:center; color:var(--text-muted); font-size:0.9rem; margin-top:-10px;">גרור את הסליידרים כדי לדרג (1-10)</p>
 
-            <!-- Fixed Attack Params -->
-            <h3 class="att-title">⚔️ מדדי התקפה</h3>
-            <div class="slider-group"><div class="slider-header"><span>סיומת מול שער</span><span class="val-badge" id="vFin">5</span></div><input type="range" class="att-slider" id="sFin" min="1" max="10" value="5" oninput="document.getElementById('vFin').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>דריבל ושליטה בכדור</span><span class="val-badge" id="vDri">5</span></div><input type="range" class="att-slider" id="sDri" min="1" max="10" value="5" oninput="document.getElementById('vDri').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>מהירות וזריזות</span><span class="val-badge" id="vPac">5</span></div><input type="range" class="att-slider" id="sPac" min="1" max="10" value="5" oninput="document.getElementById('vPac').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>ראיית משחק ובישולים</span><span class="val-badge" id="vVis">5</span></div><input type="range" class="att-slider" id="sVis" min="1" max="10" value="5" oninput="document.getElementById('vVis').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>תנועה ללא כדור</span><span class="val-badge" id="vPos">5</span></div><input type="range" class="att-slider" id="sPos" min="1" max="10" value="5" oninput="document.getElementById('vPos').innerText=this.value"></div>
+            <!-- Field player sliders (hidden for GK) -->
+            <div id="fieldSliders">
+                <h3 class="att-title">⚔️ מדדי התקפה</h3>
+                <div class="slider-group"><div class="slider-header"><span>סיומת מול שער</span><span class="val-badge" id="vFin">5</span></div><input type="range" class="att-slider" id="sFin" min="1" max="10" value="5" oninput="document.getElementById('vFin').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>דריבל ושליטה בכדור</span><span class="val-badge" id="vDri">5</span></div><input type="range" class="att-slider" id="sDri" min="1" max="10" value="5" oninput="document.getElementById('vDri').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>מהירות וזריזות</span><span class="val-badge" id="vPac">5</span></div><input type="range" class="att-slider" id="sPac" min="1" max="10" value="5" oninput="document.getElementById('vPac').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>ראיית משחק ובישולים</span><span class="val-badge" id="vVis">5</span></div><input type="range" class="att-slider" id="sVis" min="1" max="10" value="5" oninput="document.getElementById('vVis').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>תנועה ללא כדור</span><span class="val-badge" id="vPos">5</span></div><input type="range" class="att-slider" id="sPos" min="1" max="10" value="5" oninput="document.getElementById('vPos').innerText=this.value"></div>
 
-            <!-- Fixed Defense Params -->
-            <h3 class="def-title">🛡️ מדדי הגנה ופיזיות</h3>
-            <div class="slider-group"><div class="slider-header"><span>חילוצי כדור ותיקולים</span><span class="val-badge" id="vTac">5</span></div><input type="range" class="def-slider" id="sTac" min="1" max="10" value="5" oninput="document.getElementById('vTac').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('vAwa').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>פיזיות ועוצמה</span><span class="val-badge" id="vStr">5</span></div><input type="range" class="def-slider" id="sStr" min="1" max="10" value="5" oninput="document.getElementById('vStr').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
-            <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
+                <h3 class="def-title">🛡️ מדדי הגנה ופיזיות</h3>
+                <div class="slider-group"><div class="slider-header"><span>חילוצי כדור ותיקולים</span><span class="val-badge" id="vTac">5</span></div><input type="range" class="def-slider" id="sTac" min="1" max="10" value="5" oninput="document.getElementById('vTac').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('vAwa').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>פיזיות ועוצמה</span><span class="val-badge" id="vStr">5</span></div><input type="range" class="def-slider" id="sStr" min="1" max="10" value="5" oninput="document.getElementById('vStr').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
 
-            <!-- Dynamic Custom Params — injected here -->
-            <div id="customParamsSliders"></div>
+                <!-- Dynamic Custom Params -->
+                <div id="customParamsSliders"></div>
+            </div>
+
+            <!-- GK sliders (shown only for GK players) -->
+            <div id="gkSliders" style="display:none;">
+                <h3 class="gk-title">🧤 מדדי שוער</h3>
+                <p class="gk-section-note">שחקן זה הוא שוער — דרג את תכונות השוער שלו</p>
+                <div class="slider-group"><div class="slider-header"><span>זינוק</span><span class="val-badge" id="vGkDiv">5</span></div><input type="range" class="gk-slider" id="sGkDiv" min="1" max="10" value="5" oninput="document.getElementById('vGkDiv').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>אחיזה בכדור</span><span class="val-badge" id="vGkHan">5</span></div><input type="range" class="gk-slider" id="sGkHan" min="1" max="10" value="5" oninput="document.getElementById('vGkHan').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>בעיטה והוצאה</span><span class="val-badge" id="vGkKic">5</span></div><input type="range" class="gk-slider" id="sGkKic" min="1" max="10" value="5" oninput="document.getElementById('vGkKic').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>מיקום בשער</span><span class="val-badge" id="vGkPos">5</span></div><input type="range" class="gk-slider" id="sGkPos" min="1" max="10" value="5" oninput="document.getElementById('vGkPos').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>רפלקסים</span><span class="val-badge" id="vGkRef">5</span></div><input type="range" class="gk-slider" id="sGkRef" min="1" max="10" value="5" oninput="document.getElementById('vGkRef').innerText=this.value"></div>
+            </div>
 
             <button class="btn" id="submitBtn" onclick="submitVote()" style="margin-top: 20px;">שלח הצבעה לשחקן 🚀</button>
         </div>
@@ -137,10 +159,11 @@
     const groupId = urlParams.get('group');
     let groupName = "Unknown";
     let playersRef = null;
-    let customParams = []; // [{ id, name, type: 'att'|'def' }]
+    let customParams = [];
 
     let playersData = [];
     let currentPlayerId = null;
+    let currentPlayerIsGk = false;
 
     // ========== Color Helpers ==========
     function getColorStyles(val) {
@@ -155,6 +178,10 @@
     function getColoredBadge(icon, val) {
         const v = val || 5; const c = getColorStyles(v);
         return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
+    }
+    function getColoredGkBadge(val) {
+        const v = val || 5; const c = getColorStyles(v);
+        return `<span class="stat-badge" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">🧤 ${v}</span>`;
     }
 
     // ========== Init ==========
@@ -199,34 +226,42 @@
     function renderPortal() {
         const grid = document.getElementById('playersGrid');
         grid.innerHTML = playersData.map(p => {
+            const isGk = !!p.isGk;
             const hasVoted = localStorage.getItem(getStorageKey(p.id));
-            const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
-            const borderColor = getColorStyles(avgScore).hex;
+            const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
             const avatar = p.imgUrl
                 ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">`
-                : `<div class="list-avatar" style="border-color:${borderColor}">👤</div>`;
+                : `<div class="list-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
+
+            const scoreBadge = isGk
+                ? getColoredGkBadge(p.gkScore)
+                : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`;
+
+            const actionBadge = hasVoted
+                ? '<div class="voted-badge">✏️ ערוך דירוג</div>'
+                : isGk
+                    ? '<div class="gk-vote-badge">🧤 דרג שוער</div>'
+                    : '<div class="vote-badge">הצבע עכשיו 🎯</div>';
+
             return `
-                <div class="player-card ${hasVoted ? 'voted' : ''}" onclick="openVote('${p.id}')">
+                <div class="player-card ${hasVoted ? 'voted' : ''} ${isGk ? 'is-gk-card' : ''}" onclick="openVote('${p.id}')">
                     ${avatar}
                     <div class="p-name">${p.name}</div>
-                    <div class="chip-stats-container">
-                        ${getColoredBadge('🛡️', p.defScore)}
-                        ${getColoredBadge('🎯', p.attScore)}
-                    </div>
+                    ${isGk ? '<div class="gk-badge">🧤 שוער</div>' : ''}
+                    <div class="chip-stats-container">${scoreBadge}</div>
                     <div class="votes-count">📊 ${p.votesCount || 1} דירוגים</div>
-                    ${hasVoted ? '<div class="voted-badge">✏️ ערוך דירוג</div>' : '<div class="vote-badge">הצבע עכשיו 🎯</div>'}
+                    ${actionBadge}
                 </div>`;
         }).join('');
     }
 
-    // ========== Build Custom Sliders ==========
+    // ========== Build Custom Sliders (field players only) ==========
     function buildCustomSliders(savedCustomVotes) {
         const container = document.getElementById('customParamsSliders');
         if (!customParams || customParams.length === 0) { container.innerHTML = ''; return; }
 
         const attParams = customParams.filter(p => p.type === 'att');
         const defParams = customParams.filter(p => p.type === 'def');
-
         let html = '';
 
         if (attParams.length > 0) {
@@ -235,32 +270,24 @@
             attParams.forEach(p => {
                 const val = (savedCustomVotes && savedCustomVotes[p.id] !== undefined) ? savedCustomVotes[p.id] : 5;
                 html += `<div class="slider-group">
-                    <div class="slider-header">
-                        <span>${p.name}</span>
-                        <span class="val-badge" id="vcp_${p.id}">${val}</span>
-                    </div>
+                    <div class="slider-header"><span>${p.name}</span><span class="val-badge" id="vcp_${p.id}">${val}</span></div>
                     <input type="range" class="att-slider" id="scp_${p.id}" min="1" max="10" value="${val}"
                         oninput="document.getElementById('vcp_${p.id}').innerText=this.value">
                 </div>`;
             });
         }
-
         if (defParams.length > 0) {
             html += `<h3 class="custom-def-title">🛡️ מדדי הגנה מותאמים</h3>
                      <p class="custom-section-note">⭐ מדדים שנוספו ע"י מנהל הקבוצה</p>`;
             defParams.forEach(p => {
                 const val = (savedCustomVotes && savedCustomVotes[p.id] !== undefined) ? savedCustomVotes[p.id] : 5;
                 html += `<div class="slider-group">
-                    <div class="slider-header">
-                        <span>${p.name}</span>
-                        <span class="val-badge" id="vcp_${p.id}">${val}</span>
-                    </div>
+                    <div class="slider-header"><span>${p.name}</span><span class="val-badge" id="vcp_${p.id}">${val}</span></div>
                     <input type="range" class="def-slider" id="scp_${p.id}" min="1" max="10" value="${val}"
                         oninput="document.getElementById('vcp_${p.id}').innerText=this.value">
                 </div>`;
             });
         }
-
         container.innerHTML = html;
     }
 
@@ -269,6 +296,7 @@
         const p = playersData.find(player => player.id === id);
         if (!p) return;
         currentPlayerId = id;
+        currentPlayerIsGk = !!p.isGk;
 
         firebase.analytics().logEvent('select_player_to_vote', {
             player_name: p.name, group_name: groupName,
@@ -276,40 +304,51 @@
         });
 
         document.getElementById('displayPlayerName').innerText = p.name;
-        const avgScore = ((p.attScore || 5) + (p.defScore || 5)) / 2;
-        const borderColor = getColorStyles(avgScore).hex;
+        const borderColor = currentPlayerIsGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
         const avatarHtml = p.imgUrl
             ? `<img src="${p.imgUrl}" class="vote-avatar" style="border-color:${borderColor}">`
-            : `<div class="vote-avatar" style="border-color:${borderColor}">👤</div>`;
+            : `<div class="vote-avatar" style="border-color:${borderColor}">${currentPlayerIsGk ? '🧤' : '👤'}</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
+
+        // Show/hide correct slider sections
+        document.getElementById('fieldSliders').style.display = currentPlayerIsGk ? 'none' : 'block';
+        document.getElementById('gkSliders').style.display = currentPlayerIsGk ? 'block' : 'none';
 
         const isEditing = !!localStorage.getItem(getStorageKey(id));
         const savedVoteRaw = localStorage.getItem(getDataStorageKey(id));
         let savedVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
 
-        const defaultFixed = { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
-        const fixedVals = (isEditing && savedVote) ? { ...defaultFixed, ...savedVote } : defaultFixed;
-
-        // Fill fixed sliders
-        ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'].forEach(key => {
-            const val = fixedVals[key] || 5;
-            const sId = 's' + key.charAt(0).toUpperCase() + key.slice(1);
-            const vId = 'v' + key.charAt(0).toUpperCase() + key.slice(1);
-            document.getElementById(sId).value = val;
-            document.getElementById(vId).innerText = val;
-        });
-
-        // Build & fill custom sliders
-        const savedCustom = (isEditing && savedVote && savedVote.customStats) ? savedVote.customStats : null;
-        buildCustomSliders(savedCustom);
+        if (currentPlayerIsGk) {
+            // Fill GK sliders
+            const gkKeys = ['GkDiv','GkHan','GkKic','GkPos','GkRef'];
+            gkKeys.forEach(key => {
+                const lkey = key.charAt(0).toLowerCase() + key.slice(1); // gkDiv etc.
+                const val = (isEditing && savedVote && savedVote[lkey] !== undefined) ? savedVote[lkey] : 5;
+                document.getElementById('s' + key).value = val;
+                document.getElementById('v' + key).innerText = val;
+            });
+        } else {
+            // Fill field sliders
+            const defaultFixed = { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+            const fixedVals = (isEditing && savedVote) ? { ...defaultFixed, ...savedVote } : defaultFixed;
+            ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'].forEach(key => {
+                const val = fixedVals[key] || 5;
+                const sId = 's' + key.charAt(0).toUpperCase() + key.slice(1);
+                const vId = 'v' + key.charAt(0).toUpperCase() + key.slice(1);
+                document.getElementById(sId).value = val;
+                document.getElementById(vId).innerText = val;
+            });
+            const savedCustom = (isEditing && savedVote && savedVote.customStats) ? savedVote.customStats : null;
+            buildCustomSliders(savedCustom);
+        }
 
         const btn = document.getElementById('submitBtn');
         if (isEditing) {
             btn.innerText = "עדכן את הדירוג שלך ✏️";
             btn.style.background = "var(--edit-color)";
         } else {
-            btn.innerText = "שלח הצבעה לשחקן 🚀";
-            btn.style.background = "var(--primary-color)";
+            btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
+            btn.style.background = currentPlayerIsGk ? "var(--gk-text)" : "var(--primary-color)";
         }
 
         document.getElementById('portalScreen').style.display = 'none';
@@ -319,6 +358,7 @@
 
     function backToPortal() {
         currentPlayerId = null;
+        currentPlayerIsGk = false;
         document.getElementById('voteScreen').style.display = 'none';
         document.getElementById('portalScreen').style.display = 'block';
     }
@@ -331,120 +371,147 @@
         btn.disabled = true; btn.innerText = "שומר ציונים... ⏳";
 
         const getVal = (id) => parseInt(document.getElementById(id).value);
-
-        // Fixed params
-        const newVotes = {
-            fin: getVal('sFin'), dri: getVal('sDri'), pac: getVal('sPac'),
-            vis: getVal('sVis'), pos: getVal('sPos'), tac: getVal('sTac'),
-            awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
-        };
-
-        // Custom params — read from dynamic sliders
-        const newCustomVotes = {};
-        customParams.forEach(cp => {
-            const el = document.getElementById(`scp_${cp.id}`);
-            newCustomVotes[cp.id] = el ? parseInt(el.value) : 5;
-        });
-
         const isEditing = !!localStorage.getItem(getStorageKey(currentPlayerId));
         const savedVoteRaw = localStorage.getItem(getDataStorageKey(currentPlayerId));
         let oldVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
-        const oldFixed = oldVote || { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
-        const oldCustom = (oldVote && oldVote.customStats) ? oldVote.customStats : {};
 
         const playerRef = playersRef.doc(currentPlayerId);
 
         try {
-            await db.runTransaction(async (transaction) => {
-                const doc = await transaction.get(playerRef);
-                if (!doc.exists) throw "Player does not exist!";
-                const data = doc.data();
-                let totalVotesCount = data.votesCount || 1;
+            if (currentPlayerIsGk) {
+                // ---- GK vote ----
+                const newGkVote = {
+                    gkDiv: getVal('sGkDiv'),
+                    gkHan: getVal('sGkHan'),
+                    gkKic: getVal('sGkKic'),
+                    gkPos: getVal('sGkPos'),
+                    gkRef: getVal('sGkRef'),
+                };
+                const oldGkVote = oldVote || { gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5 };
 
-                // ---- Fixed sums ----
-                const fixedKeys = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
-                let sums = {};
-                fixedKeys.forEach(k => {
-                    const sumKey = 'sum' + k.charAt(0).toUpperCase() + k.slice(1);
-                    sums[k] = data[sumKey] !== undefined ? data[sumKey] : (data[k] || 5);
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(playerRef);
+                    if (!doc.exists) throw "Player does not exist!";
+                    const data = doc.data();
+                    let totalVotesCount = data.votesCount || 1;
+
+                    const gkKeys = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
+                    let gkSums = data.gkSums || {};
+
+                    gkKeys.forEach(k => {
+                        const currentSum = gkSums[k] !== undefined ? gkSums[k] : (data[k] || 5);
+                        if (isEditing) {
+                            gkSums[k] = currentSum + (newGkVote[k] - (oldGkVote[k] || 5));
+                        } else {
+                            gkSums[k] = currentSum + newGkVote[k];
+                        }
+                    });
+
+                    if (!isEditing) totalVotesCount++;
+
+                    const gkAvgs = {};
+                    gkKeys.forEach(k => {
+                        gkAvgs[k] = parseFloat((gkSums[k] / totalVotesCount).toFixed(1));
+                    });
+
+                    const gkScore = parseFloat(
+                        (Object.values(gkAvgs).reduce((a,b) => a+b, 0) / gkKeys.length).toFixed(1)
+                    );
+
+                    transaction.update(playerRef, {
+                        votesCount: totalVotesCount,
+                        gkSums,
+                        gkDiv: gkAvgs.gkDiv, gkHan: gkAvgs.gkHan,
+                        gkKic: gkAvgs.gkKic, gkPos: gkAvgs.gkPos, gkRef: gkAvgs.gkRef,
+                        gkScore,
+                        attScore: gkScore, defScore: gkScore,
+                    });
                 });
 
-                if (isEditing) {
-                    fixedKeys.forEach(k => { sums[k] += (newVotes[k] - (oldFixed[k] || 5)); });
-                } else {
-                    totalVotesCount++;
-                    fixedKeys.forEach(k => { sums[k] += newVotes[k]; });
-                }
+                localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify(newGkVote));
 
-                const newAvgs = {};
-                fixedKeys.forEach(k => {
-                    newAvgs[k] = parseFloat((sums[k] / totalVotesCount).toFixed(1));
-                });
-
-                // ---- Custom param sums ----
-                let customSums = data.customSums || {};
-                let customAvgs = data.customAvgs || {};
-
+            } else {
+                // ---- Field player vote ----
+                const newVotes = {
+                    fin: getVal('sFin'), dri: getVal('sDri'), pac: getVal('sPac'),
+                    vis: getVal('sVis'), pos: getVal('sPos'), tac: getVal('sTac'),
+                    awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
+                };
+                const newCustomVotes = {};
                 customParams.forEach(cp => {
-                    const newVal = newCustomVotes[cp.id] || 5;
-                    const oldVal = oldCustom[cp.id] || 5;
-                    const currentSum = customSums[cp.id] !== undefined ? customSums[cp.id] : 5;
+                    const el = document.getElementById(`scp_${cp.id}`);
+                    newCustomVotes[cp.id] = el ? parseInt(el.value) : 5;
+                });
+
+                const oldFixed = oldVote || { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+                const oldCustom = (oldVote && oldVote.customStats) ? oldVote.customStats : {};
+
+                await db.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(playerRef);
+                    if (!doc.exists) throw "Player does not exist!";
+                    const data = doc.data();
+                    let totalVotesCount = data.votesCount || 1;
+
+                    const fixedKeys = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+                    let sums = {};
+                    fixedKeys.forEach(k => {
+                        const sumKey = 'sum' + k.charAt(0).toUpperCase() + k.slice(1);
+                        sums[k] = data[sumKey] !== undefined ? data[sumKey] : (data[k] || 5);
+                    });
 
                     if (isEditing) {
-                        customSums[cp.id] = currentSum + (newVal - oldVal);
+                        fixedKeys.forEach(k => { sums[k] += (newVotes[k] - (oldFixed[k] || 5)); });
                     } else {
-                        customSums[cp.id] = currentSum + newVal;
+                        totalVotesCount++;
+                        fixedKeys.forEach(k => { sums[k] += newVotes[k]; });
                     }
-                    customAvgs[cp.id] = parseFloat((customSums[cp.id] / totalVotesCount).toFixed(1));
+
+                    const newAvgs = {};
+                    fixedKeys.forEach(k => {
+                        newAvgs[k] = parseFloat((sums[k] / totalVotesCount).toFixed(1));
+                    });
+
+                    let customSums = data.customSums || {};
+                    let customAvgs = data.customAvgs || {};
+                    customParams.forEach(cp => {
+                        const newVal = newCustomVotes[cp.id] || 5;
+                        const oldVal = oldCustom[cp.id] || 5;
+                        const currentSum = customSums[cp.id] !== undefined ? customSums[cp.id] : 5;
+                        customSums[cp.id] = isEditing ? currentSum + (newVal - oldVal) : currentSum + newVal;
+                        customAvgs[cp.id] = parseFloat((customSums[cp.id] / totalVotesCount).toFixed(1));
+                    });
+
+                    const attFixedVals = [newAvgs.fin, newAvgs.dri, newAvgs.pac, newAvgs.vis, newAvgs.pos];
+                    const defFixedVals = [newAvgs.tac, newAvgs.awa, newAvgs.str, newAvgs.sta, newAvgs.com];
+                    customParams.forEach(cp => {
+                        if (cp.type === 'att') attFixedVals.push(customAvgs[cp.id] || 5);
+                        else defFixedVals.push(customAvgs[cp.id] || 5);
+                    });
+
+                    const attScore = parseFloat((attFixedVals.reduce((a,b)=>a+b,0) / attFixedVals.length).toFixed(1));
+                    const defScore = parseFloat((defFixedVals.reduce((a,b)=>a+b,0) / defFixedVals.length).toFixed(1));
+
+                    const updateObj = { votesCount: totalVotesCount, attScore, defScore, customSums, customAvgs };
+                    fixedKeys.forEach(k => {
+                        updateObj['sum' + k.charAt(0).toUpperCase() + k.slice(1)] = sums[k];
+                        updateObj[k] = newAvgs[k];
+                    });
+                    updateObj['customStats'] = customAvgs;
+                    transaction.update(playerRef, updateObj);
                 });
 
-                // ---- Recalculate scores (including custom params) ----
-                const attFixedVals = [newAvgs.fin, newAvgs.dri, newAvgs.pac, newAvgs.vis, newAvgs.pos];
-                const defFixedVals = [newAvgs.tac, newAvgs.awa, newAvgs.str, newAvgs.sta, newAvgs.com];
-
-                customParams.forEach(cp => {
-                    if (cp.type === 'att') attFixedVals.push(customAvgs[cp.id] || 5);
-                    else defFixedVals.push(customAvgs[cp.id] || 5);
-                });
-
-                const attScore = parseFloat((attFixedVals.reduce((a,b)=>a+b,0) / attFixedVals.length).toFixed(1));
-                const defScore = parseFloat((defFixedVals.reduce((a,b)=>a+b,0) / defFixedVals.length).toFixed(1));
-
-                // ---- Build update object ----
-                const updateObj = {
-                    votesCount: totalVotesCount,
-                    attScore, defScore,
-                    customSums, customAvgs,
-                    // custom avgs also stored flat for leaderboards
-                };
-
-                // Fixed averages & sums
-                fixedKeys.forEach(k => {
-                    const sumKey = 'sum' + k.charAt(0).toUpperCase() + k.slice(1);
-                    updateObj[sumKey] = sums[k];
-                    updateObj[k] = newAvgs[k];
-                });
-
-                // Custom avgs stored in customStats for compatibility with index.html
-                updateObj['customStats'] = customAvgs;
-
-                transaction.update(playerRef, updateObj);
-            });
+                localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify({
+                    ...newVotes, customStats: newCustomVotes
+                }));
+            }
 
             firebase.analytics().logEvent('submit_player_vote', {
-                player_name: p.name, group_name: groupName,
-                final_att_score: parseFloat(((newVotes.fin+newVotes.dri+newVotes.pac+newVotes.vis+newVotes.pos)/5).toFixed(1)),
-                final_def_score: parseFloat(((newVotes.tac+newVotes.awa+newVotes.str+newVotes.sta+newVotes.com)/5).toFixed(1))
+                player_name: p.name, group_name: groupName, is_gk: currentPlayerIsGk
             });
 
-            // Save to localStorage (includes custom)
-            localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify({
-                ...newVotes, customStats: newCustomVotes
-            }));
             localStorage.setItem(getStorageKey(currentPlayerId), 'true');
-
             btn.disabled = false;
-            btn.innerText = "שלח הצבעה לשחקן 🚀";
+            btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
             alert(isEditing ? 'ההצבעה עודכנה! ✔️' : 'ההצבעה נקלטה! ✔️');
             await fetchPlayers();
             backToPortal();
@@ -453,7 +520,7 @@
             console.error(e);
             alert("שגיאה בשליחה.");
             btn.disabled = false;
-            btn.innerText = "שלח הצבעה לשחקן 🚀";
+            btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
         }
     }
 </script>

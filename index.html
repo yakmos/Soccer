@@ -311,6 +311,33 @@
             display: inline-flex; align-items: center; gap: 5px;
             font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 20px;
         }
+
+        /* ========== Goalkeeper Styles ========== */
+        :root {
+            --gk-bg: rgba(167, 139, 250, 0.15);
+            --gk-text: #A78BFA;
+            --gk-border: rgba(167, 139, 250, 0.35);
+        }
+        .gk-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border);
+            padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;
+        }
+        .gk-toggle-btn {
+            background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border);
+            border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-weight: 800;
+            cursor: pointer; font-family: 'Heebo', sans-serif; transition: 0.2s;
+        }
+        .gk-toggle-btn:hover { background: rgba(167,139,250,0.3); }
+        .gk-stats-section {
+            border-color: var(--gk-border) !important;
+            background: rgba(167,139,250,0.04) !important;
+        }
+        .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
+        .pitch-player.is-rotating-gk {
+            border: 2px dashed var(--gk-text);
+            background: rgba(167,139,250,0.1);
+        }
     </style>
 </head>
 <body id="mainBody">
@@ -397,6 +424,18 @@
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
 
+                        <!-- סימון שוער -->
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--gk-bg); border:1px solid var(--gk-border); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
+                            <div>
+                                <div style="font-weight:800; color:var(--gk-text); font-size:0.95rem;">🧤 שחקן זה הוא שוער?</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שוערים יקבלו פרמטרי שוער במקום פרמטרי שדה</div>
+                            </div>
+                            <button type="button" id="gkToggleBtn" onclick="toggleGkMode()" class="gk-toggle-btn">לא שוער</button>
+                        </div>
+                        <input type="hidden" id="pIsGk" value="false">
+
+                        <!-- מדדי שדה (נסתרים לשוער) -->
+                        <div id="fieldStatsSection">
                         <!-- מדדי התקפה קבועים -->
                         <div class="stats-section">
                             <h4>
@@ -431,6 +470,22 @@
                                     <span class="section-label-tag" style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.3);">מותאם</span>
                                 </h4>
                                 <div id="customParamsInputs"></div>
+                            </div>
+                        </div>
+                        </div><!-- end fieldStatsSection -->
+
+                        <!-- מדדי שוער (מוצגים רק לשוערים) -->
+                        <div id="gkStatsSection" style="display:none;">
+                            <div class="stats-section gk-stats-section">
+                                <h4>
+                                    <span>🧤 מדדי שוער (1-10)</span>
+                                    <span class="section-label-tag" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">שוער</span>
+                                </h4>
+                                <div class="param-row"><span>זינוק</span> <input type="number" id="pGkDiv" value="5" min="1" max="10"></div>
+                                <div class="param-row"><span>אחיזה בכדור</span> <input type="number" id="pGkHan" value="5" min="1" max="10"></div>
+                                <div class="param-row"><span>בעיטה והוצאה</span> <input type="number" id="pGkKic" value="5" min="1" max="10"></div>
+                                <div class="param-row"><span>מיקום בשער</span> <input type="number" id="pGkPos" value="5" min="1" max="10"></div>
+                                <div class="param-row"><span>רפלקסים</span> <input type="number" id="pGkRef" value="5" min="1" max="10"></div>
                             </div>
                         </div>
 
@@ -490,6 +545,14 @@
                             <option value="str">💪 פיזיות ועוצמה</option>
                             <option value="sta">🫁 כושר גופני וסיבולת</option>
                             <option value="com">🧘 יציאה מלחץ ומסירה</option>
+                        </optgroup>
+                        <optgroup label="🧤 מדדי שוער">
+                            <option value="gkScore">🧤 ציון שוער כללי</option>
+                            <option value="gkDiv">🤸 זינוק</option>
+                            <option value="gkHan">🖐️ אחיזה בכדור</option>
+                            <option value="gkKic">👟 בעיטה והוצאה</option>
+                            <option value="gkPos">📍 מיקום בשער</option>
+                            <option value="gkRef">⚡ רפלקסים</option>
                         </optgroup>
                         <optgroup id="customStatOptgroup" label="מדדים מותאמים אישית" style="display:none;"></optgroup>
                     </select>
@@ -644,7 +707,7 @@ let groupSettings = { numTeams: 3, playersPerTeam: 6 };
 // customParams: [{ id: 'cp_xxx', name: 'שם', type: 'att'|'def' }]
 let customParams = [];
 
-let players = [], activeTeams = null, activeGkIds = [], activeWins = [];
+let players = [], activeTeams = null, activeGkIds = [], activeHasFixedGk = [], activeWins = [];
 let historyCache = [];
 let gamesHistoryCache = [];
 let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
@@ -713,8 +776,9 @@ function startRealtimeListeners() {
             while(data[`team${idx}`]) { loadedTeams.push(data[`team${idx}`]); idx++; }
             activeTeams = loadedTeams;
             activeGkIds = data.gkIds || activeTeams.map(() => null);
+            activeHasFixedGk = data.hasFixedGk || activeTeams.map(() => false);
             activeWins = data.teamWins || activeTeams.map(() => 0);
-            displayTeams(activeTeams, activeGkIds, activeWins);
+            displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
             if(finishBtn) finishBtn.style.display = 'flex';
         } else {
             document.getElementById('results').style.display = 'none';
@@ -900,16 +964,58 @@ function calcScores(vals, customStatsObj) {
     return { attScore, defScore };
 }
 
+// ========== GK Mode Toggle ==========
+function toggleGkMode() {
+    const isGk = document.getElementById('pIsGk').value === 'true';
+    const newVal = !isGk;
+    document.getElementById('pIsGk').value = String(newVal);
+    document.getElementById('gkToggleBtn').textContent = newVal ? '🧤 שוער' : 'לא שוער';
+    document.getElementById('gkToggleBtn').style.background = newVal ? 'rgba(167,139,250,0.3)' : '';
+    document.getElementById('fieldStatsSection').style.display = newVal ? 'none' : 'block';
+    document.getElementById('gkStatsSection').style.display = newVal ? 'block' : 'none';
+}
+
+function getColoredGkBadge(gkScore) {
+    const v = gkScore || 5; const c = getColorStyles(v);
+    return `<span class="stat-badge" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">🧤 ${v}</span>`;
+}
+
 // ========== Player Management ==========
 async function savePlayer() {
     const name = document.getElementById('pName').value.trim();
     if(!name) return;
 
-    const vals = ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom']
-        .map(id => parseFloat(document.getElementById(id).value) || 5);
-    
-    const customStatsObj = readCustomParamInputs();
-    const { attScore, defScore } = calcScores(vals, customStatsObj);
+    const isGk = document.getElementById('pIsGk').value === 'true';
+
+    let playerData = { name, isGk };
+
+    if (isGk) {
+        const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
+        const gkHan = parseFloat(document.getElementById('pGkHan').value) || 5;
+        const gkKic = parseFloat(document.getElementById('pGkKic').value) || 5;
+        const gkPos = parseFloat(document.getElementById('pGkPos').value) || 5;
+        const gkRef = parseFloat(document.getElementById('pGkRef').value) || 5;
+        const gkScore = parseFloat(((gkDiv + gkHan + gkKic + gkPos + gkRef) / 5).toFixed(1));
+        Object.assign(playerData, {
+            gkDiv, gkHan, gkKic, gkPos, gkRef, gkScore,
+            // clear field stats so old data doesn't linger
+            fin:5, dri:5, pac:5, vis:5, pos:5,
+            tac:5, awa:5, str:5, sta:5, com:5,
+            attScore: gkScore, defScore: gkScore,
+            customStats: {}
+        });
+    } else {
+        const vals = ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom']
+            .map(id => parseFloat(document.getElementById(id).value) || 5);
+        const customStatsObj = readCustomParamInputs();
+        const { attScore, defScore } = calcScores(vals, customStatsObj);
+        Object.assign(playerData, {
+            fin:vals[0], dri:vals[1], pac:vals[2], vis:vals[3], pos:vals[4],
+            tac:vals[5], awa:vals[6], str:vals[7], sta:vals[8], com:vals[9],
+            customStats: customStatsObj, attScore, defScore,
+            gkScore: 5, gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5
+        });
+    }
 
     let finalImgUrl = currentEditingImg;
     const fileInput = document.getElementById('pImage');
@@ -917,15 +1023,7 @@ async function savePlayer() {
         document.getElementById('saveBtn').innerText = "מעלה תמונה... ⏳";
         finalImgUrl = await resizeImage(fileInput.files[0]);
     }
-
-    const playerData = {
-        name,
-        fin:vals[0], dri:vals[1], pac:vals[2], vis:vals[3], pos:vals[4],
-        tac:vals[5], awa:vals[6], str:vals[7], sta:vals[8], com:vals[9],
-        customStats: customStatsObj,
-        attScore, defScore,
-        imgUrl: finalImgUrl
-    };
+    playerData.imgUrl = finalImgUrl;
 
     if(editingId) {
         await playersRef.doc(editingId).update(playerData);
@@ -936,7 +1034,6 @@ async function savePlayer() {
         await playersRef.add(playerData);
         document.getElementById('pName').value = '';
         document.getElementById('pImage').value = '';
-        // Reset custom inputs
         customParams.forEach(p => {
             const el = document.getElementById(`cp_${p.id}`);
             if(el) el.value = 5;
@@ -952,11 +1049,29 @@ function startEdit(id, p) {
     document.getElementById('pName').value = p.name;
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
-    ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(inputId => {
-        const key = inputId.toLowerCase().replace('p','');
-        document.getElementById(inputId).value = p[key] || 5;
-    });
-    fillCustomParamInputs(p);
+
+    // GK mode
+    const isGk = !!p.isGk;
+    document.getElementById('pIsGk').value = String(isGk);
+    document.getElementById('gkToggleBtn').textContent = isGk ? '🧤 שוער' : 'לא שוער';
+    document.getElementById('gkToggleBtn').style.background = isGk ? 'rgba(167,139,250,0.3)' : '';
+    document.getElementById('fieldStatsSection').style.display = isGk ? 'none' : 'block';
+    document.getElementById('gkStatsSection').style.display = isGk ? 'block' : 'none';
+
+    if (isGk) {
+        document.getElementById('pGkDiv').value = p.gkDiv || 5;
+        document.getElementById('pGkHan').value = p.gkHan || 5;
+        document.getElementById('pGkKic').value = p.gkKic || 5;
+        document.getElementById('pGkPos').value = p.gkPos || 5;
+        document.getElementById('pGkRef').value = p.gkRef || 5;
+    } else {
+        ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(inputId => {
+            const key = inputId.toLowerCase().replace('p','');
+            document.getElementById(inputId).value = p[key] || 5;
+        });
+        fillCustomParamInputs(p);
+    }
+
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
     document.getElementById('cancelBtn').style.display = "block";
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -968,7 +1083,16 @@ function cancelEdit() {
     document.getElementById('pName').value = '';
     document.getElementById('pImage').value = '';
     document.getElementById('imgPreviewText').style.display = 'none';
+    // Reset GK mode
+    document.getElementById('pIsGk').value = 'false';
+    document.getElementById('gkToggleBtn').textContent = 'לא שוער';
+    document.getElementById('gkToggleBtn').style.background = '';
+    document.getElementById('fieldStatsSection').style.display = 'block';
+    document.getElementById('gkStatsSection').style.display = 'none';
+    // Reset field inputs
     ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
+    // Reset GK inputs
+    ['pGkDiv','pGkHan','pGkKic','pGkPos','pGkRef'].forEach(id => document.getElementById(id).value = 5);
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
     document.getElementById('saveBtn').innerText = "שמור שחקן";
     document.getElementById('cancelBtn').style.display = "none";
@@ -1028,6 +1152,8 @@ async function finishGame() {
                     goals: liveP.goals || 0,
                     attScore: p.attScore || 5,
                     defScore: p.defScore || 5,
+                    gkScore: p.gkScore || null,
+                    isGk: !!p.isGk,
                     imgUrl: p.imgUrl || null
                 };
             })
@@ -1132,32 +1258,75 @@ function showPlayerCard(id) {
 
     const isAdmin = document.body.classList.contains('is-admin');
     const editBtn = isAdmin ? `<button onclick="editCareerGoals('${p.id}')" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px;" title="ערוך גולי קריירה">✏️</button>` : '';
-    const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">` : `<div class="modal-avatar" style="border-color:${getColorStyles((p.attScore+p.defScore)/2).hex}">👤</div>`;
-    const getBar = (label, val) => `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${getColorStyles(val||5).hex};"></div></div><div class="stat-bar-val" style="color:${getColorStyles(val||5).text};">${val||5}</div></div>`;
 
-    // Custom params bars
-    const attCustomParams = customParams.filter(cp => cp.type === 'att');
-    const defCustomParams = customParams.filter(cp => cp.type === 'def');
-    const customAttBars = attCustomParams.map(cp => {
-        const val = (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5;
-        return getBar(cp.name, val);
-    }).join('');
-    const customDefBars = defCustomParams.map(cp => {
-        const val = (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5;
-        return getBar(cp.name, val);
-    }).join('');
+    const isGk = !!p.isGk;
+    const mainScore = isGk ? (p.gkScore || 5) : (p.attScore + p.defScore) / 2;
+    const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(mainScore).hex;
+    const avatar = p.imgUrl
+        ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${borderColor}">`
+        : `<div class="modal-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
 
-    const customAttSection = attCustomParams.length > 0
-        ? `<div class="modal-section-title" style="color: var(--att-text);">⚔️ מדדי התקפה מותאמים</div>${customAttBars}` : '';
-    const customDefSection = defCustomParams.length > 0
-        ? `<div class="modal-section-title" style="color: var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${customDefBars}` : '';
+    const getBar = (label, val, color) => {
+        const c = color || getColorStyles(val||5).hex;
+        return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${c};"></div></div><div class="stat-bar-val" style="color:${c};">${val||5}</div></div>`;
+    };
+
+    // Score boxes
+    let scoreBoxes = '';
+    if (isGk) {
+        const gkC = getColorStyles(p.gkScore || 5);
+        scoreBoxes = `
+            <div class="modal-score-box" style="border-color:${gkC.border}; background:${gkC.bg}; width:60%; margin:0 auto;">
+                <div class="modal-score-val" style="color:${gkC.text};">${p.gkScore||5}</div>
+                <div class="modal-score-label" style="color:${gkC.text};">🧤 ציון שוער</div>
+            </div>`;
+    } else {
+        scoreBoxes = `
+            <div class="modal-score-box" style="border-color:${getColorStyles(p.attScore).border}; background:${getColorStyles(p.attScore).bg};">
+                <div class="modal-score-val" style="color:${getColorStyles(p.attScore).text};">${p.attScore||5}</div>
+                <div class="modal-score-label" style="color:${getColorStyles(p.attScore).text};">התקפה</div>
+            </div>
+            <div class="modal-score-box" style="border-color:${getColorStyles(p.defScore).border}; background:${getColorStyles(p.defScore).bg};">
+                <div class="modal-score-val" style="color:${getColorStyles(p.defScore).text};">${p.defScore||5}</div>
+                <div class="modal-score-label" style="color:${getColorStyles(p.defScore).text};">הגנה</div>
+            </div>`;
+    }
+
+    // Stats section
+    let statsSection = '';
+    if (isGk) {
+        statsSection = `
+            <div class="modal-section-title" style="color:var(--gk-text);">🧤 מדדי שוער</div>
+            ${getBar('זינוק', p.gkDiv, 'var(--gk-text)')}
+            ${getBar('אחיזה בכדור', p.gkHan, 'var(--gk-text)')}
+            ${getBar('בעיטה והוצאה', p.gkKic, 'var(--gk-text)')}
+            ${getBar('מיקום בשער', p.gkPos, 'var(--gk-text)')}
+            ${getBar('רפלקסים', p.gkRef, 'var(--gk-text)')}`;
+    } else {
+        const attCustomParams = customParams.filter(cp => cp.type === 'att');
+        const defCustomParams = customParams.filter(cp => cp.type === 'def');
+        const customAttBars = attCustomParams.map(cp => {
+            const val = (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5;
+            return getBar(cp.name, val);
+        }).join('');
+        const customDefBars = defCustomParams.map(cp => {
+            const val = (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5;
+            return getBar(cp.name, val);
+        }).join('');
+        statsSection = `
+            <div class="modal-section-title">מדדי התקפה בסיסיים</div>
+            ${getBar('סיומת מול שער', p.fin)} ${getBar('דריבל ושליטה', p.dri)} ${getBar('מהירות וזריזות', p.pac)} ${getBar('ראיית משחק', p.vis)} ${getBar('תנועה ללא כדור', p.pos)}
+            ${attCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--att-text);">⚔️ מדדי התקפה מותאמים</div>${customAttBars}` : ''}
+            <div class="modal-section-title">מדדי הגנה ופיזיות בסיסיים</div>
+            ${getBar('חילוצי כדור', p.tac)} ${getBar('קריאת משחק', p.awa)} ${getBar('פיזיות ועוצמה', p.str)} ${getBar('כושר גופני', p.sta)} ${getBar('יציאה מלחץ', p.com)}
+            ${defCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${customDefBars}` : ''}`;
+    }
 
     const content = `
         ${avatar}
-        <h2 class="modal-name">${p.name}</h2>
+        <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''}</h2>
         <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
         <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
-        
         <div style="display:flex; justify-content:center; gap:10px; margin-bottom:25px;">
             <div class="modal-score-box" style="position:relative; background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.3); width:45%;">
                 ${editBtn}
@@ -1169,25 +1338,8 @@ function showPlayerCard(id) {
                 <div class="modal-score-label" style="color:#10B981;">🏆 ניצחונות</div>
             </div>
         </div>
-        
-        <div class="modal-scores">
-            <div class="modal-score-box" style="border-color:${getColorStyles(p.attScore).border}; background:${getColorStyles(p.attScore).bg};">
-                <div class="modal-score-val" style="color:${getColorStyles(p.attScore).text};">${p.attScore||5}</div>
-                <div class="modal-score-label" style="color:${getColorStyles(p.attScore).text};">התקפה</div>
-            </div>
-            <div class="modal-score-box" style="border-color:${getColorStyles(p.defScore).border}; background:${getColorStyles(p.defScore).bg};">
-                <div class="modal-score-val" style="color:${getColorStyles(p.defScore).text};">${p.defScore||5}</div>
-                <div class="modal-score-label" style="color:${getColorStyles(p.defScore).text};">הגנה</div>
-            </div>
-        </div>
-
-        <div class="modal-section-title">מדדי התקפה בסיסיים</div>
-        ${getBar('סיומת מול שער', p.fin)} ${getBar('דריבל ושליטה', p.dri)} ${getBar('מהירות וזריזות', p.pac)} ${getBar('ראיית משחק', p.vis)} ${getBar('תנועה ללא כדור', p.pos)}
-        ${customAttSection}
-        
-        <div class="modal-section-title">מדדי הגנה ופיזיות בסיסיים</div>
-        ${getBar('חילוצי כדור', p.tac)} ${getBar('קריאת משחק', p.awa)} ${getBar('פיזיות ועוצמה', p.str)} ${getBar('כושר גופני', p.sta)} ${getBar('יציאה מלחץ', p.com)}
-        ${customDefSection}
+        <div class="modal-scores">${scoreBoxes}</div>
+        ${statsSection}
     `;
 
     document.getElementById('modalContent').innerHTML = content;
@@ -1229,11 +1381,14 @@ function renderLeaderboards() {
     let colorClass = 'var(--primary-color)';
     if (['attScore','fin','dri','pac','vis','pos'].includes(statKey)) colorClass = 'var(--att-text)';
     else if (['defScore','tac','awa','str','sta','com'].includes(statKey)) colorClass = 'var(--def-text)';
+    else if (['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey)) colorClass = 'var(--gk-text)';
     else if (statKey.startsWith('customStats.')) {
         const paramId = statKey.replace('customStats.', '');
         const param = customParams.find(p => p.id === paramId);
         colorClass = param && param.type === 'att' ? 'var(--att-text)' : 'var(--def-text)';
     }
+
+    const isGkStat = ['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey);
 
     const getStatValue = (player, key) => {
         if (key.startsWith('customStats.')) {
@@ -1243,8 +1398,16 @@ function renderLeaderboards() {
         return player[key] || 5;
     };
 
-    const sortedPlayers = [...players].sort((a, b) => getStatValue(b, statKey) - getStatValue(a, statKey));
-    if (sortedPlayers.length === 0) { listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted);">אין שחקנים</div>`; return; }
+    // For GK stats: show only GK players. For field stats: show only non-GK players.
+    const filteredPlayers = isGkStat
+        ? players.filter(p => p.isGk)
+        : players.filter(p => !p.isGk);
+
+    const sortedPlayers = [...filteredPlayers].sort((a, b) => getStatValue(b, statKey) - getStatValue(a, statKey));
+    if (sortedPlayers.length === 0) {
+        listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted);">${isGkStat ? 'אין שוערים עם דירוג' : 'אין שחקנים'}</div>`;
+        return;
+    }
     
     listContainer.innerHTML = sortedPlayers.map((p, i) => {
         const val = getStatValue(p, statKey);
@@ -1252,7 +1415,7 @@ function renderLeaderboards() {
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
             </div>
             <div style="background:rgba(255,255,255,0.1); color:${colorClass}; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid ${colorClass};">${Number.isInteger(val) ? val : val.toFixed(1)}</div>
         </div>`;
@@ -1274,9 +1437,9 @@ function render() {
             <div class="squad-item">
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
-                    <div class="squad-name">${p.name} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ משחק: ${p.goals || 0})</span></div>
+                    <div class="squad-name">${p.name} ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ משחק: ${p.goals || 0})</span></div>
                     <div class="chip-stats-container" style="justify-content:flex-start;">
-                        ${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}
+                        ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
                     </div>
                 </div>
                 <div class="squad-actions">
@@ -1295,10 +1458,12 @@ function render() {
             lineupGrid.innerHTML = "<div style='grid-column:1/-1; color:var(--text-muted); text-align:center; padding:20px;'>עדיין לא נבחר הרכב להערב.</div>";
         } else {
             lineupGrid.innerHTML = lineupPlayers.map(p => `
-                <div class="player-chip">
+                <div class="player-chip" ${p.isGk ? 'style="border-color:var(--gk-border); background:rgba(167,139,250,0.07);"' : ''}>
                     ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
-                    <div class="chip-name">${p.name}</div>
-                    <div class="chip-stats-container">${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}</div>
+                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''}</div>
+                    <div class="chip-stats-container">
+                        ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
+                    </div>
                     ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}
                 </div>
             `).join('');
@@ -1457,33 +1622,76 @@ async function run() {
     const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
     if(lineup.length !== totalNeeded) return alert(`צריך בדיוק ${totalNeeded} שחקנים.`);
     scrollToTeamsFlag = true;
+
+    // Separate GK players from field players
+    const gkPlayers = lineup.filter(p => p.isGk);
+    const fieldPlayers = lineup.filter(p => !p.isGk);
+    const numTeams = groupSettings.numTeams;
+    const playersPerTeam = groupSettings.playersPerTeam;
+
+    if (gkPlayers.length > numTeams) {
+        return alert(`יש ${gkPlayers.length} שוערים אבל רק ${numTeams} קבוצות. הסר שוערים מהרכב.`);
+    }
+
     let best = null, min = Infinity;
     for(let i = 0; i < 5000; i++) {
-        const teams = Array.from({length: groupSettings.numTeams}, () => []);
-        const tempLineup = [...lineup].sort(() => 0.5 - Math.random());
-        tempLineup.forEach((player, index) => teams[index % groupSettings.numTeams].push(player));
-        const scores = teams.map(t => {
-            const roles = assignRoles(t, null);
-            const gkId = roles['שוער'] ? roles['שוער'].id : null;
-            return t.filter(p => p.id !== gkId).reduce((s, p) => s + (p.defScore||5) + (p.attScore||5), 0);
-        });
-        const diff = Math.max(...scores) - Math.min(...scores);
+        const teams = Array.from({length: numTeams}, () => []);
+
+        // Shuffle both pools
+        const tempGks = [...gkPlayers].sort(() => 0.5 - Math.random());
+        const tempField = [...fieldPlayers].sort(() => 0.5 - Math.random());
+
+        // Assign each GK to a randomly chosen team (shuffle team indices first)
+        const teamOrder = Array.from({length: numTeams}, (_, i) => i).sort(() => 0.5 - Math.random());
+        tempGks.forEach((gk, i) => teams[teamOrder[i]].push(gk));
+
+        // Fill remaining slots with field players, respecting playersPerTeam cap
+        let fieldIdx = 0;
+        for (let t = 0; t < numTeams; t++) {
+            const slotsLeft = playersPerTeam - teams[t].length;
+            for (let s = 0; s < slotsLeft; s++) {
+                if (fieldIdx < tempField.length) teams[t].push(tempField[fieldIdx++]);
+            }
+        }
+
+        const attScores = teams.map(t =>
+            t.filter(p => !p.isGk).reduce((s, p) => s + (p.attScore||5), 0)
+        );
+        const defScores = teams.map(t =>
+            t.filter(p => !p.isGk).reduce((s, p) => s + (p.defScore||5), 0)
+        );
+        const attDiff = Math.max(...attScores) - Math.min(...attScores);
+        const defDiff = Math.max(...defScores) - Math.min(...defScores);
+        // Weight both equally — penalize imbalance in either attack or defense
+        const diff = attDiff + defDiff;
         if(diff < min) { min = diff; best = teams; }
     }
+
+    // Per team: if there's a GK player → hasFixedGk=true, else false
+    const hasFixedGk = best.map(t => t.some(p => p.isGk));
+    const gkIds = best.map((t, i) => {
+        if (hasFixedGk[i]) return t.find(p => p.isGk).id;
+        // rotating GK: pick the weakest field player as first in rotation
+        const sorted = [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
+        return sorted[0]?.id || null;
+    });
+
     let gameData = {
-        gkIds: best.map(t => { let r = assignRoles(t, null); return r['שוער'] ? r['שוער'].id : null; }),
+        gkIds,
+        hasFixedGk,
         teamWins: Array(groupSettings.numTeams).fill(0),
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
     best.forEach((teamArr, idx) => { gameData[`team${idx+1}`] = teamArr; });
     await gameRef.set(gameData);
 
-    // Pick laundry duty person from the players actually in tonight's teams
     await assignLaundryForGame(best.flat());
 }
 
 async function rotateGk(teamIndex) {
     if(!activeTeams || !activeGkIds) return;
+    // Only rotate if this team has no fixed GK
+    if (activeHasFixedGk && activeHasFixedGk[teamIndex]) return;
     let team = activeTeams[teamIndex], currentGkId = activeGkIds[teamIndex];
     let nextIndex = (team.findIndex(p => p.id === currentGkId) + 1) % team.length;
     let newGkIds = [...activeGkIds]; newGkIds[teamIndex] = team[nextIndex].id;
@@ -1491,10 +1699,18 @@ async function rotateGk(teamIndex) {
 }
 
 function assignRoles(team, forcedGkId) {
-    let pool = [...team], roles = {};
-    let gkIndex = forcedGkId ? pool.findIndex(p => p.id === forcedGkId) : -1;
-    if (gkIndex !== -1) roles['שוער'] = pool.splice(gkIndex, 1)[0];
-    else { pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
+    let pool = [...team].filter(p => !p.isGk), roles = {};
+    // If there's a GK player in team, they are always the GK
+    const fixedGk = team.find(p => p.isGk);
+    if (fixedGk) {
+        roles['שוער'] = fixedGk;
+    } else if (forcedGkId) {
+        let gkIndex = pool.findIndex(p => p.id === forcedGkId);
+        if (gkIndex !== -1) roles['שוער'] = pool.splice(gkIndex, 1)[0];
+    } else {
+        pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
+        roles['שוער'] = pool.shift();
+    }
     pool.sort((a,b) => ((b.attScore||5)-(b.defScore||5)) - ((a.attScore||5)-(a.defScore||5)));
     if (groupSettings.playersPerTeam === 6) {
         roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift();
@@ -1509,8 +1725,27 @@ function assignRoles(team, forcedGkId) {
     return roles;
 }
 
+// Assign roles without a goalkeeper (all players are field players)
+function assignRolesNoGk(team) {
+    let pool = [...team].filter(p => !p.isGk);
+    pool.sort((a,b) => ((b.attScore||5)-(b.defScore||5)) - ((a.attScore||5)-(a.defScore||5)));
+    const roles = {};
+    if (groupSettings.playersPerTeam === 6) {
+        roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift();
+        pool.sort((a,b) => (a.sta||5)-(b.sta||5));
+        roles['בלם'] = pool.shift(); roles['מגן ימין'] = pool.shift(); roles['מגן שמאל'] = pool.shift();
+        if (pool.length > 0) roles['שחקן נוסף'] = pool.shift();
+    } else {
+        let half = Math.ceil(pool.length/2);
+        for(let i=0; i<half; i++) { if(pool.length>0) roles['התקפה '+(i+1)] = pool.shift(); }
+        let defCount = 1;
+        while(pool.length>0) { roles['הגנה '+defCount] = pool.shift(); defCount++; }
+    }
+    return roles;
+}
+
 // ========== Display Teams ==========
-function displayTeams(teams, gkIds, wins) {
+function displayTeams(teams, gkIds, hasFixedGk, wins) {
     const r = document.getElementById('results');
     const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
     const renderPitchCard = (p, icon, roleName) => {
@@ -1533,15 +1768,39 @@ function displayTeams(teams, gkIds, wins) {
         </div>`;
     };
 
+    const renderRotatingGkCard = () => {
+        return `<div class="pitch-player is-rotating-gk" style="flex:1; max-width:50%; margin:0 auto;">
+            <div style="font-size:1.5rem; margin-bottom:4px;">🔄</div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--gk-text);">שוער מתחלף</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">כל שחקן מתחלף בתפקיד</div>
+        </div>`;
+    };
+
     let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
     content += teams.map((t, i) => {
-        const roles = assignRoles(t, gkIds ? gkIds[i] : null);
-        const fieldPlayers = t.filter(p => p && p.id !== (roles['שוער'] ? roles['שוער'].id : null));
+        const isFixed = hasFixedGk ? hasFixedGk[i] : false;
+        const roles = isFixed
+            ? assignRoles(t, gkIds ? gkIds[i] : null)
+            : assignRolesNoGk(t);
+        const fieldPlayers = isFixed
+            ? t.filter(p => p && p.id !== (roles['שוער'] ? roles['שוער'].id : null))
+            : t;
         let defTotal = fieldPlayers.reduce((sum,p) => sum+(p.defScore||5), 0).toFixed(1);
         let attTotal = fieldPlayers.reduce((sum,p) => sum+(p.attScore||5), 0).toFixed(1);
         let keys = Object.keys(roles).filter(k => k !== 'שוער');
         let defKeys = keys.filter(k => k.includes('הגנה')||k.includes('מגן')||k.includes('בלם'));
         let attKeys = keys.filter(k => !defKeys.includes(k));
+
+        // GK row: fixed GK card or rotating tag
+        const gkRow = isFixed && roles['שוער']
+            ? `<div class="pitch-row">${renderPitchCard(roles['שוער'],'🧤','שוער')}</div>`
+            : `<div class="pitch-row">${renderRotatingGkCard()}</div>`;
+
+        // rotate button only for non-fixed teams
+        const rotateBtn = isFixed
+            ? ''
+            : `<button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>`;
+
         return `<div class="team-row">
             <div class="team-header t-${i}">
                 <div class="team-header-name">${teamNames[i]||`קבוצה ${i+1}`} <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">(כוח: ${(parseFloat(defTotal)+parseFloat(attTotal)).toFixed(1)})</span></div>
@@ -1551,7 +1810,8 @@ function displayTeams(teams, gkIds, wins) {
                         <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i]||0}</span>
                         <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button>
                     </div>
-                    <button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>
+                    ${rotateBtn}
+                    ${isFixed ? '<span class="gk-badge" style="font-size:0.8rem;">🧤 שוער קבוע</span>' : '<span style="font-size:0.8rem; color:var(--gk-text); font-weight:700;">🔄 שוער מתחלף</span>'}
                 </div>
             </div>
             <div class="team-stats-row">
@@ -1559,7 +1819,7 @@ function displayTeams(teams, gkIds, wins) {
                 <span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span>
             </div>
             <div class="pitch">
-                ${roles['שוער'] ? `<div class="pitch-row">${renderPitchCard(roles['שוער'],'🧤','שוער')}</div>` : ''}
+                ${gkRow}
                 ${defKeys.length>0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k],'🛡️',k)).join('')}</div>` : ''}
                 ${attKeys.length>0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k],'⚽',k)).join('')}</div>` : ''}
             </div>
