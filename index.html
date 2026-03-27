@@ -380,6 +380,7 @@
             <button class="tab-btn" onclick="switchTab('tab-scorers', this)">מלכי השערים 🏆</button>
             <button class="tab-btn" onclick="switchTab('tab-history', this)">היסטוריה 📅</button>
             <button class="tab-btn" onclick="switchTab('tab-market', this)">מחפשים שחקנים 🤝</button>
+            <button class="tab-btn" onclick="switchTab('tab-laundry', this)">כביסה 👕</button>
         </div>
 
         <div class="container">
@@ -528,6 +529,40 @@
                     <div id="marketList" style="display: flex; flex-direction: column; gap: 15px;">
                         <div style="text-align:center; color:var(--text-muted); padding:20px;">טוען מודעות...</div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- TAB: LAUNDRY -->
+        <div id="tab-laundry" class="tab-content">
+            <div class="container">
+                <div class="card" style="border-top: 4px solid #A78BFA;">
+                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">👕 תורנות כביסת גופיות</h2>
+                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">
+                        רק מהשחקנים שמשחקים הערב — סבב מלא לפני חזרה
+                    </p>
+
+                    <!-- Current duty person -->
+                    <div id="laundryCurrentCard" style="background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.35); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 20px; display:none;">
+                        <div style="font-size: 0.85rem; color: #A78BFA; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;">תורן הכביסה של הערב 👕</div>
+                        <div id="laundryCurrentName" style="font-size: 2rem; font-weight: 900; color: var(--text-main); margin-bottom: 4px;"></div>
+                        <div id="laundryCurrentRound" style="font-size: 0.8rem; color: var(--text-muted);"></div>
+                        <div style="margin-top:12px; font-size:0.82rem; color:var(--text-muted);">התורן יסומן כבוצע אוטומטית עם לחיצה על "סיום משחק"</div>
+                    </div>
+
+                    <!-- History -->
+                    <div id="laundryHistorySection" style="display:none; margin-top:20px;">
+                        <h3 style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:12px;">📜 היסטוריית כביסות</h3>
+                        <div id="laundryHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div id="laundryEmpty" style="text-align:center; color:var(--text-muted); padding:30px 10px; display:none;">
+                        <div style="font-size:2.5rem; margin-bottom:10px;">👕</div>
+                        <div style="font-weight:800; margin-bottom:6px;">אין משחק פעיל</div>
+                        <div style="font-size:0.85rem;">התורן ייקבע אוטומטית עם לחיצה על "צור קבוצות מאוזנות"</div>
+                    </div>
+
+
                 </div>
             </div>
         </div>
@@ -709,6 +744,9 @@ function startRealtimeListeners() {
             updateLeaderboardCustomOptions();
         }
     });
+
+    // Start laundry listener (auto-inits when lineup has players)
+    startLaundryListener();
 }
 
 // ========== Custom Params Logic ==========
@@ -1048,6 +1086,9 @@ async function finishGame() {
         batch.delete(gameRef);
 
         await batch.commit();
+
+        // Mark laundry as done for this game
+        await completeLaundryForGame();
         console.log("✅ batch הושלם");
 
         if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
@@ -1436,6 +1477,9 @@ async function run() {
     };
     best.forEach((teamArr, idx) => { gameData[`team${idx+1}`] = teamArr; });
     await gameRef.set(gameData);
+
+    // Pick laundry duty person from the players actually in tonight's teams
+    await assignLaundryForGame(best.flat());
 }
 
 async function rotateGk(teamIndex) {
@@ -1676,6 +1720,160 @@ function toggleHistoryCard(uid) {
     const isOpen = body.classList.contains('open');
     body.classList.toggle('open', !isOpen);
     if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+// ========== Laundry (כביסה) ==========
+
+let laundryRef = null;
+let laundryUnsubscribe = null;
+
+function getLaundryRef() {
+    if (!laundryRef && groupRef) laundryRef = groupRef.collection('game').doc('laundry');
+    return laundryRef;
+}
+
+/**
+ * Picks the fairest laundryman from the given player list.
+ * Priority: 1) fewest total washes, 2) longest ago since last wash.
+ * lastPickedId is excluded unless no other option.
+ */
+function pickFairestLaundryman(laundryData, playerList) {
+    if (playerList.length === 0) return null;
+    const counts = laundryData.counts || {};
+    const lastDates = laundryData.lastDates || {};
+    const lastPickedId = laundryData.lastPickedId || null;
+
+    let candidates = playerList.filter(p => p.id !== lastPickedId);
+    if (candidates.length === 0) candidates = playerList;
+
+    const minCount = Math.min(...candidates.map(p => counts[p.id] || 0));
+    const least = candidates.filter(p => (counts[p.id] || 0) === minCount);
+
+    least.sort((a, b) => {
+        const da = lastDates[a.id] ? new Date(lastDates[a.id]) : new Date(0);
+        const db = lastDates[b.id] ? new Date(lastDates[b.id]) : new Date(0);
+        return da - db;
+    });
+
+    return least[0];
+}
+
+/**
+ * Called by run() — assigns laundry person for tonight's game.
+ * Locked until finishGame() is called.
+ */
+async function assignLaundryForGame(lineup) {
+    const ref = getLaundryRef();
+    if (!ref || lineup.length === 0) return;
+
+    const doc = await ref.get();
+    const existing = doc.exists ? doc.data() : {};
+
+    // If there's already a locked person AND they are in tonight's teams — keep them
+    if (existing.locked && existing.current) {
+        const stillHere = lineup.some(p => p.id === existing.current.id);
+        if (stillHere) return;
+    }
+
+    // Either no one assigned yet, or the previous person is no longer in the teams — pick fresh
+    const picked = pickFairestLaundryman(existing, lineup);
+    if (!picked) return;
+
+    await ref.set({
+        current: { id: picked.id, name: picked.name },
+        locked: true,
+        counts: existing.counts || {},
+        lastDates: existing.lastDates || {},
+        lastPickedId: existing.lastPickedId || null,
+        history: existing.history || [],
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+/**
+ * Called by finishGame() — marks laundry done, unlocks for next game.
+ */
+async function completeLaundryForGame() {
+    const ref = getLaundryRef();
+    if (!ref) return;
+
+    const doc = await ref.get();
+    if (!doc.exists || !doc.data().current) return;
+    const data = doc.data();
+
+    const doneId = data.current.id;
+    const doneName = data.current.name;
+    const today = new Date().toLocaleDateString('he-IL');
+
+    const counts = { ...(data.counts || {}) };
+    const lastDates = { ...(data.lastDates || {}) };
+    counts[doneId] = (counts[doneId] || 0) + 1;
+    lastDates[doneId] = today;
+
+    const histEntry = { id: doneId, name: doneName, date: today, totalCount: counts[doneId] };
+
+    await ref.update({
+        current: null,
+        locked: false,
+        lastPickedId: doneId,
+        counts,
+        lastDates,
+        history: firebase.firestore.FieldValue.arrayUnion(histEntry),
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+function renderLaundryTab(data) {
+    const currentCard  = document.getElementById('laundryCurrentCard');
+    const currentName  = document.getElementById('laundryCurrentName');
+    const currentRound = document.getElementById('laundryCurrentRound');
+    const histSection  = document.getElementById('laundryHistorySection');
+    const histList     = document.getElementById('laundryHistoryList');
+    const emptyEl      = document.getElementById('laundryEmpty');
+
+    if (!data || !data.current) {
+        currentCard.style.display = 'none';
+        emptyEl.style.display = 'block';
+        const hist = data ? (data.history || []).slice().reverse() : [];
+        histSection.style.display = hist.length > 0 ? 'block' : 'none';
+        if (hist.length > 0) histList.innerHTML = renderHistoryItems(hist);
+        return;
+    }
+
+    emptyEl.style.display = 'none';
+    currentCard.style.display = 'block';
+
+    const counts = data.counts || {};
+    const totalDone = counts[data.current.id] || 0;
+    currentName.textContent = data.current.name;
+    currentRound.textContent = totalDone === 0
+        ? 'תורו הראשון 🎉'
+        : `כיבס ${totalDone} פעם${totalDone !== 1 ? 'ים' : ''} עד כה`;
+
+    const hist = (data.history || []).slice().reverse();
+    histSection.style.display = hist.length > 0 ? 'block' : 'none';
+    if (hist.length > 0) histList.innerHTML = renderHistoryItems(hist);
+}
+
+function renderHistoryItems(hist) {
+    return hist.map(h => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; padding:10px 14px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-weight:800; color:var(--text-main);">${h.name}</span>
+                <span style="font-size:0.78rem; color:var(--text-muted);">${h.date || ''}</span>
+            </div>
+            <span style="background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.35); padding:2px 10px; border-radius:6px; font-size:0.82rem; font-weight:900;">כביסה #${h.totalCount}</span>
+        </div>
+    `).join('');
+}
+
+function startLaundryListener() {
+    const ref = getLaundryRef();
+    if (!ref) return;
+    if (laundryUnsubscribe) laundryUnsubscribe();
+    laundryUnsubscribe = ref.onSnapshot(snap => {
+        renderLaundryTab(snap.exists ? snap.data() : null);
+    });
 }
 
 // ========== Market ==========
