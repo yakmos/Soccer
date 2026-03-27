@@ -1654,15 +1654,45 @@ async function run() {
             }
         }
 
-        const attScores = teams.map(t =>
-            t.filter(p => !p.isGk).reduce((s, p) => s + (p.attScore||5), 0)
-        );
-        const defScores = teams.map(t =>
-            t.filter(p => !p.isGk).reduce((s, p) => s + (p.defScore||5), 0)
-        );
+        // Compute a composite "team strength" score for balancing.
+        //
+        // Rotating-GK team:
+        //   attScore = average attScore of all players (incl. rotating GK)
+        //   defScore = average defScore of all players (incl. rotating GK)
+        //   gk contribution = average defScore of all players (best proxy for
+        //                     an amateur rotating keeper — no dedicated skill)
+        //
+        // Fixed-GK team:
+        //   attScore = average attScore of field players only
+        //   defScore = average defScore of field players only
+        //   gk contribution = gkScore of the dedicated GK
+        //
+        // We combine field quality + GK quality into one att/def pair so the
+        // optimizer can automatically give weaker field players to the team
+        // that has a strong dedicated GK.
+        const attScores = teams.map(t => {
+            const fixedGk = t.find(p => p.isGk);
+            const fp = fixedGk ? t.filter(p => !p.isGk) : t;
+            const fieldAtt = fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5;
+            // Fixed GK doesn't contribute attack; rotating GK already included in fp
+            return fieldAtt;
+        });
+        const defScores = teams.map(t => {
+            const fixedGk = t.find(p => p.isGk);
+            const fp = fixedGk ? t.filter(p => !p.isGk) : t;
+            const fieldDef = fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5;
+            // For fixed-GK team: blend field defense with the GK's gkScore.
+            // Weight: GK counts as 1 player out of (fp.length + 1) total.
+            if (fixedGk) {
+                const total = fp.length + 1;
+                return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total;
+            }
+            // Rotating-GK team: use average defScore of all players as proxy
+            // for their collective goalkeeping quality.
+            return fieldDef;
+        });
         const attDiff = Math.max(...attScores) - Math.min(...attScores);
         const defDiff = Math.max(...defScores) - Math.min(...defScores);
-        // Weight both equally — penalize imbalance in either attack or defense
         const diff = attDiff + defDiff;
         if(diff < min) { min = diff; best = teams; }
     }
@@ -1698,49 +1728,85 @@ async function rotateGk(teamIndex) {
     await gameRef.update({ gkIds: newGkIds });
 }
 
+// ========== Smart Role Assignment ==========
+// Assigns roles to field players based on their actual stats.
+// Defenders: high defScore + high stamina (sta) → מגן
+// Sweeper:   high defScore + lower stamina     → בלם
+// Forwards:  high attScore                     → חלוץ
+// Ratio: roughly half defenders, half forwards. Scales with team size.
+function assignFieldRoles(pool) {
+    const roles = {};
+    const n = pool.length;
+    if (n === 0) return roles;
+
+    // Number of defenders (including sweeper) = floor(n/2), minimum 1
+    const numDef = Math.max(1, Math.floor(n / 2));
+    const numAtt = n - numDef;
+
+    // Sort by defScore desc to pick defenders first
+    const byDef = [...pool].sort((a,b) => (b.defScore||5) - (a.defScore||5));
+    const defenders = byDef.slice(0, numDef);
+    const forwards  = byDef.slice(numDef);
+
+    // Among defenders: the one with lowest stamina is the בלם (sweeper/stopper)
+    defenders.sort((a,b) => (a.sta||5) - (b.sta||5));
+    const sweeper = defenders.shift(); // lowest sta among defenders
+    roles['בלם'] = sweeper;
+
+    // Remaining defenders sorted by stamina desc → מגן ימין, מגן שמאל, מגן...
+    defenders.sort((a,b) => (b.sta||5) - (a.sta||5));
+    defenders.forEach((p, i) => {
+        roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p;
+    });
+
+    // Forwards sorted by attScore desc → חלוץ ימין, חלוץ שמאל, חלוץ...
+    forwards.sort((a,b) => (b.attScore||5) - (a.attScore||5));
+    forwards.forEach((p, i) => {
+        roles[forwards.length === 1 ? 'חלוץ' : (i === 0 ? 'חלוץ ימין' : i === 1 ? 'חלוץ שמאל' : `חלוץ ${i+1}`)] = p;
+    });
+
+    return roles;
+}
+
 function assignRoles(team, forcedGkId) {
-    let pool = [...team].filter(p => !p.isGk), roles = {};
-    // If there's a GK player in team, they are always the GK
+    let pool = [...team].filter(p => !p.isGk);
+    const roles = {};
+
+    // Determine GK
     const fixedGk = team.find(p => p.isGk);
     if (fixedGk) {
         roles['שוער'] = fixedGk;
     } else if (forcedGkId) {
-        let gkIndex = pool.findIndex(p => p.id === forcedGkId);
-        if (gkIndex !== -1) roles['שוער'] = pool.splice(gkIndex, 1)[0];
+        const idx = pool.findIndex(p => p.id === forcedGkId);
+        if (idx !== -1) roles['שוער'] = pool.splice(idx, 1)[0];
     } else {
+        // Weakest player goes in goal
         pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
         roles['שוער'] = pool.shift();
     }
-    pool.sort((a,b) => ((b.attScore||5)-(b.defScore||5)) - ((a.attScore||5)-(a.defScore||5)));
-    if (groupSettings.playersPerTeam === 6) {
-        roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift();
-        pool.sort((a,b) => (a.sta||5)-(b.sta||5));
-        roles['בלם'] = pool.shift(); roles['מגן ימין'] = pool.shift(); roles['מגן שמאל'] = pool.shift();
-    } else {
-        let half = Math.ceil(pool.length/2);
-        for(let i=0; i<half; i++) { if(pool.length>0) roles['התקפה '+(i+1)] = pool.shift(); }
-        let defCount = 1;
-        while(pool.length>0) { roles['הגנה '+defCount] = pool.shift(); defCount++; }
-    }
+
+    // Assign field roles
+    Object.assign(roles, assignFieldRoles(pool));
     return roles;
 }
 
-// Assign roles without a goalkeeper (all players are field players)
-function assignRolesNoGk(team) {
-    let pool = [...team].filter(p => !p.isGk);
-    pool.sort((a,b) => ((b.attScore||5)-(b.defScore||5)) - ((a.attScore||5)-(a.defScore||5)));
+// For rotating-GK teams: all players are field players, GK is chosen separately
+function assignRolesNoGk(team, currentGkId) {
+    const allPlayers = [...team].filter(p => !p.isGk);
     const roles = {};
-    if (groupSettings.playersPerTeam === 6) {
-        roles['חלוץ ימין'] = pool.shift(); roles['חלוץ שמאל'] = pool.shift();
-        pool.sort((a,b) => (a.sta||5)-(b.sta||5));
-        roles['בלם'] = pool.shift(); roles['מגן ימין'] = pool.shift(); roles['מגן שמאל'] = pool.shift();
-        if (pool.length > 0) roles['שחקן נוסף'] = pool.shift();
-    } else {
-        let half = Math.ceil(pool.length/2);
-        for(let i=0; i<half; i++) { if(pool.length>0) roles['התקפה '+(i+1)] = pool.shift(); }
-        let defCount = 1;
-        while(pool.length>0) { roles['הגנה '+defCount] = pool.shift(); defCount++; }
+
+    // The current GK in rotation
+    let gkPlayer = allPlayers.find(p => p.id === currentGkId);
+    if (!gkPlayer) {
+        // Fallback: weakest player
+        const sorted = [...allPlayers].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
+        gkPlayer = sorted[0];
     }
+    roles['שוער'] = gkPlayer;
+
+    // Field players = everyone except current GK
+    const fieldPool = allPlayers.filter(p => p.id !== gkPlayer.id);
+    Object.assign(roles, assignFieldRoles(fieldPool));
     return roles;
 }
 
@@ -1768,35 +1834,33 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
         </div>`;
     };
 
-    const renderRotatingGkCard = () => {
-        return `<div class="pitch-player is-rotating-gk" style="flex:1; max-width:50%; margin:0 auto;">
-            <div style="font-size:1.5rem; margin-bottom:4px;">🔄</div>
-            <div style="font-size:0.9rem; font-weight:800; color:var(--gk-text);">שוער מתחלף</div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">כל שחקן מתחלף בתפקיד</div>
-        </div>`;
-    };
-
     let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
     content += teams.map((t, i) => {
         const isFixed = hasFixedGk ? hasFixedGk[i] : false;
+        const currentGkId = gkIds ? gkIds[i] : null;
+
+        // assignRoles handles fixed GK; assignRolesNoGk handles rotating with current GK shown
         const roles = isFixed
-            ? assignRoles(t, gkIds ? gkIds[i] : null)
-            : assignRolesNoGk(t);
-        const fieldPlayers = isFixed
-            ? t.filter(p => p && p.id !== (roles['שוער'] ? roles['שוער'].id : null))
-            : t;
+            ? assignRoles(t, currentGkId)
+            : assignRolesNoGk(t, currentGkId);
+
+        // Field players = everyone except current GK (for stats display)
+        const currentGkPlayer = roles['שוער'];
+        const fieldPlayers = t.filter(p => p && (!currentGkPlayer || p.id !== currentGkPlayer.id) && !p.isGk);
         let defTotal = fieldPlayers.reduce((sum,p) => sum+(p.defScore||5), 0).toFixed(1);
         let attTotal = fieldPlayers.reduce((sum,p) => sum+(p.attScore||5), 0).toFixed(1);
-        let keys = Object.keys(roles).filter(k => k !== 'שוער');
-        let defKeys = keys.filter(k => k.includes('הגנה')||k.includes('מגן')||k.includes('בלם'));
-        let attKeys = keys.filter(k => !defKeys.includes(k));
 
-        // GK row: fixed GK card or rotating tag
-        const gkRow = isFixed && roles['שוער']
-            ? `<div class="pitch-row">${renderPitchCard(roles['שוער'],'🧤','שוער')}</div>`
-            : `<div class="pitch-row">${renderRotatingGkCard()}</div>`;
+        const keys = Object.keys(roles).filter(k => k !== 'שוער');
+        const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם')||k.includes('הגנה'));
+        const attKeys = keys.filter(k => !defKeys.includes(k));
 
-        // rotate button only for non-fixed teams
+        // GK row — always show real player card (rotating teams show with 🔄 role label)
+        const gkCard = currentGkPlayer
+            ? renderPitchCard(currentGkPlayer, '🧤', isFixed ? 'שוער' : 'שוער (מתחלף)')
+            : `<div class="pitch-player is-rotating-gk"><div style="font-size:0.8rem; color:var(--gk-text);">אין שוער</div></div>`;
+        const gkRow = `<div class="pitch-row">${gkCard}</div>`;
+
+        // Rotate button only for non-fixed teams
         const rotateBtn = isFixed
             ? ''
             : `<button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>`;
