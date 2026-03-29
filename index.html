@@ -21,6 +21,9 @@
             --border-color: #334155;
             --danger: #EF4444;
             --edit-color: #3B82F6;
+            --lock-color: #FCD34D;
+            --lock-bg: rgba(252, 211, 77, 0.1);
+            --lock-border: rgba(252, 211, 77, 0.3);
             
             --def-bg: rgba(59, 130, 246, 0.15);
             --def-text: #60A5FA;
@@ -85,9 +88,9 @@
 
         .stats-section { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.02); }
         .stats-section h4 { margin-top: 0; margin-bottom: 12px; color: var(--text-main); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
-        .param-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .param-row span { color: var(--text-muted); font-size: 0.95rem; }
-        .param-row input[type="number"] { width: 55px; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: #fff; text-align: center; font-weight: 700; font-size: 1rem;}
+        .param-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
+        .param-row span { color: var(--text-muted); font-size: 0.95rem; flex: 1; text-align: right; }
+        .param-row input[type="number"] { width: 55px; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: #fff; text-align: center; font-weight: 700; font-size: 1rem; flex-shrink: 0; }
 
         .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif; display: flex; justify-content: center; align-items: center; gap: 8px;}
         .btn:disabled { background: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
@@ -96,7 +99,7 @@
         .squad-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
         .squad-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); }
         .squad-info { flex: 1; }
-        .squad-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; }
+        .squad-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .squad-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;}
         .action-btn { width: 35px; height: 35px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-size: 16px; font-weight: bold;}
         .btn-toggle { background: var(--border-color); }
@@ -105,12 +108,20 @@
 
         .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
         .player-chip { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 8px; text-align: center; color: var(--text-muted); position: relative; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .chip-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main); transition: 0.2s; }
+        .chip-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main); transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
         
         .chip-stats-container { display: flex; gap: 8px; width: 100%; justify-content: center; }
         .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-weight: 900; font-size: 0.95rem; }
         .stat-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
         .stat-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
+
+        /* Lock badge */
+        .lock-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 0.7rem; background: var(--lock-bg); color: var(--lock-color);
+            border: 1px solid var(--lock-border); padding: 1px 6px; border-radius: 5px;
+            font-weight: 800; vertical-align: middle;
+        }
 
         .delete-btn { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid var(--surface-color); z-index: 5; cursor: pointer; }
 
@@ -177,87 +188,35 @@
         .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
 
         /* ========== History Tab Styles ========== */
-        .history-card {
-            background: var(--bg-color); border: 1px solid var(--border-color);
-            border-radius: 14px; margin-bottom: 12px; overflow: hidden;
-            transition: border-color 0.2s;
-        }
+        .history-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 12px; overflow: hidden; transition: border-color 0.2s; }
         .history-card:hover { border-color: rgba(16,185,129,0.4); }
-        .history-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 14px 16px; cursor: pointer; user-select: none;
-        }
-        .history-date {
-            font-weight: 900; font-size: 1rem; color: var(--text-main);
-            display: flex; align-items: center; gap: 8px;
-        }
-        .history-date-sub { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer; user-select: none; }
+        .history-date { font-weight: 900; font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
         .history-meta { display: flex; align-items: center; gap: 8px; }
-        .history-players-count {
-            font-size: 0.8rem; background: rgba(16,185,129,0.15); color: var(--primary-color);
-            border: 1px solid rgba(16,185,129,0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700;
-        }
-        .history-chevron {
-            color: var(--text-muted); font-size: 0.85rem; transition: transform 0.2s;
-        }
+        .history-players-count { font-size: 0.8rem; background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+        .history-chevron { color: var(--text-muted); font-size: 0.85rem; transition: transform 0.2s; }
         .history-chevron.open { transform: rotate(180deg); }
-
         .history-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border-color); }
         .history-body.open { display: block; }
-
-        .history-scorers-row {
-            display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap;
-        }
-        .history-scorer-chip {
-            display: flex; align-items: center; gap: 5px;
-            background: rgba(252,211,77,0.1); border: 1px solid rgba(252,211,77,0.2);
-            padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: #FCD34D;
-        }
-        .history-team-block {
-            background: rgba(255,255,255,0.02); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
-        }
-        .history-team-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px; font-weight: 900; font-size: 0.95rem;
-        }
-        .history-team-wins {
-            background: rgba(16,185,129,0.15); color: var(--primary-color);
-            border: 1px solid rgba(16,185,129,0.3); padding: 2px 8px;
-            border-radius: 6px; font-size: 0.8rem; font-weight: 800;
-        }
-        .history-players-list {
-            display: flex; flex-wrap: wrap; gap: 5px;
-        }
-        .history-player-tag {
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);
-            padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: var(--text-muted);
-        }
+        .history-scorers-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+        .history-scorer-chip { display: flex; align-items: center; gap: 5px; background: rgba(252,211,77,0.1); border: 1px solid rgba(252,211,77,0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: #FCD34D; }
+        .history-team-block { background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+        .history-team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 900; font-size: 0.95rem; }
+        .history-team-wins { background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 800; }
+        .history-players-list { display: flex; flex-wrap: wrap; gap: 5px; }
+        .history-player-tag { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: var(--text-muted); }
         .history-player-tag.scorer { color: #FCD34D; border-color: rgba(252,211,77,0.3); background: rgba(252,211,77,0.08); }
-        .history-section-label {
-            font-size: 0.78rem; color: var(--text-muted); font-weight: 700;
-            text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 6px 0;
-        }
-        .history-empty {
-            text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 0.95rem;
-        }
+        .history-section-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 6px 0; }
+        .history-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 0.95rem; }
 
         /* ========== MVP Vote Styles ========== */
-        .mvp-player-option {
-            background: var(--bg-color); border: 2px solid var(--border-color);
-            border-radius: 12px; padding: 12px 8px; text-align: center;
-            cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center;
-        }
+        .mvp-player-option { background: var(--bg-color); border: 2px solid var(--border-color); border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; }
         .mvp-player-option:active { transform: scale(0.95); }
-        .mvp-player-option.selected {
-            border-color: #FCD34D; background: rgba(252,211,77,0.1);
-            box-shadow: 0 0 0 2px rgba(252,211,77,0.3);
-        }
+        .mvp-player-option.selected { border-color: #FCD34D; background: rgba(252,211,77,0.1); box-shadow: 0 0 0 2px rgba(252,211,77,0.3); }
         .mvp-player-option.disabled { opacity: 0.5; cursor: default; }
         .mvp-player-name { font-weight: 800; font-size: 0.95rem; color: var(--text-main); margin-top: 6px; }
         .mvp-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 22px; background: rgba(255,255,255,0.05); }
         .mvp-vote-count { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-
         .mvp-result-row { margin-bottom: 10px; }
         .mvp-result-header { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
         .mvp-result-bar-bg { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
@@ -265,52 +224,50 @@
         .mvp-result-bar-fill.leader { background: linear-gradient(90deg, #F59E0B, #FCD34D); }
 
         /* ========== Custom Params Styles ========== */
-        .custom-param-item {
-            display: flex; align-items: center; gap: 8px;
-            background: var(--bg-color); padding: 10px 12px; border-radius: 10px;
-            border: 1px solid var(--border-color); margin-bottom: 8px;
-        }
+        .custom-param-item { display: flex; align-items: center; gap: 8px; background: var(--bg-color); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 8px; }
         .custom-param-name { flex: 1; font-weight: 700; font-size: 0.95rem; }
-        .custom-param-type {
-            font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;
-            letter-spacing: 0.5px;
-        }
+        .custom-param-type { font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; }
         .type-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
         .type-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
-        .param-delete-btn {
-            width: 28px; height: 28px; border-radius: 6px; border: none;
-            background: rgba(239,68,68,0.15); color: var(--danger); cursor: pointer;
-            font-size: 14px; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .add-param-row {
-            display: flex; gap: 8px; margin-top: 12px; align-items: center;
-        }
-        .add-param-row input[type="text"] {
-            flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color);
-            background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif;
-            font-size: 0.95rem;
-        }
+        .param-delete-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(239,68,68,0.15); color: var(--danger); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .add-param-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+        .add-param-row input[type="text"] { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; }
         .add-param-row input[type="text"]:focus { border-color: var(--primary-color); outline: none; }
-        .add-param-row select {
-            padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border-color);
-            background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif;
-            font-size: 0.9rem; cursor: pointer;
-        }
+        .add-param-row select { padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.9rem; cursor: pointer; }
         .add-param-row select:focus { outline: none; border-color: var(--primary-color); }
-        .add-param-btn {
-            padding: 10px 14px; border-radius: 10px; border: none;
-            background: var(--primary-color); color: white; font-weight: 800; cursor: pointer;
-            font-family: 'Heebo', sans-serif; font-size: 0.95rem; white-space: nowrap;
-            display: flex; align-items: center; gap: 5px;
+        .add-param-btn { padding: 10px 14px; border-radius: 10px; border: none; background: var(--primary-color); color: white; font-weight: 800; cursor: pointer; font-family: 'Heebo', sans-serif; font-size: 0.95rem; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+        .custom-params-empty { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 12px 0; }
+        .section-label-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 20px; }
+
+        /* ========== Lock Per-Param ========== */
+        .param-row { position: relative; }
+        .param-lock-btn {
+            width: 26px; height: 26px; border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0; transition: 0.15s;
+            color: var(--text-muted);
         }
-        .custom-params-empty {
-            text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 12px 0;
+        .param-lock-btn.locked {
+            background: rgba(252,211,77,0.2);
+            border-color: rgba(252,211,77,0.5);
+            color: var(--lock-color);
         }
-        .section-label-tag {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 20px;
+        .param-row.is-locked input[type="number"] {
+            border-color: rgba(252,211,77,0.4);
+            background: rgba(252,211,77,0.05);
+            color: var(--lock-color);
+            font-weight: 900;
         }
+        .lock-hint {
+            font-size: 0.78rem; color: var(--text-muted);
+            background: rgba(252,211,77,0.05);
+            border: 1px solid rgba(252,211,77,0.15);
+            border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 12px; display: none;
+        }
+        .lock-hint.visible { display: block; }
 
         /* ========== Goalkeeper Styles ========== */
         :root {
@@ -318,26 +275,12 @@
             --gk-text: #A78BFA;
             --gk-border: rgba(167, 139, 250, 0.35);
         }
-        .gk-badge {
-            display: inline-flex; align-items: center; gap: 4px;
-            background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border);
-            padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;
-        }
-        .gk-toggle-btn {
-            background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border);
-            border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-weight: 800;
-            cursor: pointer; font-family: 'Heebo', sans-serif; transition: 0.2s;
-        }
+        .gk-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        .gk-toggle-btn { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; font-family: 'Heebo', sans-serif; transition: 0.2s; }
         .gk-toggle-btn:hover { background: rgba(167,139,250,0.3); }
-        .gk-stats-section {
-            border-color: var(--gk-border) !important;
-            background: rgba(167,139,250,0.04) !important;
-        }
+        .gk-stats-section { border-color: var(--gk-border) !important; background: rgba(167,139,250,0.04) !important; }
         .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
-        .pitch-player.is-rotating-gk {
-            border: 2px dashed var(--gk-text);
-            background: rgba(167,139,250,0.1);
-        }
+        .pitch-player.is-rotating-gk { border: 2px dashed var(--gk-text); background: rgba(167,139,250,0.1); }
     </style>
 </head>
 <body id="mainBody">
@@ -357,8 +300,6 @@
                 <h2 class="lobby-title" style="margin-bottom: 6px;">Soccer Manager</h2>
                 <p style="color:var(--text-muted); font-size:0.9rem; margin:0;">ברוכים הבאים!</p>
             </div>
-
-            <!-- מסלול 1: כניסה לקבוצה קיימת -->
             <div style="background:rgba(59,130,246,0.08); border:2px solid rgba(59,130,246,0.4); border-radius:14px; padding:18px 20px; margin-bottom:12px;">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                     <span style="background:rgba(59,130,246,0.2); color:#60A5FA; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:6px;">מומלץ</span>
@@ -368,15 +309,11 @@
                 <input type="text" id="existingGroupLink" class="form-input" placeholder="הדבק את הקישור לקבוצה..." style="margin-bottom:10px;">
                 <button class="btn" onclick="joinByLink()" style="background:#3B82F6; font-size:1rem; padding:13px;">כניסה לקבוצה ←</button>
             </div>
-
-            <!-- מפריד -->
             <div style="display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--text-muted); font-size:0.85rem;">
                 <div style="flex:1; height:1px; background:var(--border-color);"></div>
                 <span>או</span>
                 <div style="flex:1; height:1px; background:var(--border-color);"></div>
             </div>
-
-            <!-- מסלול 2: יצירת קבוצה חדשה -->
             <div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:18px 20px;">
                 <div style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:6px;">צור קבוצה חדשה</div>
                 <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 14px 0; line-height:1.5;">הפעם הראשונה שלך? צור קבוצה — ושמור את הקישור שתקבל!</p>
@@ -434,58 +371,58 @@
                         </div>
                         <input type="hidden" id="pIsGk" value="false">
 
-                        <!-- מדדי שדה (נסתרים לשוער) -->
+                        <!-- מדדי שדה -->
                         <div id="fieldStatsSection">
-                        <!-- מדדי התקפה קבועים -->
-                        <div class="stats-section">
-                            <h4>
-                                <span>⚔️ מדדי התקפה - בסיסיים (1-10)</span>
-                                <span class="section-label-tag type-att">התקפה</span>
-                            </h4>
-                            <div class="param-row"><span>סיומת מול שער</span> <input type="number" id="pFin" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>דריבל ושליטה בכדור</span> <input type="number" id="pDri" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>מהירות וזריזות</span> <input type="number" id="pPac" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>ראיית משחק ובישולים</span> <input type="number" id="pVis" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>תנועה ללא כדור</span> <input type="number" id="pPos" value="5" min="1" max="10"></div>
-                        </div>
-
-                        <!-- מדדי הגנה קבועים -->
-                        <div class="stats-section">
-                            <h4>
-                                <span>🛡️ מדדי הגנה ופיזיות - בסיסיים (1-10)</span>
-                                <span class="section-label-tag type-def">הגנה</span>
-                            </h4>
-                            <div class="param-row"><span>חילוצי כדור ותיקולים</span> <input type="number" id="pTac" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>קריאת משחק ומיקום</span> <input type="number" id="pAwa" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>פיזיות ועוצמה</span> <input type="number" id="pStr" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>כושר גופני וסיבולת</span> <input type="number" id="pSta" value="5" min="1" max="10"></div>
-                            <div class="param-row"><span>יציאה מלחץ ומסירה</span> <input type="number" id="pCom" value="5" min="1" max="10"></div>
-                        </div>
-
-                        <!-- מדדים מותאמים אישית - אזור דינמי -->
-                        <div id="customParamsFormSection" style="display:none;">
-                            <div class="stats-section" style="border-color: rgba(252,211,77,0.2); background: rgba(252,211,77,0.03);">
+                            <div class="stats-section">
                                 <h4>
-                                    <span>⭐ מדדים מותאמים אישית (1-10)</span>
-                                    <span class="section-label-tag" style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.3);">מותאם</span>
+                                    <span>⚔️ מדדי התקפה - בסיסיים (1-10)</span>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <button type="button" onclick="lockAllParams()" style="background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.35); color:var(--lock-color); border-radius:6px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif;">🔒 נעל הכול</button>
+                                        <button type="button" onclick="unlockAllParams()" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted); border-radius:6px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif;">🔓 שחרר הכול</button>
+                                        <span class="section-label-tag type-att">התקפה</span>
+                                    </div>
                                 </h4>
-                                <div id="customParamsInputs"></div>
+                                <div class="lock-hint" id="lockHintField">🔒 לחץ על מנעול ליד כל פרמטר כדי לנעול אותו — הצבעות הציבור לא ישנו ערך נעול</div>
+                                <div class="param-row" id="row_fin"><span>סיומת מול שער</span> <input type="number" id="pFin" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_fin" onclick="toggleParamLock('fin')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_dri"><span>דריבל ושליטה בכדור</span> <input type="number" id="pDri" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_dri" onclick="toggleParamLock('dri')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_pac"><span>מהירות וזריזות</span> <input type="number" id="pPac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pac" onclick="toggleParamLock('pac')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_vis"><span>ראיית משחק ובישולים</span> <input type="number" id="pVis" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_vis" onclick="toggleParamLock('vis')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_pos"><span>תנועה ללא כדור</span> <input type="number" id="pPos" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pos" onclick="toggleParamLock('pos')" title="נעל פרמטר">🔓</button></div>
+                            </div>
+                            <div class="stats-section">
+                                <h4>
+                                    <span>🛡️ מדדי הגנה ופיזיות - בסיסיים (1-10)</span>
+                                    <span class="section-label-tag type-def">הגנה</span>
+                                </h4>
+                                <div class="param-row" id="row_tac"><span>חילוצי כדור ותיקולים</span> <input type="number" id="pTac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_tac" onclick="toggleParamLock('tac')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_awa"><span>קריאת משחק ומיקום</span> <input type="number" id="pAwa" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_awa" onclick="toggleParamLock('awa')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_str"><span>פיזיות ועוצמה</span> <input type="number" id="pStr" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_str" onclick="toggleParamLock('str')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_sta"><span>כושר גופני וסיבולת</span> <input type="number" id="pSta" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_sta" onclick="toggleParamLock('sta')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_com"><span>יציאה מלחץ ומסירה</span> <input type="number" id="pCom" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_com" onclick="toggleParamLock('com')" title="נעל פרמטר">🔓</button></div>
+                            </div>
+                            <div id="customParamsFormSection" style="display:none;">
+                                <div class="stats-section" style="border-color: rgba(252,211,77,0.2); background: rgba(252,211,77,0.03);">
+                                    <h4>
+                                        <span>⭐ מדדים מותאמים אישית (1-10)</span>
+                                        <span class="section-label-tag" style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.3);">מותאם</span>
+                                    </h4>
+                                    <div id="customParamsInputs"></div>
+                                </div>
                             </div>
                         </div>
-                        </div><!-- end fieldStatsSection -->
 
-                        <!-- מדדי שוער (מוצגים רק לשוערים) -->
+                        <!-- מדדי שוער -->
                         <div id="gkStatsSection" style="display:none;">
                             <div class="stats-section gk-stats-section">
                                 <h4>
                                     <span>🧤 מדדי שוער (1-10)</span>
                                     <span class="section-label-tag" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">שוער</span>
                                 </h4>
-                                <div class="param-row"><span>זינוק</span> <input type="number" id="pGkDiv" value="5" min="1" max="10"></div>
-                                <div class="param-row"><span>אחיזה בכדור</span> <input type="number" id="pGkHan" value="5" min="1" max="10"></div>
-                                <div class="param-row"><span>בעיטה והוצאה</span> <input type="number" id="pGkKic" value="5" min="1" max="10"></div>
-                                <div class="param-row"><span>מיקום בשער</span> <input type="number" id="pGkPos" value="5" min="1" max="10"></div>
-                                <div class="param-row"><span>רפלקסים</span> <input type="number" id="pGkRef" value="5" min="1" max="10"></div>
+                                <div class="param-row" id="row_gkDiv"><span>זינוק</span> <input type="number" id="pGkDiv" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkDiv" onclick="toggleParamLock('gkDiv')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkHan"><span>אחיזה בכדור</span> <input type="number" id="pGkHan" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkHan" onclick="toggleParamLock('gkHan')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkKic"><span>בעיטה והוצאה</span> <input type="number" id="pGkKic" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkKic" onclick="toggleParamLock('gkKic')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkPos"><span>מיקום בשער</span> <input type="number" id="pGkPos" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkPos" onclick="toggleParamLock('gkPos')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkRef"><span>רפלקסים</span> <input type="number" id="pGkRef" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkRef" onclick="toggleParamLock('gkRef')" title="נעל פרמטר">🔓</button></div>
                             </div>
                         </div>
 
@@ -569,6 +506,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- TAB: HISTORY -->
             <div id="tab-history" class="tab-content">
                 <div class="card" style="border-top-width: 4px; border-top-color: #8B5CF6;">
@@ -595,37 +533,28 @@
                 </div>
             </div>
         </div>
+
         <!-- TAB: LAUNDRY -->
         <div id="tab-laundry" class="tab-content">
             <div class="container">
                 <div class="card" style="border-top: 4px solid #A78BFA;">
                     <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">👕 תורנות כביסת גופיות</h2>
-                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">
-                        רק מהשחקנים שמשחקים הערב — סבב מלא לפני חזרה
-                    </p>
-
-                    <!-- Current duty person -->
+                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">רק מהשחקנים שמשחקים הערב — סבב מלא לפני חזרה</p>
                     <div id="laundryCurrentCard" style="background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.35); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 20px; display:none;">
                         <div style="font-size: 0.85rem; color: #A78BFA; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;">תורן הכביסה של הערב 👕</div>
                         <div id="laundryCurrentName" style="font-size: 2rem; font-weight: 900; color: var(--text-main); margin-bottom: 4px;"></div>
                         <div id="laundryCurrentRound" style="font-size: 0.8rem; color: var(--text-muted);"></div>
                         <div style="margin-top:12px; font-size:0.82rem; color:var(--text-muted);">התורן יסומן כבוצע אוטומטית עם לחיצה על "סיום משחק"</div>
                     </div>
-
-                    <!-- History -->
                     <div id="laundryHistorySection" style="display:none; margin-top:20px;">
                         <h3 style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:12px;">📜 היסטוריית כביסות</h3>
                         <div id="laundryHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
                     </div>
-
-                    <!-- Empty state -->
                     <div id="laundryEmpty" style="text-align:center; color:var(--text-muted); padding:30px 10px; display:none;">
                         <div style="font-size:2.5rem; margin-bottom:10px;">👕</div>
                         <div style="font-weight:800; margin-bottom:6px;">אין משחק פעיל</div>
                         <div style="font-size:0.85rem;">התורן ייקבע אוטומטית עם לחיצה על "צור קבוצות מאוזנות"</div>
                     </div>
-
-
                 </div>
             </div>
         </div>
@@ -640,13 +569,10 @@
     </div>
 
     <!-- Modal: Settings -->
-    <!-- Modal: MVP Vote - removed, voting is now via dedicated mvp.html link -->
-
     <div id="settingsModalOverlay" class="modal-overlay" onclick="closeSettingsModal()">
         <div class="player-card-modal" onclick="event.stopPropagation()" style="max-width: 480px;">
             <button class="close-btn" onclick="closeSettingsModal()">✕</button>
             <h2 class="modal-name" style="margin-bottom:20px;">⚙️ הגדרות קבוצה</h2>
-            
             <div class="param-row" style="margin-bottom:15px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
                 <span style="color:var(--text-main); font-weight:bold;">כמות קבוצות בחלוקה</span>
                 <input type="number" id="setNumTeams" min="2" max="5" value="3">
@@ -655,31 +581,22 @@
                 <span style="color:var(--text-main); font-weight:bold;">שחקנים בכל קבוצה</span>
                 <input type="number" id="setPlayersPerTeam" min="3" max="11" value="6">
             </div>
-
-            <!-- ===== CUSTOM PARAMS MANAGER ===== -->
             <div style="text-align: right;">
                 <h3 style="font-size: 1rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
                     ⭐ מדדים מותאמים אישית
                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">(נוסף על 10 הבסיסיים)</span>
                 </h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 12px 0;">הוסף פרמטרים ייחודיים לקבוצה שלך. כל פרמטר ישפיע על ציון ההתקפה או ההגנה של השחקן.</p>
-                
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 12px 0;">הוסף פרמטרים ייחודיים לקבוצה שלך.</p>
                 <div id="customParamsManagerList"></div>
-                
                 <div class="add-param-row">
-                    <input type="text" id="newParamName" placeholder="שם הפרמטר (לדוגמה: כדורים עפים)" maxlength="30">
+                    <input type="text" id="newParamName" placeholder="שם הפרמטר" maxlength="30">
                     <select id="newParamType">
                         <option value="att">⚔️ התקפה</option>
                         <option value="def">🛡️ הגנה</option>
                     </select>
                     <button class="add-param-btn" onclick="addCustomParam()">+ הוסף</button>
                 </div>
-                <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; text-align: right;">
-                    💡 לאחר הוספת פרמטר, הוא יופיע בכל יצירה/עריכה של שחקן וישפיע על ציוניו.
-                </p>
             </div>
-            <!-- ============================= -->
-
             <button class="btn" onclick="saveGroupSettings()" style="margin-top: 20px;">שמור הגדרות</button>
         </div>
     </div>
@@ -704,9 +621,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const currentGroupId = urlParams.get('group');
 let groupRef = null, playersRef = null, gameRef = null, groupPassword = null;
 let groupSettings = { numTeams: 3, playersPerTeam: 6 };
-// customParams: [{ id: 'cp_xxx', name: 'שם', type: 'att'|'def' }]
 let customParams = [];
-
 let players = [], activeTeams = null, activeGkIds = [], activeHasFixedGk = [], activeWins = [];
 let historyCache = [];
 let gamesHistoryCache = [];
@@ -746,7 +661,6 @@ window.onload = async () => {
                     groupSettings.numTeams = groupData.settings.numTeams || 3;
                     groupSettings.playersPerTeam = groupData.settings.playersPerTeam || 6;
                 }
-                // Load custom params
                 customParams = groupData.customParams || [];
             } else {
                 alert('הקבוצה לא נמצאה! מעביר אותך לדף הראשי.');
@@ -792,13 +706,11 @@ function startRealtimeListeners() {
         renderTopScorers();
     });
 
-    // האזנה להיסטוריית משחקים שנסכמו
     groupRef.collection('history_games').orderBy('date', 'desc').onSnapshot(snap => {
         gamesHistoryCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderHistory();
     });
 
-    // Listen for group changes (customParams updates)
     groupRef.onSnapshot(snap => {
         if (snap.exists) {
             const data = snap.data();
@@ -809,87 +721,61 @@ function startRealtimeListeners() {
         }
     });
 
-    // Start laundry listener (auto-inits when lineup has players)
     startLaundryListener();
 }
 
 // ========== Custom Params Logic ==========
+function genParamId() { return 'cp_' + Math.random().toString(36).substr(2, 8) + '_' + Date.now(); }
 
-/** Returns a unique ID for a new custom param */
-function genParamId() {
-    return 'cp_' + Math.random().toString(36).substr(2, 8) + '_' + Date.now();
-}
-
-/** Renders the list in settings modal */
 function renderCustomParamsManagerList() {
     const container = document.getElementById('customParamsManagerList');
     if (!container) return;
-    if (customParams.length === 0) {
-        container.innerHTML = `<div class="custom-params-empty">אין מדדים מותאמים אישית עדיין. הוסף את הראשון!</div>`;
-        return;
-    }
+    if (customParams.length === 0) { container.innerHTML = `<div class="custom-params-empty">אין מדדים מותאמים אישית עדיין.</div>`; return; }
     container.innerHTML = customParams.map(p => `
         <div class="custom-param-item">
             <div class="custom-param-name">${p.name}</div>
-            <span class="custom-param-type ${p.type === 'att' ? 'type-att' : 'type-def'}">
-                ${p.type === 'att' ? '⚔️ התקפה' : '🛡️ הגנה'}
-            </span>
-            <button class="param-delete-btn" onclick="deleteCustomParam('${p.id}')" title="מחק פרמטר">🗑️</button>
+            <span class="custom-param-type ${p.type === 'att' ? 'type-att' : 'type-def'}">${p.type === 'att' ? '⚔️ התקפה' : '🛡️ הגנה'}</span>
+            <button class="param-delete-btn" onclick="deleteCustomParam('${p.id}')">🗑️</button>
         </div>
     `).join('');
 }
 
-/** Renders input rows inside the player add/edit form */
 function renderCustomParamsFormInputs() {
     const section = document.getElementById('customParamsFormSection');
     const container = document.getElementById('customParamsInputs');
     if (!section || !container) return;
-
-    if (customParams.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
+    if (customParams.length === 0) { section.style.display = 'none'; return; }
     section.style.display = 'block';
-
-    // Separate by type for display
     const attParams = customParams.filter(p => p.type === 'att');
     const defParams = customParams.filter(p => p.type === 'def');
-
     let html = '';
     if (attParams.length > 0) {
         html += `<div style="font-size:0.8rem; color:var(--att-text); font-weight:800; margin-bottom:8px;">⚔️ התקפה</div>`;
-        attParams.forEach(p => {
-            html += `<div class="param-row">
-                <span>${p.name}</span>
-                <input type="number" id="cp_${p.id}" value="5" min="1" max="10">
-            </div>`;
-        });
+        attParams.forEach(p => { html += `<div class="param-row" id="row_cp_${p.id}"><span>${p.name}</span><input type="number" id="cp_${p.id}" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_cp_${p.id}" onclick="lockCustomParam('${p.id}')" title="נעל פרמטר">🔓</button></div>`; });
     }
     if (defParams.length > 0) {
-        html += `<div style="font-size:0.8rem; color:var(--def-text); font-weight:800; margin-bottom:8px; margin-top:${attParams.length > 0 ? '14px' : '0'};">🛡️ הגנה</div>`;
-        defParams.forEach(p => {
-            html += `<div class="param-row">
-                <span>${p.name}</span>
-                <input type="number" id="cp_${p.id}" value="5" min="1" max="10">
-            </div>`;
-        });
+        html += `<div style="font-size:0.8rem; color:var(--def-text); font-weight:800; margin-bottom:8px; margin-top:${attParams.length>0?'14px':'0'};">🛡️ הגנה</div>`;
+        defParams.forEach(p => { html += `<div class="param-row" id="row_cp_${p.id}"><span>${p.name}</span><input type="number" id="cp_${p.id}" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_cp_${p.id}" onclick="lockCustomParam('${p.id}')" title="נעל פרמטר">🔓</button></div>`; });
     }
     container.innerHTML = html;
-}
-
-/** Sets custom param input values when editing a player */
-function fillCustomParamInputs(playerData) {
-    customParams.forEach(p => {
-        const input = document.getElementById(`cp_${p.id}`);
-        if (input) {
-            input.value = (playerData.customStats && playerData.customStats[p.id] !== undefined)
-                ? playerData.customStats[p.id]
-                : 5;
-        }
+    // Re-apply current lock state after re-render
+    Object.keys(currentLockedParams).forEach(key => {
+        if (!key.startsWith('cp_')) return;
+        const cpId = key.replace('cp_', '');
+        const btn = document.getElementById(`lock_cp_${cpId}`);
+        const row = document.getElementById(`row_cp_${cpId}`);
+        if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+        if (row) row.classList.add('is-locked');
     });
 }
 
-/** Reads custom param input values from the form */
+function fillCustomParamInputs(playerData) {
+    customParams.forEach(p => {
+        const input = document.getElementById(`cp_${p.id}`);
+        if (input) input.value = (playerData.customStats && playerData.customStats[p.id] !== undefined) ? playerData.customStats[p.id] : 5;
+    });
+}
+
 function readCustomParamInputs() {
     const result = {};
     customParams.forEach(p => {
@@ -899,7 +785,6 @@ function readCustomParamInputs() {
     return result;
 }
 
-/** Adds a new custom param */
 async function addCustomParam() {
     const nameInput = document.getElementById('newParamName');
     const typeSelect = document.getElementById('newParamType');
@@ -907,61 +792,39 @@ async function addCustomParam() {
     if (!name) return alert('נא להזין שם לפרמטר.');
     if (customParams.find(p => p.name === name)) return alert('פרמטר בשם זה כבר קיים.');
     if (customParams.length >= 15) return alert('ניתן להוסיף עד 15 פרמטרים מותאמים אישית.');
-
     const newParam = { id: genParamId(), name, type: typeSelect.value };
-    const updatedParams = [...customParams, newParam];
-
     try {
-        await groupRef.update({ customParams: updatedParams });
+        await groupRef.update({ customParams: [...customParams, newParam] });
         nameInput.value = '';
     } catch(e) { console.error(e); alert('שגיאה בהוספת הפרמטר.'); }
 }
 
-/** Deletes a custom param */
 async function deleteCustomParam(paramId) {
-    if (!confirm('למחוק פרמטר זה? הנתונים שכבר נשמרו לשחקנים יישארו, אך הפרמטר לא יוצג עוד.')) return;
-    const updatedParams = customParams.filter(p => p.id !== paramId);
-    try {
-        await groupRef.update({ customParams: updatedParams });
-    } catch(e) { console.error(e); alert('שגיאה במחיקת הפרמטר.'); }
+    if (!confirm('למחוק פרמטר זה?')) return;
+    try { await groupRef.update({ customParams: customParams.filter(p => p.id !== paramId) }); }
+    catch(e) { console.error(e); alert('שגיאה במחיקת הפרמטר.'); }
 }
 
-/** Updates the leaderboard <select> with custom param options */
 function updateLeaderboardCustomOptions() {
     const optgroup = document.getElementById('customStatOptgroup');
     if (!optgroup) return;
-    if (customParams.length === 0) {
-        optgroup.style.display = 'none';
-        optgroup.innerHTML = '';
-        return;
-    }
+    if (customParams.length === 0) { optgroup.style.display = 'none'; optgroup.innerHTML = ''; return; }
     optgroup.style.display = '';
-    optgroup.innerHTML = customParams.map(p =>
-        `<option value="customStats.${p.id}">⭐ ${p.name} (${p.type === 'att' ? 'התקפה' : 'הגנה'})</option>`
-    ).join('');
+    optgroup.innerHTML = customParams.map(p => `<option value="customStats.${p.id}">⭐ ${p.name} (${p.type==='att'?'התקפה':'הגנה'})</option>`).join('');
 }
 
 // ========== Score Calculation ==========
-
-/**
- * Calculates att/def scores including custom params.
- * Base: 5 fixed att + 5 fixed def params.
- * Custom params add to their respective pool.
- */
 function calcScores(vals, customStatsObj) {
-    // vals: [fin, dri, pac, vis, pos, tac, awa, str, sta, com]
     let attVals = vals.slice(0, 5);
     let defVals = vals.slice(5, 10);
-
     customParams.forEach(p => {
         const v = (customStatsObj && customStatsObj[p.id] !== undefined) ? customStatsObj[p.id] : 5;
-        if (p.type === 'att') attVals.push(v);
-        else defVals.push(v);
+        if (p.type === 'att') attVals.push(v); else defVals.push(v);
     });
-
-    const attScore = parseFloat((attVals.reduce((a,b)=>a+b,0) / attVals.length).toFixed(1));
-    const defScore = parseFloat((defVals.reduce((a,b)=>a+b,0) / defVals.length).toFixed(1));
-    return { attScore, defScore };
+    return {
+        attScore: parseFloat((attVals.reduce((a,b)=>a+b,0)/attVals.length).toFixed(1)),
+        defScore: parseFloat((defVals.reduce((a,b)=>a+b,0)/defVals.length).toFixed(1))
+    };
 }
 
 // ========== GK Mode Toggle ==========
@@ -976,8 +839,173 @@ function toggleGkMode() {
 }
 
 function getColoredGkBadge(gkScore) {
-    const v = gkScore || 5; const c = getColorStyles(v);
-    return `<span class="stat-badge" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">🧤 ${v}</span>`;
+    return `<span class="stat-badge" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">🧤 ${gkScore||5}</span>`;
+}
+
+// ========== Per-Param Lock ==========
+// lockedParams structure: { fin: 8, pac: 9, gkDiv: 7, cpId123: 6, ... }
+let currentLockedParams = {};  // in-memory state while editing
+
+const FIELD_PARAMS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+const GK_PARAMS = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
+
+function toggleParamLock(key) {
+    const btn = document.getElementById(`lock_${key}`);
+    const row = document.getElementById(`row_${key}`);
+    const inputEl = document.getElementById('p' + key.charAt(0).toUpperCase() + key.slice(1));
+    if (!btn) return;
+
+    if (currentLockedParams.hasOwnProperty(key)) {
+        // Unlock
+        delete currentLockedParams[key];
+        btn.classList.remove('locked');
+        btn.textContent = '🔓';
+        if (row) row.classList.remove('is-locked');
+    } else {
+        // Lock — capture current value
+        const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
+        currentLockedParams[key] = val;
+        btn.classList.add('locked');
+        btn.textContent = '🔒';
+        if (row) row.classList.add('is-locked');
+    }
+    // Show hint if any locked
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
+}
+
+function lockCustomParam(cpId) {
+    const btn = document.getElementById(`lock_cp_${cpId}`);
+    const row = document.getElementById(`row_cp_${cpId}`);
+    const inputEl = document.getElementById(`cp_${cpId}`);
+    const lockKey = `cp_${cpId}`;
+    if (!btn) return;
+
+    if (currentLockedParams.hasOwnProperty(lockKey)) {
+        delete currentLockedParams[lockKey];
+        btn.classList.remove('locked');
+        btn.textContent = '🔓';
+        if (row) row.classList.remove('is-locked');
+    } else {
+        const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
+        currentLockedParams[lockKey] = val;
+        btn.classList.add('locked');
+        btn.textContent = '🔒';
+        if (row) row.classList.add('is-locked');
+    }
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
+}
+
+function fillLockedParamsUI(lockedParams) {
+    currentLockedParams = lockedParams ? { ...lockedParams } : {};
+    // Reset all first
+    [...FIELD_PARAMS, ...GK_PARAMS].forEach(key => {
+        const btn = document.getElementById(`lock_${key}`);
+        const row = document.getElementById(`row_${key}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    customParams.forEach(cp => {
+        const lockKey = `cp_${cp.id}`;
+        const btn = document.getElementById(`lock_cp_${cp.id}`);
+        const row = document.getElementById(`row_cp_${cp.id}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    // Apply locked state
+    Object.keys(currentLockedParams).forEach(key => {
+        let btnId, rowId;
+        if (key.startsWith('cp_')) {
+            const cpId = key.replace('cp_', '');
+            btnId = `lock_cp_${cpId}`; rowId = `row_cp_${cpId}`;
+        } else {
+            btnId = `lock_${key}`; rowId = `row_${key}`;
+        }
+        const btn = document.getElementById(btnId);
+        const row = document.getElementById(rowId);
+        if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+        if (row) row.classList.add('is-locked');
+    });
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
+}
+
+function resetLockedParamsUI() {
+    currentLockedParams = {};
+    [...FIELD_PARAMS, ...GK_PARAMS].forEach(key => {
+        const btn = document.getElementById(`lock_${key}`);
+        const row = document.getElementById(`row_${key}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    customParams.forEach(cp => {
+        const btn = document.getElementById(`lock_cp_${cp.id}`);
+        const row = document.getElementById(`row_cp_${cp.id}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.remove('visible');
+}
+
+// Returns effective value: locked value if param is locked, else computed average
+function getEffectiveParamValue(key, computedVal) {
+    return currentLockedParams.hasOwnProperty(key) ? currentLockedParams[key] : computedVal;
+}
+
+function lockAllParams() {
+    const isGk = document.getElementById('pIsGk').value === 'true';
+    const keys = isGk ? GK_PARAMS : FIELD_PARAMS;
+    keys.forEach(key => {
+        const inputId = 'p' + key.charAt(0).toUpperCase() + key.slice(1);
+        const val = parseFloat(document.getElementById(inputId)?.value) || 5;
+        currentLockedParams[key] = val;
+        const btn = document.getElementById(`lock_${key}`);
+        const row = document.getElementById(`row_${key}`);
+        if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+        if (row) row.classList.add('is-locked');
+    });
+    if (!isGk) {
+        customParams.forEach(cp => {
+            const lockKey = `cp_${cp.id}`;
+            const val = parseFloat(document.getElementById(`cp_${cp.id}`)?.value) || 5;
+            currentLockedParams[lockKey] = val;
+            const btn = document.getElementById(`lock_cp_${cp.id}`);
+            const row = document.getElementById(`row_cp_${cp.id}`);
+            if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+            if (row) row.classList.add('is-locked');
+        });
+    }
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.add('visible');
+}
+
+function unlockAllParams() {
+    resetLockedParamsUI();
+}
+
+function calcScoresWithLocks(vals, customStatsObj) {
+    // vals = [fin, dri, pac, vis, pos, tac, awa, str, sta, com]
+    const keys = FIELD_PARAMS;
+    const effVals = vals.map((v, i) => getEffectiveParamValue(keys[i], v));
+    let attVals = effVals.slice(0, 5);
+    let defVals = effVals.slice(5, 10);
+    customParams.forEach(p => {
+        const raw = (customStatsObj && customStatsObj[p.id] !== undefined) ? customStatsObj[p.id] : 5;
+        const eff = getEffectiveParamValue(`cp_${p.id}`, raw);
+        if (p.type === 'att') attVals.push(eff); else defVals.push(eff);
+    });
+    return {
+        attScore: parseFloat((attVals.reduce((a,b)=>a+b,0)/attVals.length).toFixed(1)),
+        defScore: parseFloat((defVals.reduce((a,b)=>a+b,0)/defVals.length).toFixed(1))
+    };
+}
+
+function calcGkScoreWithLocks(vals) {
+    // vals = [gkDiv, gkHan, gkKic, gkPos, gkRef]
+    const effVals = vals.map((v, i) => getEffectiveParamValue(GK_PARAMS[i], v));
+    return parseFloat((effVals.reduce((a,b)=>a+b,0)/effVals.length).toFixed(1));
 }
 
 // ========== Player Management ==========
@@ -986,33 +1014,44 @@ async function savePlayer() {
     if(!name) return;
 
     const isGk = document.getElementById('pIsGk').value === 'true';
+    const lockedParams = Object.keys(currentLockedParams).length > 0 ? { ...currentLockedParams } : firebase.firestore.FieldValue.delete();
 
-    let playerData = { name, isGk };
+    let playerData = { name, isGk, lockedParams };
 
     if (isGk) {
         const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
         const gkHan = parseFloat(document.getElementById('pGkHan').value) || 5;
         const gkKic = parseFloat(document.getElementById('pGkKic').value) || 5;
-        const gkPos = parseFloat(document.getElementById('pGkPos').value) || 5;
+        const gkPosV = parseFloat(document.getElementById('pGkPos').value) || 5;
         const gkRef = parseFloat(document.getElementById('pGkRef').value) || 5;
-        const gkScore = parseFloat(((gkDiv + gkHan + gkKic + gkPos + gkRef) / 5).toFixed(1));
+        const gkScore = calcGkScoreWithLocks([gkDiv, gkHan, gkKic, gkPosV, gkRef]);
         Object.assign(playerData, {
-            gkDiv, gkHan, gkKic, gkPos, gkRef, gkScore,
-            // clear field stats so old data doesn't linger
+            gkDiv: getEffectiveParamValue('gkDiv', gkDiv),
+            gkHan: getEffectiveParamValue('gkHan', gkHan),
+            gkKic: getEffectiveParamValue('gkKic', gkKic),
+            gkPos: getEffectiveParamValue('gkPos', gkPosV),
+            gkRef: getEffectiveParamValue('gkRef', gkRef),
+            gkScore,
             fin:5, dri:5, pac:5, vis:5, pos:5,
             tac:5, awa:5, str:5, sta:5, com:5,
-            attScore: gkScore, defScore: gkScore,
-            customStats: {}
+            attScore: gkScore, defScore: gkScore, customStats: {}
         });
     } else {
-        const vals = ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom']
+        const rawVals = ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom']
             .map(id => parseFloat(document.getElementById(id).value) || 5);
         const customStatsObj = readCustomParamInputs();
-        const { attScore, defScore } = calcScores(vals, customStatsObj);
+        const { attScore, defScore } = calcScoresWithLocks(rawVals, customStatsObj);
+        // Apply per-param locks to individual stored values
+        const effVals = rawVals.map((v, i) => getEffectiveParamValue(FIELD_PARAMS[i], v));
+        const effCustom = {};
+        customParams.forEach(cp => {
+            const raw = customStatsObj[cp.id] || 5;
+            effCustom[cp.id] = getEffectiveParamValue(`cp_${cp.id}`, raw);
+        });
         Object.assign(playerData, {
-            fin:vals[0], dri:vals[1], pac:vals[2], vis:vals[3], pos:vals[4],
-            tac:vals[5], awa:vals[6], str:vals[7], sta:vals[8], com:vals[9],
-            customStats: customStatsObj, attScore, defScore,
+            fin:effVals[0], dri:effVals[1], pac:effVals[2], vis:effVals[3], pos:effVals[4],
+            tac:effVals[5], awa:effVals[6], str:effVals[7], sta:effVals[8], com:effVals[9],
+            customStats: effCustom, attScore, defScore,
             gkScore: 5, gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5
         });
     }
@@ -1034,11 +1073,9 @@ async function savePlayer() {
         await playersRef.add(playerData);
         document.getElementById('pName').value = '';
         document.getElementById('pImage').value = '';
-        customParams.forEach(p => {
-            const el = document.getElementById(`cp_${p.id}`);
-            if(el) el.value = 5;
-        });
+        customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
         document.getElementById('saveBtn').innerText = "שמור שחקן";
+        resetLockedParamsUI();
     }
 }
 
@@ -1050,7 +1087,6 @@ function startEdit(id, p) {
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
 
-    // GK mode
     const isGk = !!p.isGk;
     document.getElementById('pIsGk').value = String(isGk);
     document.getElementById('gkToggleBtn').textContent = isGk ? '🧤 שוער' : 'לא שוער';
@@ -1072,6 +1108,9 @@ function startEdit(id, p) {
         fillCustomParamInputs(p);
     }
 
+    // Load locked params state
+    fillLockedParamsUI(p.lockedParams || null);
+
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
     document.getElementById('cancelBtn').style.display = "block";
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1083,19 +1122,17 @@ function cancelEdit() {
     document.getElementById('pName').value = '';
     document.getElementById('pImage').value = '';
     document.getElementById('imgPreviewText').style.display = 'none';
-    // Reset GK mode
     document.getElementById('pIsGk').value = 'false';
     document.getElementById('gkToggleBtn').textContent = 'לא שוער';
     document.getElementById('gkToggleBtn').style.background = '';
     document.getElementById('fieldStatsSection').style.display = 'block';
     document.getElementById('gkStatsSection').style.display = 'none';
-    // Reset field inputs
     ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
-    // Reset GK inputs
     ['pGkDiv','pGkHan','pGkKic','pGkPos','pGkRef'].forEach(id => document.getElementById(id).value = 5);
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
     document.getElementById('saveBtn').innerText = "שמור שחקן";
     document.getElementById('cancelBtn').style.display = "none";
+    resetLockedParamsUI();
 }
 
 async function toggleLineup(id, currentState) { await playersRef.doc(id).update({ inLineup: !currentState }); }
@@ -1135,34 +1172,23 @@ async function finishGame() {
 
     try {
         const now = firebase.firestore.FieldValue.serverTimestamp();
-        const nowDate = new Date(); // תאריך אמיתי לגיבוי
+        const nowDate = new Date();
         const historyRef = groupRef.collection('history');
         const historyGamesRef = groupRef.collection('history_games');
 
-        // 2. Build game snapshot FIRST (before any batch, so we can catch errors early)
         const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
         const teamsSnapshot = activeTeams.map((team, i) => ({
             name: teamNames[i] || `קבוצה ${i+1}`,
             wins: activeWins[i] || 0,
             players: team.map(p => {
                 const liveP = players.find(x => x.id === p.id) || p;
-                return {
-                    id: p.id,
-                    name: p.name,
-                    goals: liveP.goals || 0,
-                    attScore: p.attScore || 5,
-                    defScore: p.defScore || 5,
-                    gkScore: p.gkScore || null,
-                    isGk: !!p.isGk,
-                    imgUrl: p.imgUrl || null
-                };
+                return { id: p.id, name: p.name, goals: liveP.goals || 0, attScore: p.attScore || 5, defScore: p.defScore || 5, gkScore: p.gkScore || null, isGk: !!p.isGk, imgUrl: p.imgUrl || null };
             })
         }));
 
         const allPlayersFlat = teamsSnapshot.flatMap(t => t.players);
         const topScorer = allPlayersFlat.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals)[0] || null;
 
-        // Get current game doc to read any existing MVP votes before we save
         const currentGameDoc = await gameRef.get();
         const currentGameData = currentGameDoc.exists ? currentGameDoc.data() : {};
         const existingMvpVotes = currentGameData.mvpVotes || {};
@@ -1171,64 +1197,38 @@ async function finishGame() {
         if (totalMvpVotes > 0) {
             const mvpLeaderId = Object.entries(existingMvpVotes).sort((a, b) => b[1] - a[1])[0]?.[0];
             const mvpLeaderPlayer = players.find(p => p.id === mvpLeaderId);
-            if (mvpLeaderPlayer) {
-                mvpWinner = { id: mvpLeaderId, name: mvpLeaderPlayer.name, votes: existingMvpVotes[mvpLeaderId], totalVotes: totalMvpVotes };
-            }
+            if (mvpLeaderPlayer) mvpWinner = { id: mvpLeaderId, name: mvpLeaderPlayer.name, votes: existingMvpVotes[mvpLeaderId], totalVotes: totalMvpVotes };
         }
 
         const gameDoc = {
-            date: now,
-            dateISO: nowDate.toISOString(),
-            numPlayers: allPlayersFlat.length,
-            numTeams: activeTeams.length,
-            teams: teamsSnapshot,
+            date: now, dateISO: nowDate.toISOString(), numPlayers: allPlayersFlat.length,
+            numTeams: activeTeams.length, teams: teamsSnapshot,
             topScorer: topScorer ? { id: topScorer.id, name: topScorer.name, goals: topScorer.goals } : null,
             totalGoals: allPlayersFlat.reduce((s,p) => s + (p.goals||0), 0),
-            mvpWinner: mvpWinner,
-            mvpVoteCount: totalMvpVotes,
-            mvpVotes: existingMvpVotes,
-            votingOpen: true  // voting stays open after game ends
+            mvpWinner, mvpVoteCount: totalMvpVotes, mvpVotes: existingMvpVotes, votingOpen: true
         };
 
-        console.log("שומר משחק לhist...", gameDoc);
         const savedGameRef = await historyGamesRef.add(gameDoc);
-        // Store the game doc ID back into itself for easy linking
         await savedGameRef.update({ id: savedGameRef.id });
-        console.log("✅ history_games נשמר, ID:", savedGameRef.id);
 
         const batch = db.batch();
-
-        // Career wins
         activeWins.forEach((wins, index) => {
             if (wins > 0) activeTeams[index].forEach(player => {
                 for(let i=0; i<wins; i++) batch.set(historyRef.doc(), { playerId: player.id, type: 'win', timestamp: now });
             });
         });
-
-        // Reset goals
         players.forEach(p => { if (p.goals > 0 || p.inLineup) batch.update(playersRef.doc(p.id), { goals: 0 }); });
-
-        // Delete game
         batch.delete(gameRef);
-
         await batch.commit();
 
-        // Mark laundry as done for this game
         await completeLaundryForGame();
-        console.log("✅ batch הושלם");
 
         if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
-        alert("הערב סוכם בהצלחה! הנתונים נשמרו בהיסטוריה 📅\n\nבטאב ההיסטוריה תוכל לשתף קישור הצבעה לשחקן המצטיין!");
-
+        alert("הערב סוכם בהצלחה! הנתונים נשמרו בהיסטוריה 📅");
     } catch(e) {
         console.error("❌ שגיאה בסיום משחק:", e);
         if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
-
-        if (e.code === 'permission-denied') {
-            alert("שגיאת הרשאות! עדכן את Firebase Rules:\n\nב-Firestore Rules שנה:\nallow read, write: if true;\n\nאו הוסף הרשאה ל-history_games");
-        } else {
-            alert("שגיאה בסיום המשחק: " + e.message);
-        }
+        alert("שגיאה בסיום המשחק: " + e.message);
     }
 }
 
@@ -1266,20 +1266,21 @@ function showPlayerCard(id) {
         ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${borderColor}">`
         : `<div class="modal-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
 
+    const lockedParams = p.lockedParams || {};
+    const lockedCount = Object.keys(lockedParams).length;
+    const lockedBadge = lockedCount > 0
+        ? `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--lock-bg); color:var(--lock-color); border:1px solid var(--lock-border); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:800; margin-right:6px;">🔒 ${lockedCount} פרמטרים נעולים</span>`
+        : '';
+
     const getBar = (label, val, color) => {
         const c = color || getColorStyles(val||5).hex;
         return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${c};"></div></div><div class="stat-bar-val" style="color:${c};">${val||5}</div></div>`;
     };
 
-    // Score boxes
     let scoreBoxes = '';
     if (isGk) {
         const gkC = getColorStyles(p.gkScore || 5);
-        scoreBoxes = `
-            <div class="modal-score-box" style="border-color:${gkC.border}; background:${gkC.bg}; width:60%; margin:0 auto;">
-                <div class="modal-score-val" style="color:${gkC.text};">${p.gkScore||5}</div>
-                <div class="modal-score-label" style="color:${gkC.text};">🧤 ציון שוער</div>
-            </div>`;
+        scoreBoxes = `<div class="modal-score-box" style="border-color:${gkC.border}; background:${gkC.bg}; width:60%; margin:0 auto;"><div class="modal-score-val" style="color:${gkC.text};">${p.gkScore||5}</div><div class="modal-score-label" style="color:${gkC.text};">🧤 ציון שוער</div></div>`;
     } else {
         scoreBoxes = `
             <div class="modal-score-box" style="border-color:${getColorStyles(p.attScore).border}; background:${getColorStyles(p.attScore).bg};">
@@ -1292,39 +1293,28 @@ function showPlayerCard(id) {
             </div>`;
     }
 
-    // Stats section
     let statsSection = '';
     if (isGk) {
-        statsSection = `
-            <div class="modal-section-title" style="color:var(--gk-text);">🧤 מדדי שוער</div>
-            ${getBar('זינוק', p.gkDiv, 'var(--gk-text)')}
-            ${getBar('אחיזה בכדור', p.gkHan, 'var(--gk-text)')}
-            ${getBar('בעיטה והוצאה', p.gkKic, 'var(--gk-text)')}
-            ${getBar('מיקום בשער', p.gkPos, 'var(--gk-text)')}
+        statsSection = `<div class="modal-section-title" style="color:var(--gk-text);">🧤 מדדי שוער</div>
+            ${getBar('זינוק', p.gkDiv, 'var(--gk-text)')}${getBar('אחיזה בכדור', p.gkHan, 'var(--gk-text)')}
+            ${getBar('בעיטה והוצאה', p.gkKic, 'var(--gk-text)')}${getBar('מיקום בשער', p.gkPos, 'var(--gk-text)')}
             ${getBar('רפלקסים', p.gkRef, 'var(--gk-text)')}`;
     } else {
         const attCustomParams = customParams.filter(cp => cp.type === 'att');
         const defCustomParams = customParams.filter(cp => cp.type === 'def');
-        const customAttBars = attCustomParams.map(cp => {
-            const val = (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5;
-            return getBar(cp.name, val);
-        }).join('');
-        const customDefBars = defCustomParams.map(cp => {
-            const val = (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5;
-            return getBar(cp.name, val);
-        }).join('');
         statsSection = `
             <div class="modal-section-title">מדדי התקפה בסיסיים</div>
-            ${getBar('סיומת מול שער', p.fin)} ${getBar('דריבל ושליטה', p.dri)} ${getBar('מהירות וזריזות', p.pac)} ${getBar('ראיית משחק', p.vis)} ${getBar('תנועה ללא כדור', p.pos)}
-            ${attCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--att-text);">⚔️ מדדי התקפה מותאמים</div>${customAttBars}` : ''}
+            ${getBar('סיומת מול שער', p.fin)}${getBar('דריבל ושליטה', p.dri)}${getBar('מהירות וזריזות', p.pac)}${getBar('ראיית משחק', p.vis)}${getBar('תנועה ללא כדור', p.pos)}
+            ${attCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--att-text);">⚔️ מדדי התקפה מותאמים</div>${attCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}
             <div class="modal-section-title">מדדי הגנה ופיזיות בסיסיים</div>
-            ${getBar('חילוצי כדור', p.tac)} ${getBar('קריאת משחק', p.awa)} ${getBar('פיזיות ועוצמה', p.str)} ${getBar('כושר גופני', p.sta)} ${getBar('יציאה מלחץ', p.com)}
-            ${defCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${customDefBars}` : ''}`;
+            ${getBar('חילוצי כדור', p.tac)}${getBar('קריאת משחק', p.awa)}${getBar('פיזיות ועוצמה', p.str)}${getBar('כושר גופני', p.sta)}${getBar('יציאה מלחץ', p.com)}
+            ${defCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${defCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}`;
     }
 
     const content = `
         ${avatar}
         <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''}</h2>
+        <div style="margin-bottom:8px;">${lockedBadge}</div>
         <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
         <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
         <div style="display:flex; justify-content:center; gap:10px; margin-bottom:25px;">
@@ -1376,46 +1366,27 @@ function renderLeaderboards() {
     const listContainer = document.getElementById('dynamicLeaderboardList');
     const selector = document.getElementById('statSelector');
     if (!listContainer || !selector) return;
-    
     const statKey = selector.value;
     let colorClass = 'var(--primary-color)';
     if (['attScore','fin','dri','pac','vis','pos'].includes(statKey)) colorClass = 'var(--att-text)';
     else if (['defScore','tac','awa','str','sta','com'].includes(statKey)) colorClass = 'var(--def-text)';
     else if (['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey)) colorClass = 'var(--gk-text)';
-    else if (statKey.startsWith('customStats.')) {
-        const paramId = statKey.replace('customStats.', '');
-        const param = customParams.find(p => p.id === paramId);
-        colorClass = param && param.type === 'att' ? 'var(--att-text)' : 'var(--def-text)';
-    }
-
     const isGkStat = ['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey);
-
     const getStatValue = (player, key) => {
-        if (key.startsWith('customStats.')) {
-            const paramId = key.replace('customStats.', '');
-            return (player.customStats && player.customStats[paramId] !== undefined) ? player.customStats[paramId] : 5;
-        }
+        if (key.startsWith('customStats.')) { const paramId = key.replace('customStats.', ''); return (player.customStats && player.customStats[paramId] !== undefined) ? player.customStats[paramId] : 5; }
         return player[key] || 5;
     };
-
-    // For GK stats: show only GK players. For field stats: show only non-GK players.
-    const filteredPlayers = isGkStat
-        ? players.filter(p => p.isGk)
-        : players.filter(p => !p.isGk);
-
+    const filteredPlayers = isGkStat ? players.filter(p => p.isGk) : players.filter(p => !p.isGk);
     const sortedPlayers = [...filteredPlayers].sort((a, b) => getStatValue(b, statKey) - getStatValue(a, statKey));
-    if (sortedPlayers.length === 0) {
-        listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted);">${isGkStat ? 'אין שוערים עם דירוג' : 'אין שחקנים'}</div>`;
-        return;
-    }
-    
+    if (sortedPlayers.length === 0) { listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted);">אין שחקנים</div>`; return; }
     listContainer.innerHTML = sortedPlayers.map((p, i) => {
         const val = getStatValue(p, statKey);
+        const lockIcon = (p.lockedParams && Object.keys(p.lockedParams).length > 0) ? `<span class="lock-badge" style="margin-right:4px;">🔒${Object.keys(p.lockedParams).length}</span>` : '';
         return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${lockIcon} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
             </div>
             <div style="background:rgba(255,255,255,0.1); color:${colorClass}; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid ${colorClass};">${Number.isInteger(val) ? val : val.toFixed(1)}</div>
         </div>`;
@@ -1430,14 +1401,22 @@ function render() {
     const totalNeeded = numTeams * playersPerTeam;
     const isAdmin = document.body.classList.contains('is-admin');
 
-    // Squad list
     const squadList = document.getElementById('squadList');
     if (squadList) {
-        squadList.innerHTML = players.map(p => `
-            <div class="squad-item">
+        squadList.innerHTML = players.map(p => {
+            const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
+            const lockTag = lockedCount > 0
+                ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>`
+                : '';
+            return `<div class="squad-item">
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
-                    <div class="squad-name">${p.name} ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''} <span style="font-size:0.8rem; color:#FCD34D;">(⚽ משחק: ${p.goals || 0})</span></div>
+                    <div class="squad-name">
+                        ${p.name}
+                        ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''}
+                        ${lockTag}
+                        <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals || 0})</span>
+                    </div>
                     <div class="chip-stats-container" style="justify-content:flex-start;">
                         ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
                     </div>
@@ -1446,31 +1425,33 @@ function render() {
                     <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button>
                     <button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})'>✏️</button>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     }
 
-    // Lineup grid
     const lineupPlayers = players.filter(p => p.inLineup);
     const lineupGrid = document.getElementById('lineupGrid');
     if (lineupGrid) {
         if (lineupPlayers.length === 0) {
             lineupGrid.innerHTML = "<div style='grid-column:1/-1; color:var(--text-muted); text-align:center; padding:20px;'>עדיין לא נבחר הרכב להערב.</div>";
         } else {
-            lineupGrid.innerHTML = lineupPlayers.map(p => `
-                <div class="player-chip" ${p.isGk ? 'style="border-color:var(--gk-border); background:rgba(167,139,250,0.07);"' : ''}>
+            lineupGrid.innerHTML = lineupPlayers.map(p => {
+                const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
+                const lockIcon = lockedCount > 0
+                    ? `<span class="admin-only lock-badge" style="font-size:0.65rem;">🔒${lockedCount}</span>`
+                    : '';
+                return `<div class="player-chip" ${p.isGk ? 'style="border-color:var(--gk-border); background:rgba(167,139,250,0.07);"' : ''}>
                     ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
-                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''}</div>
+                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''} ${lockIcon}</div>
                     <div class="chip-stats-container">
                         ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
                     </div>
                     ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
     }
 
-    // Counter
     const badge = document.getElementById('counterBadge');
     if (badge) {
         badge.innerText = `${lineupPlayers.length} / ${totalNeeded}`;
@@ -1539,39 +1520,24 @@ function closeSettingsModal() { document.getElementById('settingsModalOverlay').
 async function saveGroupSettings() {
     const numTeams = parseInt(document.getElementById('setNumTeams').value) || 3;
     const playersPerTeam = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
-    const newSettings = { numTeams, playersPerTeam };
     try {
-        await groupRef.set({ settings: newSettings }, { merge: true });
-        groupSettings = newSettings;
+        await groupRef.set({ settings: { numTeams, playersPerTeam } }, { merge: true });
+        groupSettings = { numTeams, playersPerTeam };
         await gameRef.delete();
         closeSettingsModal();
         render();
-        alert('ההגדרות נשמרו בהצלחה! המשחק הקודם אופס.');
-    } catch (error) {
-        console.error("Error updating settings:", error);
-        alert('שגיאה בשמירת ההגדרות.');
-    }
+        alert('ההגדרות נשמרו בהצלחה!');
+    } catch (error) { alert('שגיאה בשמירת ההגדרות.'); }
 }
 
-// ========== Create Group ==========
+// ========== Create / Join Group ==========
 function joinByLink() {
     const input = document.getElementById('existingGroupLink').value.trim();
     if (!input) return alert('נא להדביק קישור לקבוצה.');
-
-    // נסה לחלץ group= מתוך ה-URL
     let groupId = null;
-    try {
-        const url = new URL(input);
-        groupId = url.searchParams.get('group');
-    } catch(e) {
-        // אולי הזינו רק את ה-ID ישירות
-        if (/^[a-zA-Z0-9_-]{10,}$/.test(input)) groupId = input;
-    }
-
-    if (!groupId) {
-        return alert('הקישור לא נראה תקין.\nוודא שהעתקת את הקישור המלא שקיבלת מהמנהל.');
-    }
-
+    try { const url = new URL(input); groupId = url.searchParams.get('group'); }
+    catch(e) { if (/^[a-zA-Z0-9_-]{10,}$/.test(input)) groupId = input; }
+    if (!groupId) return alert('הקישור לא נראה תקין.');
     window.location.href = `${window.location.pathname}?group=${groupId}`;
 }
 
@@ -1588,10 +1554,9 @@ async function createNewGroup() {
             customParams: [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        firebase.analytics().logEvent('create_new_group', { group_name: nameInput });
         alert('הקבוצה נוצרה בהצלחה!');
         window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
-    } catch (error) { alert('שגיאה ביצירת הקבוצה.'); btn.innerText = 'צור קבוצה עכשיו ✨'; btn.disabled = false; }
+    } catch (error) { alert('שגיאה ביצירת הקבוצה.'); btn.innerText = 'צור קבוצה ✨'; btn.disabled = false; }
 }
 
 // ========== Admin ==========
@@ -1623,104 +1588,56 @@ async function run() {
     if(lineup.length !== totalNeeded) return alert(`צריך בדיוק ${totalNeeded} שחקנים.`);
     scrollToTeamsFlag = true;
 
-    // Separate GK players from field players
     const gkPlayers = lineup.filter(p => p.isGk);
     const fieldPlayers = lineup.filter(p => !p.isGk);
     const numTeams = groupSettings.numTeams;
     const playersPerTeam = groupSettings.playersPerTeam;
 
-    if (gkPlayers.length > numTeams) {
-        return alert(`יש ${gkPlayers.length} שוערים אבל רק ${numTeams} קבוצות. הסר שוערים מהרכב.`);
-    }
+    if (gkPlayers.length > numTeams) return alert(`יש ${gkPlayers.length} שוערים אבל רק ${numTeams} קבוצות.`);
 
     let best = null, min = Infinity;
     for(let i = 0; i < 5000; i++) {
         const teams = Array.from({length: numTeams}, () => []);
-
-        // Shuffle both pools
         const tempGks = [...gkPlayers].sort(() => 0.5 - Math.random());
         const tempField = [...fieldPlayers].sort(() => 0.5 - Math.random());
-
-        // Assign each GK to a randomly chosen team (shuffle team indices first)
         const teamOrder = Array.from({length: numTeams}, (_, i) => i).sort(() => 0.5 - Math.random());
         tempGks.forEach((gk, i) => teams[teamOrder[i]].push(gk));
-
-        // Fill remaining slots with field players, respecting playersPerTeam cap
         let fieldIdx = 0;
         for (let t = 0; t < numTeams; t++) {
             const slotsLeft = playersPerTeam - teams[t].length;
-            for (let s = 0; s < slotsLeft; s++) {
-                if (fieldIdx < tempField.length) teams[t].push(tempField[fieldIdx++]);
-            }
+            for (let s = 0; s < slotsLeft; s++) { if (fieldIdx < tempField.length) teams[t].push(tempField[fieldIdx++]); }
         }
-
-        // Compute a composite "team strength" score for balancing.
-        //
-        // Rotating-GK team:
-        //   attScore = average attScore of all players (incl. rotating GK)
-        //   defScore = average defScore of all players (incl. rotating GK)
-        //   gk contribution = average defScore of all players (best proxy for
-        //                     an amateur rotating keeper — no dedicated skill)
-        //
-        // Fixed-GK team:
-        //   attScore = average attScore of field players only
-        //   defScore = average defScore of field players only
-        //   gk contribution = gkScore of the dedicated GK
-        //
-        // We combine field quality + GK quality into one att/def pair so the
-        // optimizer can automatically give weaker field players to the team
-        // that has a strong dedicated GK.
         const attScores = teams.map(t => {
             const fixedGk = t.find(p => p.isGk);
             const fp = fixedGk ? t.filter(p => !p.isGk) : t;
-            const fieldAtt = fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5;
-            // Fixed GK doesn't contribute attack; rotating GK already included in fp
-            return fieldAtt;
+            return fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5;
         });
         const defScores = teams.map(t => {
             const fixedGk = t.find(p => p.isGk);
             const fp = fixedGk ? t.filter(p => !p.isGk) : t;
             const fieldDef = fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5;
-            // For fixed-GK team: blend field defense with the GK's gkScore.
-            // Weight: GK counts as 1 player out of (fp.length + 1) total.
-            if (fixedGk) {
-                const total = fp.length + 1;
-                return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total;
-            }
-            // Rotating-GK team: use average defScore of all players as proxy
-            // for their collective goalkeeping quality.
+            if (fixedGk) { const total = fp.length + 1; return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total; }
             return fieldDef;
         });
-        const attDiff = Math.max(...attScores) - Math.min(...attScores);
-        const defDiff = Math.max(...defScores) - Math.min(...defScores);
-        const diff = attDiff + defDiff;
+        const diff = (Math.max(...attScores) - Math.min(...attScores)) + (Math.max(...defScores) - Math.min(...defScores));
         if(diff < min) { min = diff; best = teams; }
     }
 
-    // Per team: if there's a GK player → hasFixedGk=true, else false
     const hasFixedGk = best.map(t => t.some(p => p.isGk));
     const gkIds = best.map((t, i) => {
         if (hasFixedGk[i]) return t.find(p => p.isGk).id;
-        // rotating GK: pick the weakest field player as first in rotation
         const sorted = [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
         return sorted[0]?.id || null;
     });
 
-    let gameData = {
-        gkIds,
-        hasFixedGk,
-        teamWins: Array(groupSettings.numTeams).fill(0),
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    let gameData = { gkIds, hasFixedGk, teamWins: Array(groupSettings.numTeams).fill(0), timestamp: firebase.firestore.FieldValue.serverTimestamp() };
     best.forEach((teamArr, idx) => { gameData[`team${idx+1}`] = teamArr; });
     await gameRef.set(gameData);
-
     await assignLaundryForGame(best.flat());
 }
 
 async function rotateGk(teamIndex) {
     if(!activeTeams || !activeGkIds) return;
-    // Only rotate if this team has no fixed GK
     if (activeHasFixedGk && activeHasFixedGk[teamIndex]) return;
     let team = activeTeams[teamIndex], currentGkId = activeGkIds[teamIndex];
     let nextIndex = (team.findIndex(p => p.id === currentGkId) + 1) % team.length;
@@ -1728,94 +1645,50 @@ async function rotateGk(teamIndex) {
     await gameRef.update({ gkIds: newGkIds });
 }
 
-// ========== Smart Role Assignment ==========
-// Assigns roles to field players based on their actual stats.
-// Defenders: high defScore + high stamina (sta) → מגן
-// Sweeper:   high defScore + lower stamina     → בלם
-// Forwards:  high attScore                     → חלוץ
-// Ratio: roughly half defenders, half forwards. Scales with team size.
 function assignFieldRoles(pool) {
     const roles = {};
     const n = pool.length;
     if (n === 0) return roles;
-
-    // Number of defenders (including sweeper) = floor(n/2), minimum 1
     const numDef = Math.max(1, Math.floor(n / 2));
-    const numAtt = n - numDef;
-
-    // Sort by defScore desc to pick defenders first
     const byDef = [...pool].sort((a,b) => (b.defScore||5) - (a.defScore||5));
     const defenders = byDef.slice(0, numDef);
-    const forwards  = byDef.slice(numDef);
-
-    // Among defenders: the one with lowest stamina is the בלם (sweeper/stopper)
+    const forwards = byDef.slice(numDef);
     defenders.sort((a,b) => (a.sta||5) - (b.sta||5));
-    const sweeper = defenders.shift(); // lowest sta among defenders
+    const sweeper = defenders.shift();
     roles['בלם'] = sweeper;
-
-    // Remaining defenders sorted by stamina desc → מגן ימין, מגן שמאל, מגן...
     defenders.sort((a,b) => (b.sta||5) - (a.sta||5));
-    defenders.forEach((p, i) => {
-        roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p;
-    });
-
-    // Forwards sorted by attScore desc → חלוץ ימין, חלוץ שמאל, חלוץ...
+    defenders.forEach((p, i) => { roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p; });
     forwards.sort((a,b) => (b.attScore||5) - (a.attScore||5));
-    forwards.forEach((p, i) => {
-        roles[forwards.length === 1 ? 'חלוץ' : (i === 0 ? 'חלוץ ימין' : i === 1 ? 'חלוץ שמאל' : `חלוץ ${i+1}`)] = p;
-    });
-
+    forwards.forEach((p, i) => { roles[forwards.length === 1 ? 'חלוץ' : (i === 0 ? 'חלוץ ימין' : i === 1 ? 'חלוץ שמאל' : `חלוץ ${i+1}`)] = p; });
     return roles;
 }
 
 function assignRoles(team, forcedGkId) {
     let pool = [...team].filter(p => !p.isGk);
     const roles = {};
-
-    // Determine GK
     const fixedGk = team.find(p => p.isGk);
-    if (fixedGk) {
-        roles['שוער'] = fixedGk;
-    } else if (forcedGkId) {
-        const idx = pool.findIndex(p => p.id === forcedGkId);
-        if (idx !== -1) roles['שוער'] = pool.splice(idx, 1)[0];
-    } else {
-        // Weakest player goes in goal
-        pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
-        roles['שוער'] = pool.shift();
-    }
-
-    // Assign field roles
+    if (fixedGk) { roles['שוער'] = fixedGk; }
+    else if (forcedGkId) { const idx = pool.findIndex(p => p.id === forcedGkId); if (idx !== -1) roles['שוער'] = pool.splice(idx, 1)[0]; }
+    else { pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
     Object.assign(roles, assignFieldRoles(pool));
     return roles;
 }
 
-// For rotating-GK teams: all players are field players, GK is chosen separately
 function assignRolesNoGk(team, currentGkId) {
     const allPlayers = [...team].filter(p => !p.isGk);
     const roles = {};
-
-    // The current GK in rotation
     let gkPlayer = allPlayers.find(p => p.id === currentGkId);
-    if (!gkPlayer) {
-        // Fallback: weakest player
-        const sorted = [...allPlayers].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
-        gkPlayer = sorted[0];
-    }
+    if (!gkPlayer) { const sorted = [...allPlayers].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); gkPlayer = sorted[0]; }
     roles['שוער'] = gkPlayer;
-
-    // Field players = everyone except current GK
-    const fieldPool = allPlayers.filter(p => p.id !== gkPlayer.id);
-    Object.assign(roles, assignFieldRoles(fieldPool));
+    Object.assign(roles, assignFieldRoles(allPlayers.filter(p => p.id !== gkPlayer.id)));
     return roles;
 }
 
-// ========== Display Teams ==========
 function displayTeams(teams, gkIds, hasFixedGk, wins) {
     const r = document.getElementById('results');
     const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
     const renderPitchCard = (p, icon, roleName) => {
-        if (!p) return `<div class="pitch-player" style="opacity:0.5; border:1px dashed var(--border-color);"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
+        if (!p) return `<div class="pitch-player" style="opacity:0.5;"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
         const latestData = players.find(x => x.id === p.id) || p;
         const goals = latestData.goals || 0;
         return `<div class="pitch-player">
@@ -1838,33 +1711,18 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
     content += teams.map((t, i) => {
         const isFixed = hasFixedGk ? hasFixedGk[i] : false;
         const currentGkId = gkIds ? gkIds[i] : null;
-
-        // assignRoles handles fixed GK; assignRolesNoGk handles rotating with current GK shown
-        const roles = isFixed
-            ? assignRoles(t, currentGkId)
-            : assignRolesNoGk(t, currentGkId);
-
-        // Field players = everyone except current GK (for stats display)
+        const roles = isFixed ? assignRoles(t, currentGkId) : assignRolesNoGk(t, currentGkId);
         const currentGkPlayer = roles['שוער'];
         const fieldPlayers = t.filter(p => p && (!currentGkPlayer || p.id !== currentGkPlayer.id) && !p.isGk);
         let defTotal = fieldPlayers.reduce((sum,p) => sum+(p.defScore||5), 0).toFixed(1);
         let attTotal = fieldPlayers.reduce((sum,p) => sum+(p.attScore||5), 0).toFixed(1);
-
         const keys = Object.keys(roles).filter(k => k !== 'שוער');
-        const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם')||k.includes('הגנה'));
+        const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם'));
         const attKeys = keys.filter(k => !defKeys.includes(k));
-
-        // GK row — always show real player card (rotating teams show with 🔄 role label)
         const gkCard = currentGkPlayer
             ? renderPitchCard(currentGkPlayer, '🧤', isFixed ? 'שוער' : 'שוער (מתחלף)')
             : `<div class="pitch-player is-rotating-gk"><div style="font-size:0.8rem; color:var(--gk-text);">אין שוער</div></div>`;
-        const gkRow = `<div class="pitch-row">${gkCard}</div>`;
-
-        // Rotate button only for non-fixed teams
-        const rotateBtn = isFixed
-            ? ''
-            : `<button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>`;
-
+        const rotateBtn = isFixed ? '' : `<button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>`;
         return `<div class="team-row">
             <div class="team-header t-${i}">
                 <div class="team-header-name">${teamNames[i]||`קבוצה ${i+1}`} <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">(כוח: ${(parseFloat(defTotal)+parseFloat(attTotal)).toFixed(1)})</span></div>
@@ -1883,7 +1741,7 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
                 <span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span>
             </div>
             <div class="pitch">
-                ${gkRow}
+                <div class="pitch-row">${gkCard}</div>
                 ${defKeys.length>0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k],'🛡️',k)).join('')}</div>` : ''}
                 ${attKeys.length>0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k],'⚽',k)).join('')}</div>` : ''}
             </div>
@@ -1909,122 +1767,47 @@ async function shareImageToWhatsApp() {
         });
     } catch(e) { b.style.display='block'; if(wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor=bg; r.style.padding='0'; }
 }
+
 function shareGlobalVoteLink() {
     window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html','')}vote.html?group=${currentGroupId}`)}`, '_blank');
 }
 
-// ========== History Render ==========
+// ========== History ==========
 function renderHistory() {
     const container = document.getElementById('historyList');
     if (!container) return;
-
     if (gamesHistoryCache.length === 0) {
-        container.innerHTML = `<div class="history-empty">
-            <div style="font-size: 2rem; margin-bottom: 10px;">📭</div>
-            עוד לא נסכם אף משחק.<br>
-            <span style="font-size:0.85rem;">לאחר סיום משחק הוא יופיע כאן.</span>
-        </div>`;
+        container.innerHTML = `<div class="history-empty"><div style="font-size: 2rem; margin-bottom: 10px;">📭</div>עוד לא נסכם אף משחק.</div>`;
         return;
     }
-
     const teamColors = ['#3B82F6','#F8FAFC','#EAB308','#EF4444','#10B981'];
-
     container.innerHTML = gamesHistoryCache.map((game, gameIndex) => {
-        // Format date
-        let dateStr = 'תאריך לא ידוע';
-        let timeStr = '';
+        let dateStr = 'תאריך לא ידוע', timeStr = '';
         if (game.date && game.date.toDate) {
             const d = game.date.toDate();
             dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
             timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
         }
-
-        // Scorers of this game
         const allPlayers = (game.teams || []).flatMap(t => t.players || []);
         const scorers = allPlayers.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals);
         const scorersHTML = scorers.length > 0
             ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${p.name} × ${p.goals}</div>`).join('')
             : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
-
-        // Teams blocks
         const teamsHTML = (game.teams || []).map((team, ti) => {
             const color = teamColors[ti] || '#10B981';
-            const playersTagsHTML = (team.players || []).map(p => {
-                const isScorer = p.goals > 0;
-                return `<div class="history-player-tag ${isScorer ? 'scorer' : ''}">
-                    ${isScorer ? `⚽×${p.goals} ` : ''}${p.name}
-                </div>`;
-            }).join('');
-            return `<div class="history-team-block">
-                <div class="history-team-header">
-                    <span style="display:flex; align-items:center; gap:6px;">
-                        <span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block; box-shadow:0 0 6px ${color};"></span>
-                        ${team.name}
-                    </span>
-                    <span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span>
-                </div>
-                <div class="history-players-list">${playersTagsHTML}</div>
-            </div>`;
+            const playersTagsHTML = (team.players || []).map(p => `<div class="history-player-tag ${p.goals > 0 ? 'scorer' : ''}">${p.goals > 0 ? `⚽×${p.goals} ` : ''}${p.name}</div>`).join('');
+            return `<div class="history-team-block"><div class="history-team-header"><span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>${team.name}</span><span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span></div><div class="history-players-list">${playersTagsHTML}</div></div>`;
         }).join('');
-
-        // Summary line
-        const topScorerLine = game.topScorer
-            ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${game.topScorer.name} ${game.topScorer.goals} שערים</span>`
-            : '';
-
-        // MVP section
-        const mvpShareUrl = `${window.location.origin}${window.location.pathname.replace('index.html','').replace(/\/[^/]*$/, '/')}mvp.html?group=${currentGroupId}&game=${game.id}`;
-        
+        const topScorerLine = game.topScorer ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${game.topScorer.name} ${game.topScorer.goals} שערים</span>` : '';
         let mvpSection = '';
         if (game.mvpWinner) {
-            // Game already has a winner saved
-            mvpSection = `
-                <div class="history-section-label">🌟 שחקן מצטיין</div>
-                <div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;">
-                    <span style="font-size:1.4rem;">🌟</span>
-                    <div>
-                        <div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div>
-                    </div>
-                </div>`;
+            mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין</div><div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;"><span style="font-size:1.4rem;">🌟</span><div><div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div></div></div>`;
         } else {
-            // Show vote count if any, + share button
             const voteCount = game.mvpVoteCount || 0;
-            mvpSection = `
-                <div class="history-section-label">🌟 שחקן מצטיין של הערב</div>
-                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;">
-                    <div style="font-size:0.85rem; color:var(--text-muted);">
-                        ${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}
-                    </div>
-                    <button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap; flex-shrink:0;">
-                        📤 שתף להצבעה
-                    </button>
-                </div>`;
+            mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין של הערב</div><div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;"><div style="font-size:0.85rem; color:var(--text-muted);">${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}</div><button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap;">📤 שתף להצבעה</button></div>`;
         }
-
         const uid = `hist_${gameIndex}`;
-        return `<div class="history-card">
-            <div class="history-header" onclick="toggleHistoryCard('${uid}')">
-                <div class="history-date">
-                    <span>📅 ${dateStr}</span>
-                </div>
-                <div class="history-meta">
-                    ${topScorerLine}
-                    <span class="history-players-count">👥 ${game.numPlayers || allPlayers.length}</span>
-                    <span class="history-chevron" id="chev_${uid}">▼</span>
-                </div>
-            </div>
-            <div class="history-body" id="body_${uid}">
-                <div style="font-size:0.8rem; color:var(--text-muted); margin: 10px 0 10px 0;">
-                    ${timeStr ? `שעת סיום: ${timeStr} •` : ''} ${game.numTeams || (game.teams||[]).length} קבוצות • ${game.totalGoals || 0} שערים סה"כ
-                </div>
-                ${mvpSection}
-                <div class="history-section-label">מלך השערים של הערב</div>
-                <div class="history-scorers-row">${scorersHTML}</div>
-                <div class="history-section-label">קבוצות והרכבים</div>
-                ${teamsHTML}
-            </div>
-        </div>`;
+        return `<div class="history-card"><div class="history-header" onclick="toggleHistoryCard('${uid}')"><div class="history-date"><span>📅 ${dateStr}</span></div><div class="history-meta">${topScorerLine}<span class="history-players-count">👥 ${game.numPlayers || allPlayers.length}</span><span class="history-chevron" id="chev_${uid}">▼</span></div></div><div class="history-body" id="body_${uid}"><div style="font-size:0.8rem; color:var(--text-muted); margin: 10px 0;">${timeStr ? `שעת סיום: ${timeStr} •` : ''} ${game.numTeams || (game.teams||[]).length} קבוצות • ${game.totalGoals || 0} שערים</div>${mvpSection}<div class="history-section-label">מלך השערים של הערב</div><div class="history-scorers-row">${scorersHTML}</div><div class="history-section-label">קבוצות והרכבים</div>${teamsHTML}</div></div>`;
     }).join('');
 }
 
@@ -2033,8 +1816,7 @@ function shareMvpLink(gameId, event) {
     const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
     const url = `${base}mvp.html?group=${currentGroupId}&game=${gameId}`;
     const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ','');
-    const waText = `🌟 *בחרו את שחקן המצטיין של הערב!* 🌟\n\nקבוצת ${groupName}\nלחצו להצביע:\n${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(waText)}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(`🌟 *בחרו את שחקן המצטיין של הערב!* 🌟\n\nקבוצת ${groupName}\nלחצו להצביע:\n${url}`)}`, '_blank');
 }
 
 function toggleHistoryCard(uid) {
@@ -2046,166 +1828,90 @@ function toggleHistoryCard(uid) {
     if (chev) chev.classList.toggle('open', !isOpen);
 }
 
-// ========== Laundry (כביסה) ==========
+// ========== Laundry ==========
+let laundryRef = null, laundryUnsubscribe = null;
+function getLaundryRef() { if (!laundryRef && groupRef) laundryRef = groupRef.collection('game').doc('laundry'); return laundryRef; }
 
-let laundryRef = null;
-let laundryUnsubscribe = null;
-
-function getLaundryRef() {
-    if (!laundryRef && groupRef) laundryRef = groupRef.collection('game').doc('laundry');
-    return laundryRef;
-}
-
-/**
- * Picks the fairest laundryman from the given player list.
- * Priority: 1) fewest total washes, 2) longest ago since last wash.
- * lastPickedId is excluded unless no other option.
- */
 function pickFairestLaundryman(laundryData, playerList) {
     if (playerList.length === 0) return null;
     const counts = laundryData.counts || {};
     const lastDates = laundryData.lastDates || {};
     const lastPickedId = laundryData.lastPickedId || null;
-
     let candidates = playerList.filter(p => p.id !== lastPickedId);
     if (candidates.length === 0) candidates = playerList;
-
     const minCount = Math.min(...candidates.map(p => counts[p.id] || 0));
     const least = candidates.filter(p => (counts[p.id] || 0) === minCount);
-
-    least.sort((a, b) => {
-        const da = lastDates[a.id] ? new Date(lastDates[a.id]) : new Date(0);
-        const db = lastDates[b.id] ? new Date(lastDates[b.id]) : new Date(0);
-        return da - db;
-    });
-
+    least.sort((a, b) => { const da = lastDates[a.id] ? new Date(lastDates[a.id]) : new Date(0); const db = lastDates[b.id] ? new Date(lastDates[b.id]) : new Date(0); return da - db; });
     return least[0];
 }
 
-/**
- * Called by run() — assigns laundry person for tonight's game.
- * Locked until finishGame() is called.
- */
 async function assignLaundryForGame(lineup) {
     const ref = getLaundryRef();
     if (!ref || lineup.length === 0) return;
-
     const doc = await ref.get();
     const existing = doc.exists ? doc.data() : {};
-
-    // If there's already a locked person AND they are in tonight's teams — keep them
-    if (existing.locked && existing.current) {
-        const stillHere = lineup.some(p => p.id === existing.current.id);
-        if (stillHere) return;
-    }
-
-    // Either no one assigned yet, or the previous person is no longer in the teams — pick fresh
+    if (existing.locked && existing.current) { const stillHere = lineup.some(p => p.id === existing.current.id); if (stillHere) return; }
     const picked = pickFairestLaundryman(existing, lineup);
     if (!picked) return;
-
-    await ref.set({
-        current: { id: picked.id, name: picked.name },
-        locked: true,
-        counts: existing.counts || {},
-        lastDates: existing.lastDates || {},
-        lastPickedId: existing.lastPickedId || null,
-        history: existing.history || [],
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    await ref.set({ current: { id: picked.id, name: picked.name }, locked: true, counts: existing.counts || {}, lastDates: existing.lastDates || {}, lastPickedId: existing.lastPickedId || null, history: existing.history || [], lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 }
 
-/**
- * Called by finishGame() — marks laundry done, unlocks for next game.
- */
 async function completeLaundryForGame() {
     const ref = getLaundryRef();
     if (!ref) return;
-
     const doc = await ref.get();
     if (!doc.exists || !doc.data().current) return;
     const data = doc.data();
-
-    const doneId = data.current.id;
-    const doneName = data.current.name;
+    const doneId = data.current.id, doneName = data.current.name;
     const today = new Date().toLocaleDateString('he-IL');
-
     const counts = { ...(data.counts || {}) };
     const lastDates = { ...(data.lastDates || {}) };
     counts[doneId] = (counts[doneId] || 0) + 1;
     lastDates[doneId] = today;
-
-    const histEntry = { id: doneId, name: doneName, date: today, totalCount: counts[doneId] };
-
-    await ref.update({
-        current: null,
-        locked: false,
-        lastPickedId: doneId,
-        counts,
-        lastDates,
-        history: firebase.firestore.FieldValue.arrayUnion(histEntry),
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    await ref.update({ current: null, locked: false, lastPickedId: doneId, counts, lastDates, history: firebase.firestore.FieldValue.arrayUnion({ id: doneId, name: doneName, date: today, totalCount: counts[doneId] }), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
 }
 
 function renderLaundryTab(data) {
-    const currentCard  = document.getElementById('laundryCurrentCard');
-    const currentName  = document.getElementById('laundryCurrentName');
+    const currentCard = document.getElementById('laundryCurrentCard');
+    const currentName = document.getElementById('laundryCurrentName');
     const currentRound = document.getElementById('laundryCurrentRound');
-    const histSection  = document.getElementById('laundryHistorySection');
-    const histList     = document.getElementById('laundryHistoryList');
-    const emptyEl      = document.getElementById('laundryEmpty');
-
+    const histSection = document.getElementById('laundryHistorySection');
+    const histList = document.getElementById('laundryHistoryList');
+    const emptyEl = document.getElementById('laundryEmpty');
     if (!data || !data.current) {
-        currentCard.style.display = 'none';
-        emptyEl.style.display = 'block';
+        currentCard.style.display = 'none'; emptyEl.style.display = 'block';
         const hist = data ? (data.history || []).slice().reverse() : [];
         histSection.style.display = hist.length > 0 ? 'block' : 'none';
         if (hist.length > 0) histList.innerHTML = renderHistoryItems(hist);
         return;
     }
-
-    emptyEl.style.display = 'none';
-    currentCard.style.display = 'block';
-
+    emptyEl.style.display = 'none'; currentCard.style.display = 'block';
     const counts = data.counts || {};
     const totalDone = counts[data.current.id] || 0;
     currentName.textContent = data.current.name;
-    currentRound.textContent = totalDone === 0
-        ? 'תורו הראשון 🎉'
-        : `כיבס ${totalDone} פעם${totalDone !== 1 ? 'ים' : ''} עד כה`;
-
+    currentRound.textContent = totalDone === 0 ? 'תורו הראשון 🎉' : `כיבס ${totalDone} פעמים עד כה`;
     const hist = (data.history || []).slice().reverse();
     histSection.style.display = hist.length > 0 ? 'block' : 'none';
     if (hist.length > 0) histList.innerHTML = renderHistoryItems(hist);
 }
 
 function renderHistoryItems(hist) {
-    return hist.map(h => `
-        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; padding:10px 14px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-weight:800; color:var(--text-main);">${h.name}</span>
-                <span style="font-size:0.78rem; color:var(--text-muted);">${h.date || ''}</span>
-            </div>
-            <span style="background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.35); padding:2px 10px; border-radius:6px; font-size:0.82rem; font-weight:900;">כביסה #${h.totalCount}</span>
-        </div>
-    `).join('');
+    return hist.map(h => `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; padding:10px 14px;"><div style="display:flex; align-items:center; gap:10px;"><span style="font-weight:800;">${h.name}</span><span style="font-size:0.78rem; color:var(--text-muted);">${h.date || ''}</span></div><span style="background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.35); padding:2px 10px; border-radius:6px; font-size:0.82rem; font-weight:900;">כביסה #${h.totalCount}</span></div>`).join('');
 }
 
 function startLaundryListener() {
     const ref = getLaundryRef();
     if (!ref) return;
     if (laundryUnsubscribe) laundryUnsubscribe();
-    laundryUnsubscribe = ref.onSnapshot(snap => {
-        renderLaundryTab(snap.exists ? snap.data() : null);
-    });
+    laundryUnsubscribe = ref.onSnapshot(snap => { renderLaundryTab(snap.exists ? snap.data() : null); });
 }
 
 // ========== Market ==========
 async function publishToMarket() {
     const lineupCount = players.filter(p => p.inLineup).length;
     const missing = (groupSettings.numTeams * groupSettings.playersPerTeam) - lineupCount;
-    if (missing <= 0) return alert("הסגל שלך מלא! אין צורך לגייס שחקנים נוספים.");
-    const phone = prompt("לאיזה מספר טלפון שחקנים צריכים לפנות? (לדוגמה: 0501234567)");
+    if (missing <= 0) return alert("הסגל שלך מלא!");
+    const phone = prompt("מספר טלפון ליצירת קשר:");
     if (!phone || phone.length < 10) return alert("חובה להזין מספר טלפון תקין.");
     const location = prompt("איפה המשחק מתקיים?");
     if (!location) return alert("חובה להזין מיקום.");
@@ -2225,17 +1931,7 @@ function renderMarket() {
             const timeStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'עכשיו';
             const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
             const waLink = `https://wa.me/972${data.phone.substring(1)}?text=${waMsg}`;
-            return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
-                        <div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${data.location}</div>
-                        <div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${data.groupName}</div>
-                        <div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${timeStr}</div>
-                    </div>
-                    <div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${data.missing}</div>
-                </div>
-                <a href="${waLink}" target="_blank" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף (WhatsApp)</a>
-            </div>`;
+            return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${data.location}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${data.groupName}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${timeStr}</div></div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${data.missing}</div></div><a href="${waLink}" target="_blank" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
         }).join('');
     });
 }
