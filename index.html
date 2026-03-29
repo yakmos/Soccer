@@ -115,7 +115,6 @@
         .stat-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
         .stat-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
 
-        /* Lock badge */
         .lock-badge {
             display: inline-flex; align-items: center; gap: 3px;
             font-size: 0.7rem; background: var(--lock-bg); color: var(--lock-color);
@@ -187,7 +186,6 @@
         .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 1rem; }
         .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
 
-        /* ========== History Tab Styles ========== */
         .history-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 12px; overflow: hidden; transition: border-color 0.2s; }
         .history-card:hover { border-color: rgba(16,185,129,0.4); }
         .history-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer; user-select: none; }
@@ -209,7 +207,6 @@
         .history-section-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 6px 0; }
         .history-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 0.95rem; }
 
-        /* ========== MVP Vote Styles ========== */
         .mvp-player-option { background: var(--bg-color); border: 2px solid var(--border-color); border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; }
         .mvp-player-option:active { transform: scale(0.95); }
         .mvp-player-option.selected { border-color: #FCD34D; background: rgba(252,211,77,0.1); box-shadow: 0 0 0 2px rgba(252,211,77,0.3); }
@@ -223,7 +220,6 @@
         .mvp-result-bar-fill { height: 100%; border-radius: 4px; background: #FCD34D; transition: width 0.5s ease; }
         .mvp-result-bar-fill.leader { background: linear-gradient(90deg, #F59E0B, #FCD34D); }
 
-        /* ========== Custom Params Styles ========== */
         .custom-param-item { display: flex; align-items: center; gap: 8px; background: var(--bg-color); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 8px; }
         .custom-param-name { flex: 1; font-weight: 700; font-size: 0.95rem; }
         .custom-param-type { font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; }
@@ -239,7 +235,6 @@
         .custom-params-empty { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 12px 0; }
         .section-label-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 20px; }
 
-        /* ========== Lock Per-Param ========== */
         .param-row { position: relative; }
         .param-lock-btn {
             width: 26px; height: 26px; border-radius: 6px;
@@ -269,7 +264,6 @@
         }
         .lock-hint.visible { display: block; }
 
-        /* ========== Goalkeeper Styles ========== */
         :root {
             --gk-bg: rgba(167, 139, 250, 0.15);
             --gk-text: #A78BFA;
@@ -361,7 +355,6 @@
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
 
-                        <!-- סימון שוער -->
                         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--gk-bg); border:1px solid var(--gk-border); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
                             <div>
                                 <div style="font-weight:800; color:var(--gk-text); font-size:0.95rem;">🧤 שחקן זה הוא שוער?</div>
@@ -371,7 +364,6 @@
                         </div>
                         <input type="hidden" id="pIsGk" value="false">
 
-                        <!-- מדדי שדה -->
                         <div id="fieldStatsSection">
                             <div class="stats-section">
                                 <h4>
@@ -411,7 +403,6 @@
                             </div>
                         </div>
 
-                        <!-- מדדי שוער -->
                         <div id="gkStatsSection" style="display:none;">
                             <div class="stats-section gk-stats-section">
                                 <h4>
@@ -679,7 +670,8 @@ function startRealtimeListeners() {
     playersRef.orderBy("name").onSnapshot(snap => {
         players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         render();
-        if (activeTeams) displayTeams(activeTeams, activeGkIds, activeWins);
+        // *** התיקון: העברת activeHasFixedGk כפרמטר שלישי ***
+        if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
     });
 
     gameRef.onSnapshot(snap => {
@@ -758,7 +750,6 @@ function renderCustomParamsFormInputs() {
         defParams.forEach(p => { html += `<div class="param-row" id="row_cp_${p.id}"><span>${p.name}</span><input type="number" id="cp_${p.id}" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_cp_${p.id}" onclick="lockCustomParam('${p.id}')" title="נעל פרמטר">🔓</button></div>`; });
     }
     container.innerHTML = html;
-    // Re-apply current lock state after re-render
     Object.keys(currentLockedParams).forEach(key => {
         if (!key.startsWith('cp_')) return;
         const cpId = key.replace('cp_', '');
@@ -843,8 +834,7 @@ function getColoredGkBadge(gkScore) {
 }
 
 // ========== Per-Param Lock ==========
-// lockedParams structure: { fin: 8, pac: 9, gkDiv: 7, cpId123: 6, ... }
-let currentLockedParams = {};  // in-memory state while editing
+let currentLockedParams = {};
 
 const FIELD_PARAMS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
 const GK_PARAMS = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
@@ -856,20 +846,17 @@ function toggleParamLock(key) {
     if (!btn) return;
 
     if (currentLockedParams.hasOwnProperty(key)) {
-        // Unlock
         delete currentLockedParams[key];
         btn.classList.remove('locked');
         btn.textContent = '🔓';
         if (row) row.classList.remove('is-locked');
     } else {
-        // Lock — capture current value
         const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
         currentLockedParams[key] = val;
         btn.classList.add('locked');
         btn.textContent = '🔒';
         if (row) row.classList.add('is-locked');
     }
-    // Show hint if any locked
     const hint = document.getElementById('lockHintField');
     if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
 }
@@ -899,7 +886,6 @@ function lockCustomParam(cpId) {
 
 function fillLockedParamsUI(lockedParams) {
     currentLockedParams = lockedParams ? { ...lockedParams } : {};
-    // Reset all first
     [...FIELD_PARAMS, ...GK_PARAMS].forEach(key => {
         const btn = document.getElementById(`lock_${key}`);
         const row = document.getElementById(`row_${key}`);
@@ -907,13 +893,11 @@ function fillLockedParamsUI(lockedParams) {
         if (row) row.classList.remove('is-locked');
     });
     customParams.forEach(cp => {
-        const lockKey = `cp_${cp.id}`;
         const btn = document.getElementById(`lock_cp_${cp.id}`);
         const row = document.getElementById(`row_cp_${cp.id}`);
         if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
         if (row) row.classList.remove('is-locked');
     });
-    // Apply locked state
     Object.keys(currentLockedParams).forEach(key => {
         let btnId, rowId;
         if (key.startsWith('cp_')) {
@@ -949,7 +933,6 @@ function resetLockedParamsUI() {
     if (hint) hint.classList.remove('visible');
 }
 
-// Returns effective value: locked value if param is locked, else computed average
 function getEffectiveParamValue(key, computedVal) {
     return currentLockedParams.hasOwnProperty(key) ? currentLockedParams[key] : computedVal;
 }
@@ -986,7 +969,6 @@ function unlockAllParams() {
 }
 
 function calcScoresWithLocks(vals, customStatsObj) {
-    // vals = [fin, dri, pac, vis, pos, tac, awa, str, sta, com]
     const keys = FIELD_PARAMS;
     const effVals = vals.map((v, i) => getEffectiveParamValue(keys[i], v));
     let attVals = effVals.slice(0, 5);
@@ -1003,7 +985,6 @@ function calcScoresWithLocks(vals, customStatsObj) {
 }
 
 function calcGkScoreWithLocks(vals) {
-    // vals = [gkDiv, gkHan, gkKic, gkPos, gkRef]
     const effVals = vals.map((v, i) => getEffectiveParamValue(GK_PARAMS[i], v));
     return parseFloat((effVals.reduce((a,b)=>a+b,0)/effVals.length).toFixed(1));
 }
@@ -1041,7 +1022,6 @@ async function savePlayer() {
             .map(id => parseFloat(document.getElementById(id).value) || 5);
         const customStatsObj = readCustomParamInputs();
         const { attScore, defScore } = calcScoresWithLocks(rawVals, customStatsObj);
-        // Apply per-param locks to individual stored values
         const effVals = rawVals.map((v, i) => getEffectiveParamValue(FIELD_PARAMS[i], v));
         const effCustom = {};
         customParams.forEach(cp => {
@@ -1108,7 +1088,6 @@ function startEdit(id, p) {
         fillCustomParamInputs(p);
     }
 
-    // Load locked params state
     fillLockedParamsUI(p.lockedParams || null);
 
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
@@ -1147,7 +1126,8 @@ async function clearLineup() {
 // ========== Goals & Wins ==========
 async function updatePlayerGoal(id, delta) {
     try {
-        const pRef = playersRef.doc(id); const pDoc = await pRef.get();
+        const pRef = playersRef.doc(id);
+        const pDoc = await pRef.get();
         if(pDoc.exists) {
             let newGoals = Math.max(0, (pDoc.data().goals || 0) + delta);
             await pRef.update({ goals: newGoals });
