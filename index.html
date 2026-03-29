@@ -1212,6 +1212,17 @@ async function finishGame() {
     }
 }
 
+async function adjustCareerGoal(playerId, delta) {
+    try {
+        await groupRef.collection('history').add({
+            playerId,
+            type: 'goal_adjustment',
+            count: delta,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch(e) { console.error(e); alert("שגיאה בעדכון."); }
+}
+
 async function editCareerGoals(playerId) {
     const currentGoals = historyCache.filter(h => h.playerId === playerId && h.type === 'goal').length +
         historyCache.filter(h => h.playerId === playerId && h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
@@ -1336,7 +1347,13 @@ function renderTopScorers() {
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal}</div>
             </div>
-            <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
+                    <div class="admin-only" style="display:flex; align-items:center; gap:4px;">
+                        <button onclick="adjustCareerGoal('${p.id}', -1)" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#F87171; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">−</button>
+                        <button onclick="adjustCareerGoal('${p.id}', 1)" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10B981; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
+                    </div>
+                </div>
         </div>`;
     }).join('');
 }
@@ -1917,4 +1934,4 @@ function renderMarket() {
 }
 </script>
 </body>
-</html>
+    </html>
