@@ -90,7 +90,6 @@
         .tab-btn .tab-icon { font-size: 1.1rem; line-height: 1; }
         .tab-btn .tab-label { font-size: 0.72rem; }
         .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
-        /* separator between rows */
         .tab-btn:nth-child(n+4) { border-top: 1px solid var(--border-color); }
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
@@ -300,7 +299,6 @@
         .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
         .pitch-player.is-rotating-gk { border: 2px dashed var(--gk-text); background: rgba(167,139,250,0.1); }
 
-        /* ===== VETERAN BADGE ===== */
         .veteran-badge {
             display: inline-flex; align-items: center; gap: 3px;
             background: rgba(252,211,77,0.12); color: #FCD34D;
@@ -309,7 +307,6 @@
             font-size: 0.7rem; font-weight: 800;
         }
 
-        /* ===== REGISTRATION BANNER ===== */
         .reg-banner {
             display: none;
             margin: 0 0 12px;
@@ -330,7 +327,6 @@
         .reg-open-btn { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none; margin-top: 10px; }
         .reg-open-btn:active { transform: scale(0.97); }
 
-        /* ===== REGISTRATION ADMIN CARD ===== */
         .reg-admin-card { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
         .reg-admin-title { font-size: 1rem; font-weight: 900; color: var(--primary-color); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
         .reg-field-row { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -447,7 +443,6 @@
             </button>
         </div>
 
-        <!-- REGISTRATION BANNER — visible to all when open -->
         <div class="container" style="padding-bottom:0; padding-top:0;">
             <div class="reg-banner" id="regBanner">
                 <div class="reg-banner-top">
@@ -469,7 +464,6 @@
             <div id="tab-main" class="tab-content active">
                 <div id="tab-main-content">
 
-                    <!-- ADMIN: Registration management -->
                     <div class="reg-admin-card admin-only" id="regAdminCard">
                         <div class="reg-admin-title">📋 ניהול הרשמה למשחק</div>
                         <div id="regOpenForm">
@@ -505,7 +499,6 @@
                                         style="width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:1rem; font-weight:800; cursor:pointer; outline:none; text-align:center; letter-spacing:1px;">
                                     <input type="hidden" id="regTimeInput" value="20:00">
                                     <div id="timePickerDrop" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:12px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.5); min-width:200px;">
-                                        <!-- Hour/Minute selectors -->
                                         <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; direction:ltr;">
                                             <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
                                                 <button type="button" onclick="changeHour(1)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▲</button>
@@ -519,7 +512,6 @@
                                                 <button type="button" onclick="changeMinute(-15)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▼</button>
                                             </div>
                                         </div>
-                                        <!-- Quick presets -->
                                         <div style="font-size:0.72rem; color:var(--text-muted); font-weight:800; margin-bottom:6px; text-align:center;">שעות נפוצות</div>
                                         <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
                                             <button type="button" onclick="setTime('18:00')" class="time-preset-btn">18:00</button>
@@ -560,7 +552,6 @@
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
 
-                        <!-- Veteran toggle -->
                         <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(252,211,77,0.06); border:1px solid rgba(252,211,77,0.25); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
                             <div>
                                 <div style="font-weight:800; color:#FCD34D; font-size:0.95rem;">⭐ שחקן ותיק?</div>
@@ -877,8 +868,6 @@ window.onload = async () => {
         
         updateGroupLinkUI();
         startRealtimeListeners();
-
-        // Set today's date as default for registration
         initRegCalendar();
     }
 };
@@ -928,7 +917,6 @@ function startRealtimeListeners() {
             renderCustomParamsFormInputs();
             updateLeaderboardCustomOptions();
 
-            // Registration: restore saved notice
             if (data.lastRegNotice !== undefined) {
                 const noticeInput = document.getElementById('regNoticeInput');
                 if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
@@ -1219,7 +1207,10 @@ async function savePlayer() {
 
     const isGk = document.getElementById('pIsGk').value === 'true';
     const isVeteran = document.getElementById('pIsVeteran').value === 'true';
-    const lockedParams = Object.keys(currentLockedParams).length > 0 ? { ...currentLockedParams } : firebase.firestore.FieldValue.delete();
+
+    // ✅ FIX: FieldValue.delete() cannot be used with add(). Use empty object instead.
+    const hasLocked = Object.keys(currentLockedParams).length > 0;
+    const lockedParams = hasLocked ? { ...currentLockedParams } : {};
 
     let playerData = { name, isGk, isVeteran, lockedParams };
 
@@ -1264,7 +1255,12 @@ async function savePlayer() {
     playerData.imgUrl = finalImgUrl;
 
     if(editingId) {
-        await playersRef.doc(editingId).update(playerData);
+        // For updates, if no locked params we CAN use FieldValue.delete() to clean up
+        const updateData = { ...playerData };
+        if (!hasLocked) {
+            updateData.lockedParams = firebase.firestore.FieldValue.delete();
+        }
+        await playersRef.doc(editingId).update(updateData);
         cancelEdit();
     } else {
         playerData.inLineup = false;
@@ -1274,7 +1270,6 @@ async function savePlayer() {
         document.getElementById('pImage').value = '';
         customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
         document.getElementById('saveBtn').innerText = "שמור שחקן";
-        // Reset veteran toggle
         document.getElementById('pIsVeteran').value = 'false';
         const vBtn = document.getElementById('veteranToggleBtn');
         vBtn.textContent = 'לא ותיק'; vBtn.style.background = 'transparent';
@@ -1291,7 +1286,6 @@ function startEdit(id, p) {
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
 
-    // Veteran
     const isVet = !!p.isVeteran;
     document.getElementById('pIsVeteran').value = String(isVet);
     const vBtn = document.getElementById('veteranToggleBtn');
@@ -2092,7 +2086,6 @@ function startRegistrationListener() {
             }
         }
 
-        // Restore saved notice
         if (data.lastRegNotice !== undefined) {
             const noticeInput = document.getElementById('regNoticeInput');
             if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
@@ -2168,9 +2161,9 @@ async function openRegistration() {
     const timeInput = document.getElementById('regTimeInput');
     const noticeInput = document.getElementById('regNoticeInput');
     if (!dateInput.value) return alert('נא לבחור תאריך למשחק.');
-    const gameDateRaw = dateInput.value; // YYYY-MM-DD for storage
+    const gameDateRaw = dateInput.value;
     const [y, m, d] = gameDateRaw.split('-');
-    const gameDateDisplay = `${d}-${m}-${y}`; // DD-MM-YYYY for display
+    const gameDateDisplay = `${d}-${m}-${y}`;
     const gameTime = timeInput.value || '20:00';
     const noticeText = noticeInput.value.trim();
     try {
@@ -2211,6 +2204,7 @@ function shareRegWhatsApp() {
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     });
 }
+
 // ========== REG CALENDAR ==========
 let regCalYear, regCalMonth;
 
@@ -2218,7 +2212,6 @@ function initRegCalendar() {
     const now = new Date();
     regCalYear = now.getFullYear();
     regCalMonth = now.getMonth();
-    // Set today as default
     setRegCalendarDate(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
@@ -2231,12 +2224,11 @@ function renderRegCalendar() {
 
     title.textContent = `${HE_MONTHS[regCalMonth]} ${regCalYear}`;
 
-    const firstDay = new Date(regCalYear, regCalMonth, 1).getDay(); // 0=Sun
+    const firstDay = new Date(regCalYear, regCalMonth, 1).getDay();
     const daysInMonth = new Date(regCalYear, regCalMonth + 1, 0).getDate();
     const selectedVal = document.getElementById('regDateInput').value;
 
     let html = '';
-    // Empty cells before first day (week starts Sunday=col0)
     for (let i = 0; i < firstDay; i++) html += '<div></div>';
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -2263,7 +2255,6 @@ function setRegCalendarDate(y, m, d) {
     document.getElementById('regDateDisplay').value = display;
     regCalYear = y; regCalMonth = m;
     renderRegCalendar();
-    // Close after selection
     document.getElementById('regCalendarDrop').style.display = 'none';
 }
 
@@ -2287,7 +2278,6 @@ function regCalendarNext() {
     renderRegCalendar();
 }
 
-// Close calendar on outside click
 document.addEventListener('click', e => {
     const drop = document.getElementById('regCalendarDrop');
     const display = document.getElementById('regDateDisplay');
@@ -2295,6 +2285,7 @@ document.addEventListener('click', e => {
         drop.style.display = 'none';
     }
 });
+
 // ========== TIME PICKER ==========
 let tpHour = 20, tpMin = 0;
 
@@ -2302,7 +2293,6 @@ function toggleTimePicker() {
     const drop = document.getElementById('timePickerDrop');
     if (!drop) return;
     const isOpen = drop.style.display !== 'none';
-    // Close calendar if open
     const cal = document.getElementById('regCalendarDrop');
     if (cal) cal.style.display = 'none';
     drop.style.display = isOpen ? 'none' : 'block';
@@ -2347,7 +2337,6 @@ function confirmTime() {
     document.getElementById('timePickerDrop').style.display = 'none';
 }
 
-// Close time picker on outside click
 document.addEventListener('click', e => {
     const drop = document.getElementById('timePickerDrop');
     const display = document.getElementById('regTimeDisplay');
@@ -2355,11 +2344,6 @@ document.addEventListener('click', e => {
         drop.style.display = 'none';
     }
 });
-// ========== END TIME PICKER ==========
-
-// ========== END REG CALENDAR ==========
-
-// ========== END REGISTRATION SYSTEM ==========
 </script>
 </body>
 </html>
