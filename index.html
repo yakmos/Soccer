@@ -79,6 +79,9 @@
         .admin-only { display: none; }
         body.is-admin .admin-only { display: block; }
 
+        /* *** התיקון: כפתורי גול ב-flex רק למנהל *** */
+        body.is-admin .admin-goal-btns { display: flex; align-items: center; gap: 4px; }
+
         .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
         .form-input:focus { border-color: var(--primary-color); outline: none; }
         
@@ -670,7 +673,6 @@ function startRealtimeListeners() {
     playersRef.orderBy("name").onSnapshot(snap => {
         players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         render();
-        // *** התיקון: העברת activeHasFixedGk כפרמטר שלישי ***
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
     });
 
@@ -1347,13 +1349,13 @@ function renderTopScorers() {
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal}</div>
             </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
-                    <div class="admin-only" style="display:flex; align-items:center; gap:4px;">
-                        <button onclick="adjustCareerGoal('${p.id}', -1)" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#F87171; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">−</button>
-                        <button onclick="adjustCareerGoal('${p.id}', 1)" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10B981; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
-                    </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
+                <div class="admin-goal-btns admin-only">
+                    <button onclick="adjustCareerGoal('${p.id}', -1)" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#F87171; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">−</button>
+                    <button onclick="adjustCareerGoal('${p.id}', 1)" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10B981; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
                 </div>
+            </div>
         </div>`;
     }).join('');
 }
@@ -1934,4 +1936,4 @@ function renderMarket() {
 }
 </script>
 </body>
-    </html>
+</html>
