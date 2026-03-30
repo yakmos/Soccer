@@ -328,6 +328,25 @@
         .reg-live-stats { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
         .reg-stat-chip { padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 800; background: rgba(16,185,129,0.12); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); }
         .reg-stat-chip.waiting-chip { background: rgba(249,115,22,0.1); color: #F97316; border-color: rgba(249,115,22,0.3); }
+
+        .time-preset-btn {
+            padding: 7px 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.15s;
+            text-align: center;
+        }
+        .time-preset-btn:hover, .time-preset-btn:active {
+            background: rgba(16,185,129,0.15);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
     </style>
 </head>
 <body id="mainBody">
@@ -445,8 +464,40 @@
                                         <div id="regCalendarDays" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;"></div>
                                     </div>
                                 </div>
-                                <input type="time" id="regTimeInput" value="20:00"
-                                    style="flex:0 0 110px; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none;">
+                                <div style="flex:0 0 120px; position:relative;">
+                                    <input type="text" id="regTimeDisplay" readonly
+                                        value="20:00"
+                                        onclick="toggleTimePicker()"
+                                        style="width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:1rem; font-weight:800; cursor:pointer; outline:none; text-align:center; letter-spacing:1px;">
+                                    <input type="hidden" id="regTimeInput" value="20:00">
+                                    <div id="timePickerDrop" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:12px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.5); min-width:200px;">
+                                        <!-- Hour/Minute selectors -->
+                                        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; direction:ltr;">
+                                            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                                                <button type="button" onclick="changeHour(1)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▲</button>
+                                                <div id="timeHourDisplay" style="font-size:1.6rem; font-weight:900; color:var(--primary-color); width:50px; text-align:center; line-height:1.2;">20</div>
+                                                <button type="button" onclick="changeHour(-1)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▼</button>
+                                            </div>
+                                            <div style="font-size:1.6rem; font-weight:900; color:var(--text-muted); padding-bottom:4px;">:</div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                                                <button type="button" onclick="changeMinute(15)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▲</button>
+                                                <div id="timeMinDisplay" style="font-size:1.6rem; font-weight:900; color:var(--primary-color); width:50px; text-align:center; line-height:1.2;">00</div>
+                                                <button type="button" onclick="changeMinute(-15)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▼</button>
+                                            </div>
+                                        </div>
+                                        <!-- Quick presets -->
+                                        <div style="font-size:0.72rem; color:var(--text-muted); font-weight:800; margin-bottom:6px; text-align:center;">שעות נפוצות</div>
+                                        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
+                                            <button type="button" onclick="setTime('18:00')" class="time-preset-btn">18:00</button>
+                                            <button type="button" onclick="setTime('19:00')" class="time-preset-btn">19:00</button>
+                                            <button type="button" onclick="setTime('19:30')" class="time-preset-btn">19:30</button>
+                                            <button type="button" onclick="setTime('20:00')" class="time-preset-btn">20:00</button>
+                                            <button type="button" onclick="setTime('20:30')" class="time-preset-btn">20:30</button>
+                                            <button type="button" onclick="setTime('21:00')" class="time-preset-btn">21:00</button>
+                                        </div>
+                                        <button type="button" onclick="confirmTime()" style="width:100%; margin-top:10px; padding:9px; background:var(--primary-color); border:none; border-radius:8px; color:white; font-family:'Heebo',sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer;">אישור ✓</button>
+                                    </div>
+                                </div>
                             </div>
                             <textarea class="reg-textarea" id="regNoticeInput" placeholder="הודעה לשחקנים (אופציונלי) — תופיע בטופס ההרשמה"></textarea>
                             <button class="reg-open-game-btn" onclick="openRegistration()">📢 פתח הרשמה למשחק</button>
@@ -2210,6 +2261,68 @@ document.addEventListener('click', e => {
         drop.style.display = 'none';
     }
 });
+// ========== TIME PICKER ==========
+let tpHour = 20, tpMin = 0;
+
+function toggleTimePicker() {
+    const drop = document.getElementById('timePickerDrop');
+    if (!drop) return;
+    const isOpen = drop.style.display !== 'none';
+    // Close calendar if open
+    const cal = document.getElementById('regCalendarDrop');
+    if (cal) cal.style.display = 'none';
+    drop.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderTimePicker();
+}
+
+function renderTimePicker() {
+    const hEl = document.getElementById('timeHourDisplay');
+    const mEl = document.getElementById('timeMinDisplay');
+    if (hEl) hEl.textContent = String(tpHour).padStart(2, '0');
+    if (mEl) mEl.textContent = String(tpMin).padStart(2, '0');
+}
+
+function changeHour(delta) {
+    tpHour = (tpHour + delta + 24) % 24;
+    renderTimePicker();
+    applyTime();
+}
+
+function changeMinute(delta) {
+    tpMin = (tpMin + delta + 60) % 60;
+    renderTimePicker();
+    applyTime();
+}
+
+function setTime(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    tpHour = h; tpMin = m;
+    renderTimePicker();
+    applyTime();
+    document.getElementById('timePickerDrop').style.display = 'none';
+}
+
+function applyTime() {
+    const val = `${String(tpHour).padStart(2,'0')}:${String(tpMin).padStart(2,'0')}`;
+    document.getElementById('regTimeInput').value = val;
+    document.getElementById('regTimeDisplay').value = val;
+}
+
+function confirmTime() {
+    applyTime();
+    document.getElementById('timePickerDrop').style.display = 'none';
+}
+
+// Close time picker on outside click
+document.addEventListener('click', e => {
+    const drop = document.getElementById('timePickerDrop');
+    const display = document.getElementById('regTimeDisplay');
+    if (drop && display && !drop.contains(e.target) && e.target !== display) {
+        drop.style.display = 'none';
+    }
+});
+// ========== END TIME PICKER ==========
+
 // ========== END REG CALENDAR ==========
 
 // ========== END REGISTRATION SYSTEM ==========
