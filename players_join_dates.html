@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שחקני כדורגל מושב מגדים — תאריכי הצטרפות</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1a7a3c;
+    --green-light: #25a052;
+    --green-pale: #e8f5ee;
+    --grass: #0f5c2c;
+    --gold: #f0b429;
+    --dark: #0d1f14;
+    --mid: #1e3a28;
+    --text: #1a2e20;
+    --muted: #5a7a62;
+    --white: #f9fdf9;
+    --line: #c8e6d0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--dark);
+    color: var(--white);
+    min-height: 100vh;
+    padding: 40px 20px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* field texture background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 48px,
+        rgba(255,255,255,0.018) 48px,
+        rgba(255,255,255,0.018) 50px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 48px,
+        rgba(255,255,255,0.012) 48px,
+        rgba(255,255,255,0.012) 50px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 44px;
+  }
+
+  .badge {
+    display: inline-block;
+    background: var(--green);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(26px, 5vw, 42px);
+    font-weight: 900;
+    line-height: 1.15;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  h1 span {
+    color: var(--gold);
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  .ball {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 10px;
+    animation: spin 6s linear infinite;
+    filter: drop-shadow(0 0 12px rgba(255,255,255,0.15));
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+
+  .stat {
+    background: var(--mid);
+    border: 1px solid rgba(37, 160, 82, 0.25);
+    border-radius: 12px;
+    padding: 14px 24px;
+    text-align: center;
+    min-width: 130px;
+  }
+
+  .stat-num {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--green-light);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* filter buttons */
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  .filter-btn {
+    background: var(--mid);
+    border: 1px solid rgba(37, 160, 82, 0.2);
+    color: var(--muted);
+    font-family: 'Heebo', sans-serif;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover,
+  .filter-btn.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  /* search */
+  .search-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: var(--mid);
+    border: 1px solid rgba(37,160,82,0.25);
+    border-radius: 10px;
+    padding: 10px 44px 10px 16px;
+    color: #fff;
+    font-family: 'Heebo', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-wrap input:focus { border-color: var(--green-light); }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  /* table */
+  .table-wrap {
+    background: var(--mid);
+    border: 1px solid rgba(37,160,82,0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead tr {
+    background: var(--grass);
+  }
+
+  thead th {
+    padding: 14px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    text-align: right;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+  }
+
+  thead th:hover { color: var(--gold); }
+
+  thead th.sorted { color: var(--gold); }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody tr:hover {
+    background: rgba(37, 160, 82, 0.08);
+  }
+
+  tbody tr.hidden { display: none; }
+
+  td {
+    padding: 13px 18px;
+    font-size: 14px;
+    color: var(--white);
+    vertical-align: middle;
+  }
+
+  .td-num {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 300;
+    width: 40px;
+  }
+
+  .player-name {
+    font-weight: 600;
+  }
+
+  .date-badge {
+    display: inline-block;
+    background: rgba(26, 122, 60, 0.25);
+    border: 1px solid rgba(37, 160, 82, 0.35);
+    color: #7dd99a;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+  }
+
+  .invited-by {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  /* founder row */
+  tbody tr.founder {
+    background: rgba(240, 180, 41, 0.06);
+  }
+
+  tbody tr.founder:hover {
+    background: rgba(240, 180, 41, 0.1);
+  }
+
+  .crown { margin-left: 5px; }
+
+  /* year divider */
+  tr.year-divider td {
+    background: var(--grass);
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 7px 18px;
+    text-align: center;
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    display: none;
+    font-size: 14px;
+  }
+
+  /* footer */
+  footer {
+    text-align: center;
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 600px) {
+    td, th { padding: 10px 12px; }
+    .invited-by { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="ball">⚽</span>
+    <div class="badge">כדורגל מושב מגדים</div>
+    <h1>תאריכי <span>הצטרפות</span> שחקנים</h1>
+    <p class="subtitle">ימי ראשון ושלישי · נתונים מתוך הצ'אט הקבוצתי</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-num" id="total-count">0</div>
+      <div class="stat-label">שחקנים בסה"כ</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">2024</div>
+      <div class="stat-label">שנת הקמה</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="year-count">0</div>
+      <div class="stat-label">הצטרפו השנה</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <span class="filter-label">סנן לפי שנה:</span>
+    <button class="filter-btn active" data-year="all">הכל</button>
+    <button class="filter-btn" data-year="2024">2024</button>
+    <button class="filter-btn" data-year="2025">2025</button>
+    <button class="filter-btn" data-year="2026">2026</button>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="חיפוש שחקן...">
+  </div>
+
+  <div class="table-wrap">
+    <table id="players-table">
+      <thead>
+        <tr>
+          <th class="td-num">#</th>
+          <th data-col="name">שם שחקן</th>
+          <th data-col="date" class="sorted">תאריך הצטרפות</th>
+          <th data-col="by">צורף על ידי</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+      </tbody>
+    </table>
+    <div class="empty-state" id="empty">לא נמצאו שחקנים תואמים</div>
+  </div>
+
+  <footer>
+    סה"כ <span id="footer-count">0</span> שחקנים · עודכן לאחרונה 30.3.2026
+  </footer>
+
+</div>
+
+<script>
+const players = [
+  { name: "מתן מגדים", date: "18.06.2024", by: "יצר את הקבוצה", founder: true },
+  { name: "דניאל כדורגל", date: "18.06.2024", by: "מתן מגדים", founder: true },
+  { name: "לירן", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "מאוז (maoztabak27)", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "O.P", date: "18.06.2024", by: "מתן מגדים" },
+  { name: "Tal Reinan", date: "18.06.2024", by: "מתן מגדים" },
+  { name: "אביב שוורץ", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "Lior Panaola", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "ארז שחר", date: "18.06.2024", by: "מתן מגדים" },
+  { name: "מלקו", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "Adi (עדי)", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "Guy Adler (גיא אדלר)", date: "18.06.2024", by: "דניאל כדורגל" },
+  { name: "אדוניס (Āðôňî§)", date: "18.06.2024", by: "Lior Panaola" },
+  { name: "ארנון", date: "19.06.2024", by: "מתן מגדים" },
+  { name: "גיל פופוביץ", date: "19.06.2024", by: "מתן מגדים" },
+  { name: "לי כל", date: "19.06.2024", by: "מתן מגדים" },
+  { name: "רותם", date: "19.06.2024", by: "מתן מגדים" },
+  { name: "Haim", date: "19.06.2024", by: "מתן מגדים" },
+  { name: "Tal", date: "25.06.2024", by: "מתן מגדים" },
+  { name: "מיקי גבריאל", date: "25.06.2024", by: "הצטרף בעצמו" },
+  { name: "נתן", date: "25.06.2024", by: "מיקי גבריאל" },
+  { name: "שרון עדי (Sharon Adi)", date: "25.06.2024", by: "מתן מגדים" },
+  { name: "אלמוג (Almog)", date: "25.06.2024", by: "נתן" },
+  { name: "שמעון אדרי", date: "05.07.2024", by: "מתן מגדים" },
+  { name: "Tamir", date: "10.07.2024", by: "O.P" },
+  { name: "Nadav", date: "15.07.2024", by: "מתן מגדים" },
+  { name: "אבירם", date: "15.07.2024", by: "נתן" },
+  { name: "Vadim", date: "30.07.2024", by: "דניאל כדורגל" },
+  { name: "Ilia", date: "06.08.2024", by: "מתן מגדים" },
+  { name: "אורן זילברמן", date: "03.09.2024", by: "דניאל כדורגל" },
+  { name: "Nizar Jiries", date: "03.09.2024", by: "אדוניס" },
+  { name: "אלירן (eliran72403)", date: "06.09.2024", by: "דניאל כדורגל" },
+  { name: "Shay", date: "06.09.2024", by: "נתן" },
+  { name: "Prof. Mohammed Wattad", date: "06.09.2024", by: "אדוניס" },
+  { name: "איתמר איש ימיני", date: "01.10.2024", by: "דניאל כדורגל" },
+  { name: "שמעון קורקוס", date: "01.10.2024", by: "דניאל כדורגל" },
+  { name: "דויד בן אילוז", date: "01.10.2024", by: "איתמר איש ימיני" },
+  { name: "אור שמש", date: "01.10.2024", by: "מתן מגדים" },
+  { name: "שלומי (Shlomi)", date: "01.10.2024", by: "אבירם" },
+  { name: "רועי", date: "13.10.2024", by: "Benny Dabra" },
+  { name: "אלהן", date: "14.10.2024", by: "טגניה אבבה" },
+  { name: "yossi torg", date: "25.10.2024", by: "K" },
+  { name: "עידן זן", date: "27.10.2024", by: "שי חזן" },
+  { name: "מוגלי", date: "28.10.2024", by: "אבירם" },
+  { name: "עוז כהן", date: "29.10.2024", by: "איתמר איש ימיני" },
+  { name: "נבו", date: "29.10.2024", by: "דויד בן אילוז" },
+  { name: "מרדוש דהן", date: "29.10.2024", by: "מתן מגדים" },
+  { name: "חי בילו", date: "30.10.2024", by: "טגניה אבבה" },
+  { name: "Omri Even Haim", date: "30.10.2024", by: "מאור גרוס" },
+  { name: "יקיר מוסקוביץ", date: "03.11.2024", by: "דניאל כדורגל" },
+  { name: "יוסי", date: "11.11.2024", by: "מתן מגדים" },
+  { name: "אורן חיו (Orenhayu)", date: "01.01.2025", by: "מתן מגדים" },
+  { name: "Gidi", date: "20.01.2025", by: "Tal" },
+  { name: "ליאור קוסטינסקי", date: "29.01.2025", by: "N🧐HaD" },
+  { name: "David Mekonen", date: "01.04.2025", by: "מלקו" },
+  { name: "Tom Atias", date: "14.05.2025", by: "Lior Panaola" },
+  { name: "דני", date: "25.05.2025", by: "שרון עדי" },
+  { name: "~Yalem", date: "10.06.2025", by: "אלהן" },
+  { name: "Daniel Miller", date: "10.06.2025", by: "אלהן" },
+  { name: "yuval", date: "10.06.2025", by: "אלהן" },
+  { name: "Leon Valit", date: "10.06.2025", by: "אלהן" },
+  { name: "דוד", date: "11.06.2025", by: "אלהן" },
+  { name: "עמוס ברוך", date: "11.06.2025", by: "שרון עדי" },
+  { name: "רותם סויסה", date: "27.11.2025", by: "רועי" },
+  { name: "מתניה צדוק", date: "29.11.2025", by: "שרון עדי" },
+  { name: "דניאל אלקנייב", date: "01.01.2026", by: "דניאל כדורגל" },
+  { name: "לי כל", date: "18.01.2026", by: "מתן מגדים (חזרה)" },
+  { name: "שמואל עזר", date: "13.03.2026", by: "מתן מגדים" },
+];
+
+function parseDate(d) {
+  const [day, mon, year] = d.split('.').map(Number);
+  return new Date(year, mon - 1, day);
+}
+
+function getYear(d) { return d.split('.')[2]; }
+
+const tbody = document.getElementById('tbody');
+const searchInput = document.getElementById('search');
+const emptyState = document.getElementById('empty');
+const totalCount = document.getElementById('total-count');
+const yearCount = document.getElementById('year-count');
+const footerCount = document.getElementById('footer-count');
+
+totalCount.textContent = players.length;
+yearCount.textContent = players.filter(p => getYear(p.date) === '2026').length;
+footerCount.textContent = players.length;
+
+let currentYear = 'all';
+let currentSearch = '';
+let sortCol = 'date';
+let sortDir = 1;
+
+function renderTable() {
+  tbody.innerHTML = '';
+  let filtered = players.filter(p => {
+    const yearMatch = currentYear === 'all' || getYear(p.date) === currentYear;
+    const searchMatch = p.name.toLowerCase().includes(currentSearch) ||
+                        p.by.toLowerCase().includes(currentSearch);
+    return yearMatch && searchMatch;
+  });
+
+  // sort
+  filtered.sort((a, b) => {
+    if (sortCol === 'date') return sortDir * (parseDate(a.date) - parseDate(b.date));
+    if (sortCol === 'name') return sortDir * a.name.localeCompare(b.name, 'he');
+    if (sortCol === 'by')   return sortDir * a.by.localeCompare(b.by, 'he');
+    return 0;
+  });
+
+  emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
+
+  let lastYear = '';
+  filtered.forEach((p, i) => {
+    const yr = getYear(p.date);
+    if (yr !== lastYear && currentYear === 'all') {
+      const divRow = document.createElement('tr');
+      divRow.className = 'year-divider';
+      divRow.innerHTML = `<td colspan="4">📅 ${yr}</td>`;
+      tbody.appendChild(divRow);
+      lastYear = yr;
+    }
+
+    const tr = document.createElement('tr');
+    if (p.founder) tr.classList.add('founder');
+    tr.innerHTML = `
+      <td class="td-num">${i + 1}</td>
+      <td class="player-name">${p.name}${p.founder ? '<span class="crown">👑</span>' : ''}</td>
+      <td><span class="date-badge">${p.date}</span></td>
+      <td class="invited-by">${p.by}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentYear = btn.dataset.year;
+    renderTable();
+  });
+});
+
+// search
+searchInput.addEventListener('input', e => {
+  currentSearch = e.target.value.toLowerCase();
+  renderTable();
+});
+
+// sort on header click
+document.querySelectorAll('thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sorted'));
+    if (sortCol === th.dataset.col) sortDir *= -1;
+    else { sortCol = th.dataset.col; sortDir = 1; }
+    th.classList.add('sorted');
+    renderTable();
+  });
+});
+
+renderTable();
+</script>
+</body>
+</html>
