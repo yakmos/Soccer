@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>הרשמה למשחק</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #0F172A;
+            --surface: #1E293B;
+            --surface2: #263348;
+            --primary: #10B981;
+            --primary-dim: rgba(16,185,129,0.15);
+            --primary-border: rgba(16,185,129,0.35);
+            --text: #F8FAFC;
+            --muted: #94A3B8;
+            --border: #334155;
+            --danger: #EF4444;
+            --danger-dim: rgba(239,68,68,0.12);
+            --veteran: #FCD34D;
+            --veteran-dim: rgba(252,211,77,0.12);
+            --veteran-border: rgba(252,211,77,0.3);
+            --waiting-color: #F97316;
+            --waiting-dim: rgba(249,115,22,0.12);
+            --waiting-border: rgba(249,115,22,0.3);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            direction: rtl;
+            padding-bottom: 40px;
+        }
+
+        /* ===== HEADER ===== */
+        .game-header {
+            background: linear-gradient(135deg, #0a3d2e 0%, #0F172A 60%);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 20px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .group-name {
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        .game-date-badge {
+            background: var(--primary-dim);
+            border: 1px solid var(--primary-border);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .capacity-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .capacity-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .capacity-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        .capacity-bar-fill.full {
+            background: var(--waiting-color);
+        }
+
+        .capacity-text {
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .capacity-text span {
+            color: var(--primary);
+        }
+
+        .capacity-text.full span {
+            color: var(--waiting-color);
+        }
+
+        /* ===== NOTICE BOX ===== */
+        .notice-box {
+            margin: 16px 16px 0;
+            background: rgba(16,185,129,0.06);
+            border: 1px solid var(--primary-border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 0.88rem;
+            color: var(--muted);
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            max-width: 540px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* ===== CARD ===== */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 900;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ===== SEARCH INPUT ===== */
+        .search-wrap {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Heebo', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0;
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        /* ===== AUTOCOMPLETE ===== */
+        .autocomplete-list {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .autocomplete-list.visible {
+            display: block;
+        }
+
+        .autocomplete-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:active,
+        .autocomplete-item:hover {
+            background: rgba(16,185,129,0.1);
+        }
+
+        .autocomplete-item.disabled {
+            opacity: 0.45;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .ac-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .ac-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .ac-info {
+            flex: 1;
+        }
+
+        .ac-name {
+            font-weight: 800;
+            font-size: 0.97rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+        }
+
+        .ac-name-text {
+            letter-spacing: 0;
+            word-spacing: 0;
+        }
+
+        .veteran-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--veteran-dim);
+            color: var(--veteran);
+            border: 1px solid var(--veteran-border);
+            padding: 1px 7px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+        }
+
+        .ac-sub {
+            font-size: 0.78rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .ac-status {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .ac-status.registered {
+            color: var(--muted);
+        }
+
+        /* ===== REGISTER BUTTON ===== */
+        .register-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Heebo', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .register-btn:disabled {
+            background: var(--border);
+            color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .register-btn:not(:disabled):active {
+            transform: scale(0.97);
+        }
+
+        /* ===== PLAYERS LIST ===== */
+        .section-label {
+            font-size: 0.78rem;
+            font-weight: 900;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 11px 14px;
+            animation: slideIn 0.25s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .player-row.waiting {
+            border-color: var(--waiting-border);
+            background: var(--waiting-dim);
+        }
+
+        .player-pos {
+            font-size: 0.8rem;
+            font-weight: 900;
+            color: var(--muted);
+            width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .player-pos.confirmed {
+            color: var(--primary);
+        }
+
+        .player-pos.waiting-pos {
+            color: var(--waiting-color);
+        }
+
+        .player-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .player-name-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .player-name {
+            font-weight: 800;
+            font-size: 0.97rem;
+        }
+
+        .player-time {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-right: auto;
+        }
+
+        .waiting-tag {
+            font-size: 0.72rem;
+            font-weight: 800;
+            background: var(--waiting-dim);
+            color: var(--waiting-color);
+            border: 1px solid var(--waiting-border);
+            padding: 1px 8px;
+            border-radius: 6px;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--muted);
+        }
+
+        .empty-state .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* ===== CLOSED STATE ===== */
+        .closed-banner {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .closed-banner .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        .closed-banner h2 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .closed-banner p {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            z-index: 999;
+            transition: transform 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { border-color: var(--primary-border); color: var(--primary); }
+        .toast.error { border-color: rgba(239,68,68,0.4); color: #F87171; }
+        .toast.info { border-color: rgba(99,102,241,0.4); color: #818CF8; }
+
+        /* ===== LOADING ===== */
+        .loading-wrap {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== DIVIDER ===== */
+        .waiting-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--waiting-color);
+        }
+
+        .waiting-divider::before,
+        .waiting-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--waiting-border);
+        }
+
+        /* ===== CANCELLED LIST ===== */
+        .cancelled-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 8px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--danger);
+        }
+        .cancelled-divider::before,
+        .cancelled-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(239,68,68,0.3);
+        }
+
+        .player-row.cancelled {
+            border-color: rgba(239,68,68,0.25);
+            background: rgba(239,68,68,0.06);
+            opacity: 0.85;
+        }
+
+        .cancelled-tag {
+            font-size: 0.72rem;
+            font-weight: 800;
+            background: rgba(239,68,68,0.12);
+            color: #F87171;
+            border: 1px solid rgba(239,68,68,0.3);
+            padding: 1px 8px;
+            border-radius: 6px;
+        }
+
+        .cancel-time {
+            font-size: 0.72rem;
+            color: #F87171;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* ===== REMOVE BUTTON (admin) ===== */
+        .remove-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(239,68,68,0.15);
+            color: #F87171;
+            font-size: 1rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .remove-btn:active { background: rgba(239,68,68,0.35); }
+        body.is-admin .remove-btn { display: flex; }
+
+        /* ===== HIGHLIGHT MATCH ===== */
+        .highlight {
+            color: var(--primary);
+        }
+
+        /* ===== CANCELLED TABLE (admin only) ===== */
+        .cancelled-card { display: none; }
+        body.is-admin .cancelled-card { display: block; }
+        .cancelled-row {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--bg); border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 10px; padding: 10px 13px;
+            animation: slideIn 0.25s ease;
+        }
+        .cancelled-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(239,68,68,0.1); border: 2px solid rgba(239,68,68,0.25);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0; overflow: hidden;
+        }
+        .cancelled-avatar img { width:100%; height:100%; object-fit:cover; }
+        .cancelled-name {
+            flex: 1; font-weight: 800; font-size: 0.92rem; color: var(--muted);
+            text-decoration: line-through; text-decoration-color: rgba(239,68,68,0.4);
+        }
+        .cancelled-time { font-size: 0.75rem; color: rgba(239,68,68,0.7); font-weight: 700; white-space: nowrap; }
+        .cancelled-source { font-size: 0.7rem; font-weight: 800; background: rgba(239,68,68,0.12); color: #F87171; border: 1px solid rgba(239,68,68,0.25); padding: 1px 7px; border-radius: 6px; white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="game-header" id="gameHeader" style="display:none;">
+    <div class="header-top">
+        <div>
+            <div class="group-name" id="groupNameEl">⚽ טוען...</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button onclick="promptAdminLogin()" id="adminLoginBtn" style="background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:5px 10px; font-size:0.78rem; font-weight:800; cursor:pointer; font-family:Heebo,sans-serif;">ניהול 🔒</button>
+            <div class="game-date-badge" id="gameDateBadge">—</div>
+        </div>
+    </div>
+    <div class="capacity-bar-wrap">
+        <div class="capacity-bar-bg">
+            <div class="capacity-bar-fill" id="capacityFill" style="width:0%"></div>
+        </div>
+        <div class="capacity-text" id="capacityText"><span>0</span> / 0 שחקנים</div>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+    <div id="loadingView" class="loading-wrap">
+        <div class="spinner"></div>
+        <div>טוען פרטי משחק...</div>
+    </div>
+
+    <div id="closedView" style="display:none;">
+        <div class="closed-banner">
+            <div class="icon">🔒</div>
+            <h2>ההרשמה סגורה</h2>
+            <p>המשחק הזה כבר לא פתוח להרשמה.<br>פנה למנהל הקבוצה לפרטים.</p>
+        </div>
+    </div>
+
+    <div id="mainView" style="display:none;">
+        <!-- Notice -->
+        <div id="noticeBoxWrap" style="display:none;">
+            <div class="notice-box" id="noticeBoxText"></div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="card" style="margin-top:16px;">
+            <div class="card-title">✍️ הרשמה למשחק</div>
+            <div class="search-wrap">
+                <input
+                    type="text"
+                    id="playerSearchInput"
+                    class="search-input"
+                    placeholder="הקלד את שמך..."
+                    autocomplete="off"
+                    oninput="onSearchInput()"
+                    onfocus="onSearchFocus()"
+                />
+            </div>
+            <div class="autocomplete-list" id="autocompleteList"></div>
+            <button class="register-btn" id="registerBtn" disabled onclick="registerPlayer()">
+                הירשם למשחק ⚽
+            </button>
+        </div>
+
+        <!-- Players List -->
+        <div class="card" id="playersCard">
+            <div class="card-title">👥 רשימת שחקנים</div>
+            <div id="playersList">
+                <div class="empty-state">
+                    <div class="icon">📋</div>
+                    <p>עוד אף אחד לא נרשם.<br>היה הראשון!</p>
+                </div>
+            </div>
+            <div id="cancelledSection" style="display:none; margin-top:8px;">
+                <div class="cancelled-divider">ביטולים</div>
+                <div id="cancelledList" class="players-list"></div>
+            </div>
+        </div>
+
+        <!-- Cancelled List (admin only) -->
+        <div class="card cancelled-card" id="cancelledCard" style="border-color: rgba(239,68,68,0.2); display:none;">
+            <div class="card-title" style="color:#F87171;">🚫 מבטלים</div>
+            <div id="cancelledList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== Firebase ==========
+const firebaseConfig = {
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ========== State ==========
+const urlParams = new URLSearchParams(window.location.search);
+const groupId = urlParams.get('group');
+const registrationId = urlParams.get('reg');
+
+let groupData = null;
+let allPlayers = []; // all players in the group
+let registrations = []; // registrations for this game
+let selectedPlayer = null; // the player selected from autocomplete
+let gameData = null; // this registration doc
+let maxPlayers = 10; // numTeams * playersPerTeam
+let isAdmin = false;
+let cancelled = []; // cancelled entries
+
+// ========== Init ==========
+window.onload = async () => {
+    if (!groupId || !registrationId) {
+        showClosed();
+        return;
+    }
+
+    try {
+        // Load group
+        const groupDoc = await db.collection('groups').doc(groupId).get();
+        if (!groupDoc.exists) { showClosed(); return; }
+        groupData = groupDoc.data();
+
+        const settings = groupData.settings || {};
+        maxPlayers = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
+
+        // Load registration doc
+        const regRef = db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId);
+        const regDoc = await regRef.get();
+        if (!regDoc.exists) { showClosed(); return; }
+        gameData = regDoc.data();
+
+        if (!gameData.open) { showClosed(); return; }
+
+        // Check admin (URL param admin=1 + password)
+        if (urlParams.get("admin") === "1") {
+            const pwd = prompt("סיסמת מנהל:");
+            if (pwd === groupData.password) {
+                isAdmin = true;
+                document.body.classList.add("is-admin");
+            }
+        }
+
+        // Load all players for autocomplete
+        const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
+        allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // Show UI
+        document.getElementById('gameHeader').style.display = 'block';
+        document.getElementById('groupNameEl').textContent = '⚽ ' + (groupData.name || 'קבוצה');
+        updateDateBadge(gameData);
+        if (gameData.noticeText) {
+            document.getElementById('noticeBoxWrap').style.display = 'block';
+            document.getElementById('noticeBoxText').textContent = gameData.noticeText;
+        }
+
+        document.getElementById('loadingView').style.display = 'none';
+        document.getElementById('mainView').style.display = 'block';
+
+        // Realtime listener on registrations sub-collection
+        db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .collection('entries')
+            .orderBy('registeredAt', 'asc')
+            .onSnapshot(snap => {
+                registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderPlayersList();
+                updateCapacityBar();
+            });
+
+        // Realtime listener on cancelled sub-collection
+        db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .collection('cancelled')
+            .orderBy('cancelledAt', 'desc')
+            .onSnapshot(snap => {
+                cancelled = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderCancelledList();
+            });
+
+        // Realtime listener on cancelled sub-collection (admin only view)
+        db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .collection('cancelled')
+            .orderBy('cancelledAt', 'desc')
+            .onSnapshot(snap => {
+                const cancelled = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderCancelledList(cancelled);
+            });
+
+    } catch (e) {
+        console.error(e);
+        showClosed();
+    }
+};
+
+function showClosed() {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('closedView').style.display = 'block';
+}
+
+function updateDateBadge(data) {
+    const badge = document.getElementById('gameDateBadge');
+    if (data.gameDate && data.gameTime) {
+        badge.textContent = `📅 ${data.gameDate} • ${data.gameTime}`;
+    } else if (data.gameDate) {
+        badge.textContent = `📅 ${data.gameDate}`;
+    }
+}
+
+// ========== Capacity ==========
+function updateCapacityBar() {
+    const confirmed = registrations.filter(r => !r.isWaiting).length;
+    const total = registrations.length;
+    const pct = Math.min(100, (confirmed / maxPlayers) * 100);
+
+    const fill = document.getElementById('capacityFill');
+    const text = document.getElementById('capacityText');
+
+    fill.style.width = pct + '%';
+    if (confirmed >= maxPlayers) {
+        fill.classList.add('full');
+        text.classList.add('full');
+        text.innerHTML = `<span>${confirmed}</span> / ${maxPlayers} (${total - confirmed} ממתינים)`;
+    } else {
+        fill.classList.remove('full');
+        text.classList.remove('full');
+        text.innerHTML = `<span>${confirmed}</span> / ${maxPlayers} שחקנים`;
+    }
+}
+
+// ========== Autocomplete ==========
+function onSearchInput() {
+    selectedPlayer = null;
+    document.getElementById('registerBtn').disabled = true;
+    const q = document.getElementById('playerSearchInput').value.trim();
+    if (q.length < 1) {
+        hideAutocomplete();
+        return;
+    }
+    const results = allPlayers.filter(p =>
+        p.name && p.name.startsWith(q)
+    );
+    renderAutocomplete(results, q);
+}
+
+function onSearchFocus() {
+    const q = document.getElementById('playerSearchInput').value.trim();
+    if (q.length >= 1) onSearchInput();
+}
+
+function renderAutocomplete(results, query) {
+    const list = document.getElementById('autocompleteList');
+    if (results.length === 0) {
+        list.innerHTML = `<div class="autocomplete-item" style="color:var(--muted); cursor:default;">לא נמצאו שחקנים תואמים</div>`;
+        list.classList.add('visible');
+        return;
+    }
+    list.innerHTML = results.map(p => {
+        const alreadyRegistered = registrations.some(r => r.playerId === p.id);
+        const idx = p.name.indexOf(query);
+        const highlight = idx >= 0
+            ? p.name.slice(0, idx) + `<span class="highlight">${p.name.slice(idx, idx + query.length)}</span>` + p.name.slice(idx + query.length)
+            : p.name;
+        const vetBadge = p.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+        const avatar = p.imgUrl
+            ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>`
+            : `<div class="ac-avatar">👤</div>`;
+        const statusText = alreadyRegistered ? `<span class="ac-status registered">כבר רשום</span>` : '';
+        const scores = p.isGk
+            ? `🧤 ${p.gkScore || 5}`
+            : `🛡️${p.defScore || 5} 🎯${p.attScore || 5}`;
+        return `<div class="autocomplete-item ${alreadyRegistered ? 'disabled' : ''}"
+            onclick="selectPlayer('${p.id}')">
+            ${avatar}
+            <div class="ac-info">
+                <div class="ac-name"><span class="ac-name-text">${highlight}</span> ${vetBadge} ${statusText}</div>
+                <div class="ac-sub">${scores}</div>
+            </div>
+        </div>`;
+    }).join('');
+    list.classList.add('visible');
+}
+
+function hideAutocomplete() {
+    document.getElementById('autocompleteList').classList.remove('visible');
+}
+
+function selectPlayer(playerId) {
+    const p = allPlayers.find(x => x.id === playerId);
+    if (!p) return;
+    selectedPlayer = p;
+    document.getElementById('playerSearchInput').value = p.name;
+    hideAutocomplete();
+    document.getElementById('registerBtn').disabled = false;
+}
+
+// Close autocomplete on outside click
+document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrap') && !e.target.closest('.autocomplete-list')) {
+        hideAutocomplete();
+    }
+});
+
+// ========== Register ==========
+async function registerPlayer() {
+    if (!selectedPlayer) return;
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true;
+    btn.textContent = 'רושם... ⏳';
+
+    try {
+        // Check not already registered
+        if (registrations.some(r => r.playerId === selectedPlayer.id)) {
+            showToast('כבר רשום למשחק זה!', 'info');
+            btn.textContent = 'הירשם למשחק ⚽';
+            btn.disabled = false;
+            return;
+        }
+
+        // Determine if waiting
+        const confirmedCount = registrations.filter(r => !r.isWaiting).length;
+        const isFullBeforeAdd = confirmedCount >= maxPlayers;
+
+        // Veteran bump logic:
+        // If the game is full but this is a veteran AND there's a non-veteran in the confirmed list,
+        // we bump the last non-veteran to waiting.
+        let bumpedPlayerId = null;
+        if (isFullBeforeAdd && selectedPlayer.isVeteran) {
+            // Find the last confirmed non-veteran (latest registeredAt)
+            const confirmedNonVets = registrations
+                .filter(r => !r.isWaiting && !r.isVeteran)
+                .sort((a, b) => {
+                    const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
+                    const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
+                    return tb - ta; // latest first
+                });
+            if (confirmedNonVets.length > 0) {
+                bumpedPlayerId = confirmedNonVets[0].id;
+            }
+        }
+
+        const isWaiting = isFullBeforeAdd && !bumpedPlayerId;
+
+        const batch = db.batch();
+        const entriesRef = db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .collection('entries');
+
+        // Add new player
+        const newEntryRef = entriesRef.doc();
+        batch.set(newEntryRef, {
+            playerId: selectedPlayer.id,
+            name: selectedPlayer.name,
+            imgUrl: selectedPlayer.imgUrl || null,
+            isVeteran: !!selectedPlayer.isVeteran,
+            isGk: !!selectedPlayer.isGk,
+            attScore: selectedPlayer.attScore || 5,
+            defScore: selectedPlayer.defScore || 5,
+            gkScore: selectedPlayer.gkScore || 5,
+            isWaiting,
+            registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Bump non-veteran to waiting if needed
+        if (bumpedPlayerId) {
+            batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
+        }
+
+        await batch.commit();
+
+        document.getElementById('playerSearchInput').value = '';
+        selectedPlayer = null;
+        btn.textContent = 'הירשם למשחק ⚽';
+
+        if (isWaiting) {
+            showToast('נרשמת לרשימת המתנה ⏳', 'info');
+        } else if (bumpedPlayerId) {
+            showToast('נרשמת! שחקן אחר עבר להמתנה (ותיק בקדימות) ✅', 'success');
+        } else {
+            showToast('נרשמת בהצלחה! ✅', 'success');
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('שגיאה ברישום, נסה שוב', 'error');
+        btn.textContent = 'הירשם למשחק ⚽';
+        btn.disabled = false;
+    }
+}
+
+// ========== Render List ==========
+function renderPlayersList() {
+    const container = document.getElementById('playersList');
+    if (registrations.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="icon">📋</div>
+                <p>עוד אף אחד לא נרשם.<br>היה הראשון!</p>
+            </div>`;
+        return;
+    }
+
+    // Sort: confirmed first (sorted by registeredAt), then waiting
+    const confirmed = registrations
+        .filter(r => !r.isWaiting)
+        .sort((a, b) => {
+            // Veterans first, then by time
+            if (a.isVeteran && !b.isVeteran) return -1;
+            if (!a.isVeteran && b.isVeteran) return 1;
+            const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
+            const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
+            return ta - tb;
+        });
+
+    const waiting = registrations
+        .filter(r => r.isWaiting)
+        .sort((a, b) => {
+            const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
+            const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
+            return ta - tb;
+        });
+
+    let html = '';
+
+    if (confirmed.length > 0) {
+        html += `<div class="section-label">מאושרים (${confirmed.length}/${maxPlayers})</div>`;
+        html += '<div class="players-list">';
+        confirmed.forEach((r, i) => {
+            html += renderPlayerRow(r, i + 1, false);
+        });
+        html += '</div>';
+    }
+
+    if (waiting.length > 0) {
+        html += `<div class="waiting-divider">המתנה (${waiting.length})</div>`;
+        html += '<div class="players-list">';
+        waiting.forEach((r, i) => {
+            html += renderPlayerRow(r, i + 1, true);
+        });
+        html += '</div>';
+    }
+
+    container.innerHTML = html;
+}
+
+function renderPlayerRow(r, pos, isWaiting) {
+    const avatar = r.imgUrl
+        ? `<div class="player-avatar"><img src="${r.imgUrl}"></div>`
+        : `<div class="player-avatar">👤</div>`;
+    const vetBadge = r.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+    const gkBadge = r.isGk ? `<span style="font-size:0.72rem; background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.3); padding:1px 7px; border-radius:6px; font-weight:800;">🧤 שוער</span>` : '';
+    const posClass = isWaiting ? 'waiting-pos' : 'confirmed';
+    const timeStr = r.registeredAt?.toDate
+        ? r.registeredAt.toDate().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        : '';
+    const waitingTag = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
+
+    return `<div class="player-row ${isWaiting ? 'waiting' : ''}">
+        <div class="player-pos ${posClass}">${isWaiting ? '⏳' : pos}</div>
+        ${avatar}
+        <div class="player-name-wrap">
+            <span class="player-name">${r.name}</span>
+            ${vetBadge}${gkBadge}${waitingTag}
+        </div>
+        ${timeStr ? `<span class="player-time">${timeStr}</span>` : ''}
+        <button class="remove-btn" onclick="removePlayer('${r.id}')" title="הסר שחקן">✕</button>
+    </div>`;
+}
+
+// ========== Remove Player (Admin) ==========
+async function removePlayer(entryId) {
+    if (!isAdmin) return;
+    if (!confirm('להסיר שחקן זה מהרשימה?')) return;
+
+    const entriesRef = db.collection('groups').doc(groupId)
+        .collection('registrations').doc(registrationId)
+        .collection('entries');
+
+    const cancelledRef = db.collection('groups').doc(groupId)
+        .collection('registrations').doc(registrationId)
+        .collection('cancelled');
+
+    try {
+        const removedEntry = registrations.find(r => r.id === entryId);
+        if (!removedEntry) return;
+        const wasConfirmed = !removedEntry.isWaiting;
+
+        const batch = db.batch();
+
+        // Move to cancelled collection
+        batch.set(cancelledRef.doc(), {
+            playerId: removedEntry.playerId,
+            name: removedEntry.name,
+            imgUrl: removedEntry.imgUrl || null,
+            isVeteran: !!removedEntry.isVeteran,
+            wasConfirmed,
+            registeredAt: removedEntry.registeredAt,
+            cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Delete from entries
+        batch.delete(entriesRef.doc(entryId));
+
+        // If was confirmed → promote first waiting
+        if (wasConfirmed) {
+            const firstWaiting = registrations
+                .filter(r => r.isWaiting && r.id !== entryId)
+                .sort((a, b) => {
+                    const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
+                    const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
+                    return ta - tb;
+                })[0];
+
+            if (firstWaiting) {
+                batch.update(entriesRef.doc(firstWaiting.id), { isWaiting: false });
+            }
+        }
+
+        await batch.commit();
+        showToast('השחקן הוסר ✅', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('שגיאה בהסרה', 'error');
+    }
+}
+
+// ========== Render Cancelled ==========
+function renderCancelledList() {
+    const section = document.getElementById('cancelledSection');
+    const container = document.getElementById('cancelledList');
+    if (!section || !container) return;
+
+    if (cancelled.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    container.innerHTML = cancelled.map(r => {
+        const avatar = r.imgUrl
+            ? `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);"><img src="${r.imgUrl}"></div>`
+            : `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);">👤</div>`;
+        const vetBadge = r.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+        const cancelTimeStr = r.cancelledAt?.toDate
+            ? r.cancelledAt.toDate().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            : '';
+        return `<div class="player-row cancelled">
+            <div class="player-pos" style="color:#F87171;">✕</div>
+            ${avatar}
+            <div class="player-name-wrap">
+                <span class="player-name" style="color:#F87171;">${r.name}</span>
+                ${vetBadge}
+                <span class="cancelled-tag">בוטל</span>
+            </div>
+            ${cancelTimeStr ? `<span class="cancel-time">${cancelTimeStr}</span>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// ========== Admin Login ==========
+function promptAdminLogin() {
+    if (isAdmin) { showToast('כבר מחובר כמנהל ✅', 'success'); return; }
+    if (!groupData) return;
+    const pwd = prompt('סיסמת מנהל:');
+    if (pwd === groupData.password) {
+        isAdmin = true;
+        document.body.classList.add('is-admin');
+        const btn = document.getElementById('adminLoginBtn');
+        if (btn) { btn.textContent = '✅ מנהל'; btn.style.color = 'var(--primary)'; btn.style.borderColor = 'var(--primary-border)'; }
+        showToast('מחובר כמנהל ✅', 'success');
+    } else if (pwd !== null) {
+        showToast('סיסמה שגויה ❌', 'error');
+    }
+}
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => { t.classList.remove('show'); }, 3000);
+}
+</script>
+</body>
+</html>

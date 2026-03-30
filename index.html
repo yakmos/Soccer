@@ -61,12 +61,13 @@
 
         .tabs-nav {
             display: flex; background: var(--surface-color); border-bottom: 1px solid var(--border-color);
-            position: sticky; top: 57px; z-index: 90;
+            position: sticky; top: 57px; z-index: 90; overflow-x: auto;
         }
         .tab-btn {
             flex: 1; padding: 15px 5px; text-align: center; background: none; border: none;
             color: var(--text-muted); font-size: 0.95rem; font-weight: 800; cursor: pointer;
             border-bottom: 3px solid transparent; transition: 0.3s; font-family: 'Heebo', sans-serif;
+            white-space: nowrap; min-width: 80px;
         }
         .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
@@ -78,8 +79,6 @@
 
         .admin-only { display: none; }
         body.is-admin .admin-only { display: block; }
-
-        /* *** התיקון: כפתורי גול ב-flex רק למנהל *** */
         body.is-admin .admin-goal-btns { display: flex; align-items: center; gap: 4px; }
 
         .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
@@ -278,6 +277,57 @@
         .gk-stats-section { border-color: var(--gk-border) !important; background: rgba(167,139,250,0.04) !important; }
         .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
         .pitch-player.is-rotating-gk { border: 2px dashed var(--gk-text); background: rgba(167,139,250,0.1); }
+
+        /* ===== VETERAN BADGE ===== */
+        .veteran-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(252,211,77,0.12); color: #FCD34D;
+            border: 1px solid rgba(252,211,77,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+
+        /* ===== REGISTRATION BANNER ===== */
+        .reg-banner {
+            display: none;
+            margin: 0 0 12px;
+            background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.06));
+            border: 1px solid rgba(16,185,129,0.4);
+            border-radius: 16px;
+            padding: 16px 18px;
+            animation: regBannerIn 0.4s ease;
+        }
+        @keyframes regBannerIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .reg-banner.visible { display: block; }
+        .reg-banner-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .reg-banner-title { font-weight: 900; font-size: 1rem; color: var(--primary-color); display: flex; align-items: center; gap: 7px; }
+        .reg-banner-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; }
+        .reg-banner-counts { display: flex; gap: 8px; flex-wrap: wrap; }
+        .reg-count-chip { background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; }
+        .reg-count-chip.waiting { background: rgba(249,115,22,0.12); color: #F97316; border-color: rgba(249,115,22,0.3); }
+        .reg-open-btn { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none; margin-top: 10px; }
+        .reg-open-btn:active { transform: scale(0.97); }
+
+        /* ===== REGISTRATION ADMIN CARD ===== */
+        .reg-admin-card { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+        .reg-admin-title { font-size: 1rem; font-weight: 900; color: var(--primary-color); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .reg-field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .reg-field-row input[type="date"], .reg-field-row input[type="time"] { flex: 1; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; outline: none; }
+        .reg-field-row input:focus { border-color: var(--primary-color); }
+        .reg-textarea { width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 70px; outline: none; margin-bottom: 12px; }
+        .reg-textarea:focus { border-color: var(--primary-color); }
+        .reg-textarea::placeholder { color: var(--text-muted); }
+        .reg-open-game-btn { width: 100%; padding: 13px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .reg-open-game-btn:active { transform: scale(0.97); }
+        .reg-close-btn { width: 100%; padding: 11px; background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 0.95rem; font-weight: 800; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .reg-share-link-row { display: flex; align-items: center; gap: 8px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 13px; margin-top: 12px; }
+        .reg-share-link-text { flex: 1; font-size: 0.82rem; color: var(--text-muted); font-family: monospace; word-break: break-all; }
+        .reg-copy-btn, .reg-wa-btn { padding: 7px 12px; border-radius: 8px; border: none; font-family: 'Heebo', sans-serif; font-size: 0.8rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+        .reg-copy-btn { background: var(--border-color); color: var(--text-main); }
+        .reg-wa-btn { background: #25D366; color: white; }
+        .reg-live-stats { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .reg-stat-chip { padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 800; background: rgba(16,185,129,0.12); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); }
+        .reg-stat-chip.waiting-chip { background: rgba(249,115,22,0.1); color: #F97316; border-color: rgba(249,115,22,0.3); }
     </style>
 </head>
 <body id="mainBody">
@@ -344,10 +394,77 @@
             <button class="tab-btn" onclick="switchTab('tab-laundry', this)">כביסה 👕</button>
         </div>
 
+        <!-- REGISTRATION BANNER — visible to all when open -->
+        <div class="container" style="padding-bottom:0; padding-top:0;">
+            <div class="reg-banner" id="regBanner">
+                <div class="reg-banner-top">
+                    <div class="reg-banner-title">🟢 הרשמה פתוחה למשחק!</div>
+                    <div class="reg-banner-date" id="regBannerDate"></div>
+                </div>
+                <div class="reg-banner-counts">
+                    <div class="reg-count-chip" id="regBannerConfirmed">0 / 0 נרשמו</div>
+                    <div class="reg-count-chip waiting" id="regBannerWaiting" style="display:none;">0 ממתינים</div>
+                </div>
+                <a class="reg-open-btn" id="regBannerLink" href="#" target="_blank">
+                    להרשמה →
+                </a>
+            </div>
+        </div>
+
         <div class="container">
             <!-- TAB: MAIN -->
             <div id="tab-main" class="tab-content active">
                 <div id="tab-main-content">
+
+                    <!-- ADMIN: Registration management -->
+                    <div class="reg-admin-card admin-only" id="regAdminCard">
+                        <div class="reg-admin-title">📋 ניהול הרשמה למשחק</div>
+                        <div id="regOpenForm">
+                            <div class="reg-field-row">
+                                <div style="flex:1; position:relative;">
+                                    <input type="text" id="regDateDisplay" readonly
+                                        placeholder="בחר תאריך"
+                                        onclick="toggleRegCalendar()"
+                                        style="width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:0.95rem; cursor:pointer; outline:none;">
+                                    <input type="hidden" id="regDateInput">
+                                    <div id="regCalendarDrop" style="display:none; position:absolute; top:calc(100% + 6px); right:0; left:0; background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:14px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                            <button type="button" onclick="regCalendarPrev()" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:1rem;">‹</button>
+                                            <div id="regCalendarTitle" style="font-weight:900; font-size:0.95rem;"></div>
+                                            <button type="button" onclick="regCalendarNext()" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:1rem;">›</button>
+                                        </div>
+                                        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:6px;">
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">א</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ב</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ג</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ד</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ה</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ו</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ש</div>
+                                        </div>
+                                        <div id="regCalendarDays" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;"></div>
+                                    </div>
+                                </div>
+                                <input type="time" id="regTimeInput" value="20:00"
+                                    style="flex:0 0 110px; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:0.95rem; outline:none;">
+                            </div>
+                            <textarea class="reg-textarea" id="regNoticeInput" placeholder="הודעה לשחקנים (אופציונלי) — תופיע בטופס ההרשמה"></textarea>
+                            <button class="reg-open-game-btn" onclick="openRegistration()">📢 פתח הרשמה למשחק</button>
+                        </div>
+                        <div id="regActivePanel" style="display:none;">
+                            <div class="reg-live-stats" id="regLiveStats">
+                                <div class="reg-stat-chip" id="regStatConfirmed">0 נרשמו</div>
+                                <div class="reg-stat-chip waiting-chip" id="regStatWaiting" style="display:none;">0 ממתינים</div>
+                            </div>
+                            <div class="reg-share-link-row">
+                                <div class="reg-share-link-text" id="regLinkDisplay">טוען...</div>
+                                <button class="reg-copy-btn" onclick="copyRegLink()">העתק</button>
+                                <button class="reg-wa-btn" onclick="shareRegWhatsApp()">📤 שתף</button>
+                            </div>
+                            <button class="reg-close-btn" onclick="closeRegistration()">🔒 סגור הרשמה</button>
+                        </div>
+                    </div>
+
                     <div class="card admin-only">
                         <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
                         <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
@@ -357,6 +474,16 @@
                             <input type="file" id="pImage" accept="image/*" class="form-input" style="padding: 10px;">
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
+
+                        <!-- Veteran toggle -->
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(252,211,77,0.06); border:1px solid rgba(252,211,77,0.25); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
+                            <div>
+                                <div style="font-weight:800; color:#FCD34D; font-size:0.95rem;">⭐ שחקן ותיק?</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">ותיקים מקבלים קדימות בהרשמה למשחקים</div>
+                            </div>
+                            <button type="button" id="veteranToggleBtn" onclick="toggleVeteranMode()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא ותיק</button>
+                        </div>
+                        <input type="hidden" id="pIsVeteran" value="false">
 
                         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--gk-bg); border:1px solid var(--gk-border); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
                             <div>
@@ -665,6 +792,9 @@ window.onload = async () => {
         
         updateGroupLinkUI();
         startRealtimeListeners();
+
+        // Set today's date as default for registration
+        initRegCalendar();
     }
 };
 
@@ -712,10 +842,29 @@ function startRealtimeListeners() {
             renderCustomParamsManagerList();
             renderCustomParamsFormInputs();
             updateLeaderboardCustomOptions();
+
+            // Registration: restore saved notice
+            if (data.lastRegNotice !== undefined) {
+                const noticeInput = document.getElementById('regNoticeInput');
+                if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
+            }
         }
     });
 
     startLaundryListener();
+    startRegistrationListener();
+}
+
+// ========== Veteran Toggle ==========
+function toggleVeteranMode() {
+    const isVet = document.getElementById('pIsVeteran').value === 'true';
+    const newVal = !isVet;
+    document.getElementById('pIsVeteran').value = String(newVal);
+    const btn = document.getElementById('veteranToggleBtn');
+    btn.textContent = newVal ? '⭐ ותיק' : 'לא ותיק';
+    btn.style.background = newVal ? 'rgba(252,211,77,0.2)' : 'transparent';
+    btn.style.color = newVal ? '#FCD34D' : 'var(--text-muted)';
+    btn.style.borderColor = newVal ? 'rgba(252,211,77,0.4)' : 'var(--border-color)';
 }
 
 // ========== Custom Params Logic ==========
@@ -837,7 +986,6 @@ function getColoredGkBadge(gkScore) {
 
 // ========== Per-Param Lock ==========
 let currentLockedParams = {};
-
 const FIELD_PARAMS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
 const GK_PARAMS = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
 
@@ -846,17 +994,14 @@ function toggleParamLock(key) {
     const row = document.getElementById(`row_${key}`);
     const inputEl = document.getElementById('p' + key.charAt(0).toUpperCase() + key.slice(1));
     if (!btn) return;
-
     if (currentLockedParams.hasOwnProperty(key)) {
         delete currentLockedParams[key];
-        btn.classList.remove('locked');
-        btn.textContent = '🔓';
+        btn.classList.remove('locked'); btn.textContent = '🔓';
         if (row) row.classList.remove('is-locked');
     } else {
         const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
         currentLockedParams[key] = val;
-        btn.classList.add('locked');
-        btn.textContent = '🔒';
+        btn.classList.add('locked'); btn.textContent = '🔒';
         if (row) row.classList.add('is-locked');
     }
     const hint = document.getElementById('lockHintField');
@@ -869,17 +1014,14 @@ function lockCustomParam(cpId) {
     const inputEl = document.getElementById(`cp_${cpId}`);
     const lockKey = `cp_${cpId}`;
     if (!btn) return;
-
     if (currentLockedParams.hasOwnProperty(lockKey)) {
         delete currentLockedParams[lockKey];
-        btn.classList.remove('locked');
-        btn.textContent = '🔓';
+        btn.classList.remove('locked'); btn.textContent = '🔓';
         if (row) row.classList.remove('is-locked');
     } else {
         const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
         currentLockedParams[lockKey] = val;
-        btn.classList.add('locked');
-        btn.textContent = '🔒';
+        btn.classList.add('locked'); btn.textContent = '🔒';
         if (row) row.classList.add('is-locked');
     }
     const hint = document.getElementById('lockHintField');
@@ -902,12 +1044,8 @@ function fillLockedParamsUI(lockedParams) {
     });
     Object.keys(currentLockedParams).forEach(key => {
         let btnId, rowId;
-        if (key.startsWith('cp_')) {
-            const cpId = key.replace('cp_', '');
-            btnId = `lock_cp_${cpId}`; rowId = `row_cp_${cpId}`;
-        } else {
-            btnId = `lock_${key}`; rowId = `row_${key}`;
-        }
+        if (key.startsWith('cp_')) { const cpId = key.replace('cp_', ''); btnId = `lock_cp_${cpId}`; rowId = `row_cp_${cpId}`; }
+        else { btnId = `lock_${key}`; rowId = `row_${key}`; }
         const btn = document.getElementById(btnId);
         const row = document.getElementById(rowId);
         if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
@@ -966,9 +1104,7 @@ function lockAllParams() {
     if (hint) hint.classList.add('visible');
 }
 
-function unlockAllParams() {
-    resetLockedParamsUI();
-}
+function unlockAllParams() { resetLockedParamsUI(); }
 
 function calcScoresWithLocks(vals, customStatsObj) {
     const keys = FIELD_PARAMS;
@@ -997,9 +1133,10 @@ async function savePlayer() {
     if(!name) return;
 
     const isGk = document.getElementById('pIsGk').value === 'true';
+    const isVeteran = document.getElementById('pIsVeteran').value === 'true';
     const lockedParams = Object.keys(currentLockedParams).length > 0 ? { ...currentLockedParams } : firebase.firestore.FieldValue.delete();
 
-    let playerData = { name, isGk, lockedParams };
+    let playerData = { name, isGk, isVeteran, lockedParams };
 
     if (isGk) {
         const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
@@ -1009,14 +1146,10 @@ async function savePlayer() {
         const gkRef = parseFloat(document.getElementById('pGkRef').value) || 5;
         const gkScore = calcGkScoreWithLocks([gkDiv, gkHan, gkKic, gkPosV, gkRef]);
         Object.assign(playerData, {
-            gkDiv: getEffectiveParamValue('gkDiv', gkDiv),
-            gkHan: getEffectiveParamValue('gkHan', gkHan),
-            gkKic: getEffectiveParamValue('gkKic', gkKic),
-            gkPos: getEffectiveParamValue('gkPos', gkPosV),
-            gkRef: getEffectiveParamValue('gkRef', gkRef),
-            gkScore,
-            fin:5, dri:5, pac:5, vis:5, pos:5,
-            tac:5, awa:5, str:5, sta:5, com:5,
+            gkDiv: getEffectiveParamValue('gkDiv', gkDiv), gkHan: getEffectiveParamValue('gkHan', gkHan),
+            gkKic: getEffectiveParamValue('gkKic', gkKic), gkPos: getEffectiveParamValue('gkPos', gkPosV),
+            gkRef: getEffectiveParamValue('gkRef', gkRef), gkScore,
+            fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5,
             attScore: gkScore, defScore: gkScore, customStats: {}
         });
     } else {
@@ -1033,8 +1166,7 @@ async function savePlayer() {
         Object.assign(playerData, {
             fin:effVals[0], dri:effVals[1], pac:effVals[2], vis:effVals[3], pos:effVals[4],
             tac:effVals[5], awa:effVals[6], str:effVals[7], sta:effVals[8], com:effVals[9],
-            customStats: effCustom, attScore, defScore,
-            gkScore: 5, gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5
+            customStats: effCustom, attScore, defScore, gkScore: 5, gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5
         });
     }
 
@@ -1057,6 +1189,11 @@ async function savePlayer() {
         document.getElementById('pImage').value = '';
         customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
         document.getElementById('saveBtn').innerText = "שמור שחקן";
+        // Reset veteran toggle
+        document.getElementById('pIsVeteran').value = 'false';
+        const vBtn = document.getElementById('veteranToggleBtn');
+        vBtn.textContent = 'לא ותיק'; vBtn.style.background = 'transparent';
+        vBtn.style.color = 'var(--text-muted)'; vBtn.style.borderColor = 'var(--border-color)';
         resetLockedParamsUI();
     }
 }
@@ -1068,6 +1205,15 @@ function startEdit(id, p) {
     document.getElementById('pName').value = p.name;
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
+
+    // Veteran
+    const isVet = !!p.isVeteran;
+    document.getElementById('pIsVeteran').value = String(isVet);
+    const vBtn = document.getElementById('veteranToggleBtn');
+    vBtn.textContent = isVet ? '⭐ ותיק' : 'לא ותיק';
+    vBtn.style.background = isVet ? 'rgba(252,211,77,0.2)' : 'transparent';
+    vBtn.style.color = isVet ? '#FCD34D' : 'var(--text-muted)';
+    vBtn.style.borderColor = isVet ? 'rgba(252,211,77,0.4)' : 'var(--border-color)';
 
     const isGk = !!p.isGk;
     document.getElementById('pIsGk').value = String(isGk);
@@ -1089,9 +1235,7 @@ function startEdit(id, p) {
         });
         fillCustomParamInputs(p);
     }
-
     fillLockedParamsUI(p.lockedParams || null);
-
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
     document.getElementById('cancelBtn').style.display = "block";
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1108,6 +1252,10 @@ function cancelEdit() {
     document.getElementById('gkToggleBtn').style.background = '';
     document.getElementById('fieldStatsSection').style.display = 'block';
     document.getElementById('gkStatsSection').style.display = 'none';
+    document.getElementById('pIsVeteran').value = 'false';
+    const vBtn = document.getElementById('veteranToggleBtn');
+    vBtn.textContent = 'לא ותיק'; vBtn.style.background = 'transparent';
+    vBtn.style.color = 'var(--text-muted)'; vBtn.style.borderColor = 'var(--border-color)';
     ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
     ['pGkDiv','pGkHan','pGkKic','pGkPos','pGkRef'].forEach(id => document.getElementById(id).value = 5);
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
@@ -1148,16 +1296,13 @@ async function updateTeamWin(index, delta) {
 async function finishGame() {
     if (!activeTeams) return alert("אין משחק פעיל לסיום.");
     if (!confirm("לסיים את הערב? הגולים יאופסו והתוצאות יישמרו בקריירה ובהיסטוריה.")) return;
-
     const finishBtn = document.getElementById('finishGameBtn');
     if (finishBtn) { finishBtn.disabled = true; finishBtn.innerText = "שומר... ⏳"; }
-
     try {
         const now = firebase.firestore.FieldValue.serverTimestamp();
         const nowDate = new Date();
         const historyRef = groupRef.collection('history');
         const historyGamesRef = groupRef.collection('history_games');
-
         const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
         const teamsSnapshot = activeTeams.map((team, i) => ({
             name: teamNames[i] || `קבוצה ${i+1}`,
@@ -1167,10 +1312,8 @@ async function finishGame() {
                 return { id: p.id, name: p.name, goals: liveP.goals || 0, attScore: p.attScore || 5, defScore: p.defScore || 5, gkScore: p.gkScore || null, isGk: !!p.isGk, imgUrl: p.imgUrl || null };
             })
         }));
-
         const allPlayersFlat = teamsSnapshot.flatMap(t => t.players);
         const topScorer = allPlayersFlat.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals)[0] || null;
-
         const currentGameDoc = await gameRef.get();
         const currentGameData = currentGameDoc.exists ? currentGameDoc.data() : {};
         const existingMvpVotes = currentGameData.mvpVotes || {};
@@ -1181,7 +1324,6 @@ async function finishGame() {
             const mvpLeaderPlayer = players.find(p => p.id === mvpLeaderId);
             if (mvpLeaderPlayer) mvpWinner = { id: mvpLeaderId, name: mvpLeaderPlayer.name, votes: existingMvpVotes[mvpLeaderId], totalVotes: totalMvpVotes };
         }
-
         const gameDoc = {
             date: now, dateISO: nowDate.toISOString(), numPlayers: allPlayersFlat.length,
             numTeams: activeTeams.length, teams: teamsSnapshot,
@@ -1189,10 +1331,8 @@ async function finishGame() {
             totalGoals: allPlayersFlat.reduce((s,p) => s + (p.goals||0), 0),
             mvpWinner, mvpVoteCount: totalMvpVotes, mvpVotes: existingMvpVotes, votingOpen: true
         };
-
         const savedGameRef = await historyGamesRef.add(gameDoc);
         await savedGameRef.update({ id: savedGameRef.id });
-
         const batch = db.batch();
         activeWins.forEach((wins, index) => {
             if (wins > 0) activeTeams[index].forEach(player => {
@@ -1202,9 +1342,7 @@ async function finishGame() {
         players.forEach(p => { if (p.goals > 0 || p.inLineup) batch.update(playersRef.doc(p.id), { goals: 0 }); });
         batch.delete(gameRef);
         await batch.commit();
-
         await completeLaundryForGame();
-
         if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
         alert("הערב סוכם בהצלחה! הנתונים נשמרו בהיסטוריה 📅");
     } catch(e) {
@@ -1216,12 +1354,7 @@ async function finishGame() {
 
 async function adjustCareerGoal(playerId, delta) {
     try {
-        await groupRef.collection('history').add({
-            playerId,
-            type: 'goal_adjustment',
-            count: delta,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        await groupRef.collection('history').add({ playerId, type: 'goal_adjustment', count: delta, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
     } catch(e) { console.error(e); alert("שגיאה בעדכון."); }
 }
 
@@ -1248,28 +1381,20 @@ function showPlayerCard(id) {
     const totalGoals = pHistory.filter(h => h.type === 'goal').length +
         pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
     const formaHTML = pHistory.filter(h => h.type === 'win').slice(0,5).map(() => `<span style="color:#10B981; font-weight:900;">W</span>`).join(' ') || '<span style="color:var(--text-muted);">אין נתונים</span>';
-
     const isAdmin = document.body.classList.contains('is-admin');
     const editBtn = isAdmin ? `<button onclick="editCareerGoals('${p.id}')" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px;" title="ערוך גולי קריירה">✏️</button>` : '';
-
     const isGk = !!p.isGk;
     const mainScore = isGk ? (p.gkScore || 5) : (p.attScore + p.defScore) / 2;
     const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(mainScore).hex;
-    const avatar = p.imgUrl
-        ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${borderColor}">`
-        : `<div class="modal-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
-
+    const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${borderColor}">` : `<div class="modal-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
     const lockedParams = p.lockedParams || {};
     const lockedCount = Object.keys(lockedParams).length;
-    const lockedBadge = lockedCount > 0
-        ? `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--lock-bg); color:var(--lock-color); border:1px solid var(--lock-border); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:800; margin-right:6px;">🔒 ${lockedCount} פרמטרים נעולים</span>`
-        : '';
-
+    const lockedBadge = lockedCount > 0 ? `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--lock-bg); color:var(--lock-color); border:1px solid var(--lock-border); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:800; margin-right:6px;">🔒 ${lockedCount} פרמטרים נעולים</span>` : '';
+    const vetBadge = p.isVeteran ? `<span class="veteran-badge" style="vertical-align:middle; margin-right:4px;">⭐ ותיק</span>` : '';
     const getBar = (label, val, color) => {
         const c = color || getColorStyles(val||5).hex;
         return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${c};"></div></div><div class="stat-bar-val" style="color:${c};">${val||5}</div></div>`;
     };
-
     let scoreBoxes = '';
     if (isGk) {
         const gkC = getColorStyles(p.gkScore || 5);
@@ -1285,13 +1410,9 @@ function showPlayerCard(id) {
                 <div class="modal-score-label" style="color:${getColorStyles(p.defScore).text};">הגנה</div>
             </div>`;
     }
-
     let statsSection = '';
     if (isGk) {
-        statsSection = `<div class="modal-section-title" style="color:var(--gk-text);">🧤 מדדי שוער</div>
-            ${getBar('זינוק', p.gkDiv, 'var(--gk-text)')}${getBar('אחיזה בכדור', p.gkHan, 'var(--gk-text)')}
-            ${getBar('בעיטה והוצאה', p.gkKic, 'var(--gk-text)')}${getBar('מיקום בשער', p.gkPos, 'var(--gk-text)')}
-            ${getBar('רפלקסים', p.gkRef, 'var(--gk-text)')}`;
+        statsSection = `<div class="modal-section-title" style="color:var(--gk-text);">🧤 מדדי שוער</div>${getBar('זינוק', p.gkDiv, 'var(--gk-text)')}${getBar('אחיזה בכדור', p.gkHan, 'var(--gk-text)')}${getBar('בעיטה והוצאה', p.gkKic, 'var(--gk-text)')}${getBar('מיקום בשער', p.gkPos, 'var(--gk-text)')}${getBar('רפלקסים', p.gkRef, 'var(--gk-text)')}`;
     } else {
         const attCustomParams = customParams.filter(cp => cp.type === 'att');
         const defCustomParams = customParams.filter(cp => cp.type === 'def');
@@ -1303,10 +1424,9 @@ function showPlayerCard(id) {
             ${getBar('חילוצי כדור', p.tac)}${getBar('קריאת משחק', p.awa)}${getBar('פיזיות ועוצמה', p.str)}${getBar('כושר גופני', p.sta)}${getBar('יציאה מלחץ', p.com)}
             ${defCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${defCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}`;
     }
-
     const content = `
         ${avatar}
-        <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''}</h2>
+        <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''} ${vetBadge}</h2>
         <div style="margin-bottom:8px;">${lockedBadge}</div>
         <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
         <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
@@ -1322,9 +1442,7 @@ function showPlayerCard(id) {
             </div>
         </div>
         <div class="modal-scores">${scoreBoxes}</div>
-        ${statsSection}
-    `;
-
+        ${statsSection}`;
     document.getElementById('modalContent').innerHTML = content;
     document.getElementById('playerModalOverlay').style.display = 'flex';
 }
@@ -1347,7 +1465,7 @@ function renderTopScorers() {
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3 ? 'var(--primary-color)':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal}</div>
+                <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal} ${p.isVeteran ? '<span class="veteran-badge">⭐ ותיק</span>' : ''}</div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
                 <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
@@ -1385,7 +1503,7 @@ function renderLeaderboards() {
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${lockIcon} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${p.isVeteran ? '<span class="veteran-badge">⭐</span>' : ''} ${lockIcon} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
             </div>
             <div style="background:rgba(255,255,255,0.1); color:${colorClass}; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid ${colorClass};">${Number.isInteger(val) ? val : val.toFixed(1)}</div>
         </div>`;
@@ -1404,15 +1522,15 @@ function render() {
     if (squadList) {
         squadList.innerHTML = players.map(p => {
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
-            const lockTag = lockedCount > 0
-                ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>`
-                : '';
+            const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
+            const vetTag = p.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
             return `<div class="squad-item">
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
                     <div class="squad-name">
                         ${p.name}
                         ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''}
+                        ${vetTag}
                         ${lockTag}
                         <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals || 0})</span>
                     </div>
@@ -1436,12 +1554,11 @@ function render() {
         } else {
             lineupGrid.innerHTML = lineupPlayers.map(p => {
                 const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
-                const lockIcon = lockedCount > 0
-                    ? `<span class="admin-only lock-badge" style="font-size:0.65rem;">🔒${lockedCount}</span>`
-                    : '';
+                const lockIcon = lockedCount > 0 ? `<span class="admin-only lock-badge" style="font-size:0.65rem;">🔒${lockedCount}</span>` : '';
+                const vetIcon = p.isVeteran ? `<span class="veteran-badge" style="font-size:0.65rem;">⭐</span>` : '';
                 return `<div class="player-chip" ${p.isGk ? 'style="border-color:var(--gk-border); background:rgba(167,139,250,0.07);"' : ''}>
                     ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
-                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''} ${lockIcon}</div>
+                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''} ${vetIcon} ${lockIcon}</div>
                     <div class="chip-stats-container">
                         ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
                     </div>
@@ -1464,7 +1581,6 @@ function render() {
     renderLeaderboards();
     renderCustomParamsFormInputs();
     updateLeaderboardCustomOptions();
-
     requestAnimationFrame(() => window.scrollTo(0, currentScrollPos));
 }
 
@@ -1550,8 +1666,7 @@ async function createNewGroup() {
         const newGroupRef = await db.collection('groups').add({
             name: nameInput, password: passInput,
             settings: { numTeams: 3, playersPerTeam: 6 },
-            customParams: [],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            customParams: [], createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         alert('הקבוצה נוצרה בהצלחה!');
         window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
@@ -1586,14 +1701,11 @@ async function run() {
     const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
     if(lineup.length !== totalNeeded) return alert(`צריך בדיוק ${totalNeeded} שחקנים.`);
     scrollToTeamsFlag = true;
-
     const gkPlayers = lineup.filter(p => p.isGk);
     const fieldPlayers = lineup.filter(p => !p.isGk);
     const numTeams = groupSettings.numTeams;
     const playersPerTeam = groupSettings.playersPerTeam;
-
     if (gkPlayers.length > numTeams) return alert(`יש ${gkPlayers.length} שוערים אבל רק ${numTeams} קבוצות.`);
-
     let best = null, min = Infinity;
     for(let i = 0; i < 5000; i++) {
         const teams = Array.from({length: numTeams}, () => []);
@@ -1606,29 +1718,17 @@ async function run() {
             const slotsLeft = playersPerTeam - teams[t].length;
             for (let s = 0; s < slotsLeft; s++) { if (fieldIdx < tempField.length) teams[t].push(tempField[fieldIdx++]); }
         }
-        const attScores = teams.map(t => {
-            const fixedGk = t.find(p => p.isGk);
-            const fp = fixedGk ? t.filter(p => !p.isGk) : t;
-            return fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5;
-        });
-        const defScores = teams.map(t => {
-            const fixedGk = t.find(p => p.isGk);
-            const fp = fixedGk ? t.filter(p => !p.isGk) : t;
-            const fieldDef = fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5;
-            if (fixedGk) { const total = fp.length + 1; return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total; }
-            return fieldDef;
-        });
+        const attScores = teams.map(t => { const fixedGk = t.find(p => p.isGk); const fp = fixedGk ? t.filter(p => !p.isGk) : t; return fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5; });
+        const defScores = teams.map(t => { const fixedGk = t.find(p => p.isGk); const fp = fixedGk ? t.filter(p => !p.isGk) : t; const fieldDef = fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5; if (fixedGk) { const total = fp.length + 1; return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total; } return fieldDef; });
         const diff = (Math.max(...attScores) - Math.min(...attScores)) + (Math.max(...defScores) - Math.min(...defScores));
         if(diff < min) { min = diff; best = teams; }
     }
-
     const hasFixedGk = best.map(t => t.some(p => p.isGk));
     const gkIds = best.map((t, i) => {
         if (hasFixedGk[i]) return t.find(p => p.isGk).id;
         const sorted = [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
         return sorted[0]?.id || null;
     });
-
     let gameData = { gkIds, hasFixedGk, teamWins: Array(groupSettings.numTeams).fill(0), timestamp: firebase.firestore.FieldValue.serverTimestamp() };
     best.forEach((teamArr, idx) => { gameData[`team${idx+1}`] = teamArr; });
     await gameRef.set(gameData);
@@ -1645,16 +1745,12 @@ async function rotateGk(teamIndex) {
 }
 
 function assignFieldRoles(pool) {
-    const roles = {};
-    const n = pool.length;
-    if (n === 0) return roles;
+    const roles = {}; const n = pool.length; if (n === 0) return roles;
     const numDef = Math.max(1, Math.floor(n / 2));
     const byDef = [...pool].sort((a,b) => (b.defScore||5) - (a.defScore||5));
-    const defenders = byDef.slice(0, numDef);
-    const forwards = byDef.slice(numDef);
+    const defenders = byDef.slice(0, numDef); const forwards = byDef.slice(numDef);
     defenders.sort((a,b) => (a.sta||5) - (b.sta||5));
-    const sweeper = defenders.shift();
-    roles['בלם'] = sweeper;
+    const sweeper = defenders.shift(); roles['בלם'] = sweeper;
     defenders.sort((a,b) => (b.sta||5) - (a.sta||5));
     defenders.forEach((p, i) => { roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p; });
     forwards.sort((a,b) => (b.attScore||5) - (a.attScore||5));
@@ -1663,19 +1759,16 @@ function assignFieldRoles(pool) {
 }
 
 function assignRoles(team, forcedGkId) {
-    let pool = [...team].filter(p => !p.isGk);
-    const roles = {};
+    let pool = [...team].filter(p => !p.isGk); const roles = {};
     const fixedGk = team.find(p => p.isGk);
     if (fixedGk) { roles['שוער'] = fixedGk; }
     else if (forcedGkId) { const idx = pool.findIndex(p => p.id === forcedGkId); if (idx !== -1) roles['שוער'] = pool.splice(idx, 1)[0]; }
     else { pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
-    Object.assign(roles, assignFieldRoles(pool));
-    return roles;
+    Object.assign(roles, assignFieldRoles(pool)); return roles;
 }
 
 function assignRolesNoGk(team, currentGkId) {
-    const allPlayers = [...team].filter(p => !p.isGk);
-    const roles = {};
+    const allPlayers = [...team].filter(p => !p.isGk); const roles = {};
     let gkPlayer = allPlayers.find(p => p.id === currentGkId);
     if (!gkPlayer) { const sorted = [...allPlayers].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); gkPlayer = sorted[0]; }
     roles['שוער'] = gkPlayer;
@@ -1693,10 +1786,7 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
         return `<div class="pitch-player">
             ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
             <div style="margin-top:4px; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${p.name}</div>
-            <div class="pitch-player-stats">
-                <span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span>
-                <span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span>
-            </div>
+            <div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span><span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div>
             <div class="stat-ticker">
                 <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button>
                 <span class="ticker-val">⚽ ${goals}</span>
@@ -1705,7 +1795,6 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
             <span class="pitch-role">${icon} ${roleName}</span>
         </div>`;
     };
-
     let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
     content += teams.map((t, i) => {
         const isFixed = hasFixedGk ? hasFixedGk[i] : false;
@@ -1735,10 +1824,7 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
                     ${isFixed ? '<span class="gk-badge" style="font-size:0.8rem;">🧤 שוער קבוע</span>' : '<span style="font-size:0.8rem; color:var(--gk-text); font-weight:700;">🔄 שוער מתחלף</span>'}
                 </div>
             </div>
-            <div class="team-stats-row">
-                <span class="stat-badge stat-def">🛡️ הגנה: ${defTotal}</span>
-                <span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span>
-            </div>
+            <div class="team-stats-row"><span class="stat-badge stat-def">🛡️ הגנה: ${defTotal}</span><span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span></div>
             <div class="pitch">
                 <div class="pitch-row">${gkCard}</div>
                 ${defKeys.length>0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k],'🛡️',k)).join('')}</div>` : ''}
@@ -1773,38 +1859,20 @@ function shareGlobalVoteLink() {
 
 // ========== History ==========
 function renderHistory() {
-    const container = document.getElementById('historyList');
-    if (!container) return;
-    if (gamesHistoryCache.length === 0) {
-        container.innerHTML = `<div class="history-empty"><div style="font-size: 2rem; margin-bottom: 10px;">📭</div>עוד לא נסכם אף משחק.</div>`;
-        return;
-    }
+    const container = document.getElementById('historyList'); if (!container) return;
+    if (gamesHistoryCache.length === 0) { container.innerHTML = `<div class="history-empty"><div style="font-size: 2rem; margin-bottom: 10px;">📭</div>עוד לא נסכם אף משחק.</div>`; return; }
     const teamColors = ['#3B82F6','#F8FAFC','#EAB308','#EF4444','#10B981'];
     container.innerHTML = gamesHistoryCache.map((game, gameIndex) => {
         let dateStr = 'תאריך לא ידוע', timeStr = '';
-        if (game.date && game.date.toDate) {
-            const d = game.date.toDate();
-            dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-            timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-        }
+        if (game.date && game.date.toDate) { const d = game.date.toDate(); dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
         const allPlayers = (game.teams || []).flatMap(t => t.players || []);
         const scorers = allPlayers.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals);
-        const scorersHTML = scorers.length > 0
-            ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${p.name} × ${p.goals}</div>`).join('')
-            : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
-        const teamsHTML = (game.teams || []).map((team, ti) => {
-            const color = teamColors[ti] || '#10B981';
-            const playersTagsHTML = (team.players || []).map(p => `<div class="history-player-tag ${p.goals > 0 ? 'scorer' : ''}">${p.goals > 0 ? `⚽×${p.goals} ` : ''}${p.name}</div>`).join('');
-            return `<div class="history-team-block"><div class="history-team-header"><span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>${team.name}</span><span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span></div><div class="history-players-list">${playersTagsHTML}</div></div>`;
-        }).join('');
+        const scorersHTML = scorers.length > 0 ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${p.name} × ${p.goals}</div>`).join('') : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
+        const teamsHTML = (game.teams || []).map((team, ti) => { const color = teamColors[ti] || '#10B981'; const playersTagsHTML = (team.players || []).map(p => `<div class="history-player-tag ${p.goals > 0 ? 'scorer' : ''}">${p.goals > 0 ? `⚽×${p.goals} ` : ''}${p.name}</div>`).join(''); return `<div class="history-team-block"><div class="history-team-header"><span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>${team.name}</span><span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span></div><div class="history-players-list">${playersTagsHTML}</div></div>`; }).join('');
         const topScorerLine = game.topScorer ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${game.topScorer.name} ${game.topScorer.goals} שערים</span>` : '';
         let mvpSection = '';
-        if (game.mvpWinner) {
-            mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין</div><div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;"><span style="font-size:1.4rem;">🌟</span><div><div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div></div></div>`;
-        } else {
-            const voteCount = game.mvpVoteCount || 0;
-            mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין של הערב</div><div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;"><div style="font-size:0.85rem; color:var(--text-muted);">${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}</div><button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap;">📤 שתף להצבעה</button></div>`;
-        }
+        if (game.mvpWinner) { mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין</div><div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;"><span style="font-size:1.4rem;">🌟</span><div><div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div></div></div>`; }
+        else { const voteCount = game.mvpVoteCount || 0; mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין של הערב</div><div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;"><div style="font-size:0.85rem; color:var(--text-muted);">${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}</div><button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap;">📤 שתף להצבעה</button></div>`; }
         const uid = `hist_${gameIndex}`;
         return `<div class="history-card"><div class="history-header" onclick="toggleHistoryCard('${uid}')"><div class="history-date"><span>📅 ${dateStr}</span></div><div class="history-meta">${topScorerLine}<span class="history-players-count">👥 ${game.numPlayers || allPlayers.length}</span><span class="history-chevron" id="chev_${uid}">▼</span></div></div><div class="history-body" id="body_${uid}"><div style="font-size:0.8rem; color:var(--text-muted); margin: 10px 0;">${timeStr ? `שעת סיום: ${timeStr} •` : ''} ${game.numTeams || (game.teams||[]).length} קבוצות • ${game.totalGoals || 0} שערים</div>${mvpSection}<div class="history-section-label">מלך השערים של הערב</div><div class="history-scorers-row">${scorersHTML}</div><div class="history-section-label">קבוצות והרכבים</div>${teamsHTML}</div></div>`;
     }).join('');
@@ -1833,9 +1901,7 @@ function getLaundryRef() { if (!laundryRef && groupRef) laundryRef = groupRef.co
 
 function pickFairestLaundryman(laundryData, playerList) {
     if (playerList.length === 0) return null;
-    const counts = laundryData.counts || {};
-    const lastDates = laundryData.lastDates || {};
-    const lastPickedId = laundryData.lastPickedId || null;
+    const counts = laundryData.counts || {}, lastDates = laundryData.lastDates || {}, lastPickedId = laundryData.lastPickedId || null;
     let candidates = playerList.filter(p => p.id !== lastPickedId);
     if (candidates.length === 0) candidates = playerList;
     const minCount = Math.min(...candidates.map(p => counts[p.id] || 0));
@@ -1845,38 +1911,25 @@ function pickFairestLaundryman(laundryData, playerList) {
 }
 
 async function assignLaundryForGame(lineup) {
-    const ref = getLaundryRef();
-    if (!ref || lineup.length === 0) return;
-    const doc = await ref.get();
-    const existing = doc.exists ? doc.data() : {};
+    const ref = getLaundryRef(); if (!ref || lineup.length === 0) return;
+    const doc = await ref.get(); const existing = doc.exists ? doc.data() : {};
     if (existing.locked && existing.current) { const stillHere = lineup.some(p => p.id === existing.current.id); if (stillHere) return; }
-    const picked = pickFairestLaundryman(existing, lineup);
-    if (!picked) return;
+    const picked = pickFairestLaundryman(existing, lineup); if (!picked) return;
     await ref.set({ current: { id: picked.id, name: picked.name }, locked: true, counts: existing.counts || {}, lastDates: existing.lastDates || {}, lastPickedId: existing.lastPickedId || null, history: existing.history || [], lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
 }
 
 async function completeLaundryForGame() {
-    const ref = getLaundryRef();
-    if (!ref) return;
-    const doc = await ref.get();
-    if (!doc.exists || !doc.data().current) return;
-    const data = doc.data();
-    const doneId = data.current.id, doneName = data.current.name;
+    const ref = getLaundryRef(); if (!ref) return;
+    const doc = await ref.get(); if (!doc.exists || !doc.data().current) return;
+    const data = doc.data(); const doneId = data.current.id, doneName = data.current.name;
     const today = new Date().toLocaleDateString('he-IL');
-    const counts = { ...(data.counts || {}) };
-    const lastDates = { ...(data.lastDates || {}) };
-    counts[doneId] = (counts[doneId] || 0) + 1;
-    lastDates[doneId] = today;
+    const counts = { ...(data.counts || {}) }; const lastDates = { ...(data.lastDates || {}) };
+    counts[doneId] = (counts[doneId] || 0) + 1; lastDates[doneId] = today;
     await ref.update({ current: null, locked: false, lastPickedId: doneId, counts, lastDates, history: firebase.firestore.FieldValue.arrayUnion({ id: doneId, name: doneName, date: today, totalCount: counts[doneId] }), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
 }
 
 function renderLaundryTab(data) {
-    const currentCard = document.getElementById('laundryCurrentCard');
-    const currentName = document.getElementById('laundryCurrentName');
-    const currentRound = document.getElementById('laundryCurrentRound');
-    const histSection = document.getElementById('laundryHistorySection');
-    const histList = document.getElementById('laundryHistoryList');
-    const emptyEl = document.getElementById('laundryEmpty');
+    const currentCard = document.getElementById('laundryCurrentCard'), currentName = document.getElementById('laundryCurrentName'), currentRound = document.getElementById('laundryCurrentRound'), histSection = document.getElementById('laundryHistorySection'), histList = document.getElementById('laundryHistoryList'), emptyEl = document.getElementById('laundryEmpty');
     if (!data || !data.current) {
         currentCard.style.display = 'none'; emptyEl.style.display = 'block';
         const hist = data ? (data.history || []).slice().reverse() : [];
@@ -1885,8 +1938,7 @@ function renderLaundryTab(data) {
         return;
     }
     emptyEl.style.display = 'none'; currentCard.style.display = 'block';
-    const counts = data.counts || {};
-    const totalDone = counts[data.current.id] || 0;
+    const counts = data.counts || {}; const totalDone = counts[data.current.id] || 0;
     currentName.textContent = data.current.name;
     currentRound.textContent = totalDone === 0 ? 'תורו הראשון 🎉' : `כיבס ${totalDone} פעמים עד כה`;
     const hist = (data.history || []).slice().reverse();
@@ -1899,8 +1951,7 @@ function renderHistoryItems(hist) {
 }
 
 function startLaundryListener() {
-    const ref = getLaundryRef();
-    if (!ref) return;
+    const ref = getLaundryRef(); if (!ref) return;
     if (laundryUnsubscribe) laundryUnsubscribe();
     laundryUnsubscribe = ref.onSnapshot(snap => { renderLaundryTab(snap.exists ? snap.data() : null); });
 }
@@ -1934,6 +1985,234 @@ function renderMarket() {
         }).join('');
     });
 }
+
+// ========== REGISTRATION SYSTEM ==========
+let currentRegId = null;
+let regEntriesUnsubscribe = null;
+
+function startRegistrationListener() {
+    groupRef.onSnapshot(snap => {
+        if (!snap.exists) return;
+        const data = snap.data();
+        const activeRegId = data.activeRegistrationId || null;
+
+        if (activeRegId !== currentRegId) {
+            currentRegId = activeRegId;
+            if (regEntriesUnsubscribe) { regEntriesUnsubscribe(); regEntriesUnsubscribe = null; }
+            if (activeRegId) {
+                listenToRegistration(activeRegId);
+            } else {
+                hideRegBanner();
+                showRegOpenForm();
+            }
+        }
+
+        // Restore saved notice
+        if (data.lastRegNotice !== undefined) {
+            const noticeInput = document.getElementById('regNoticeInput');
+            if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
+        }
+    });
+}
+
+function listenToRegistration(regId) {
+    const regRef = groupRef.collection('registrations').doc(regId);
+    regEntriesUnsubscribe = regRef.collection('entries')
+        .orderBy('registeredAt', 'asc')
+        .onSnapshot(snap => {
+            const entries = snap.docs.map(d => d.data());
+            const confirmed = entries.filter(e => !e.isWaiting).length;
+            const waiting = entries.filter(e => e.isWaiting).length;
+            updateRegCounts(confirmed, waiting);
+        });
+
+    regRef.get().then(doc => {
+        if (!doc.exists || !doc.data().open) {
+            hideRegBanner(); showRegOpenForm(); return;
+        }
+        showRegBanner(regId, doc.data());
+        showRegActivePanel(regId);
+    });
+}
+
+function updateRegCounts(confirmed, waiting) {
+    const maxP = (groupSettings.numTeams || 3) * (groupSettings.playersPerTeam || 6);
+    const bc = document.getElementById('regBannerConfirmed');
+    const bw = document.getElementById('regBannerWaiting');
+    const sc = document.getElementById('regStatConfirmed');
+    const sw = document.getElementById('regStatWaiting');
+    if (bc) bc.textContent = `${confirmed} / ${maxP} נרשמו`;
+    if (bw) { bw.style.display = waiting > 0 ? 'block' : 'none'; bw.textContent = `${waiting} ממתינים`; }
+    if (sc) sc.textContent = `${confirmed} / ${maxP} נרשמו`;
+    if (sw) { sw.style.display = waiting > 0 ? 'block' : 'none'; sw.textContent = `${waiting} ממתינים`; }
+}
+
+function showRegBanner(regId, regData) {
+    const banner = document.getElementById('regBanner'); if (!banner) return;
+    banner.classList.add('visible');
+    const dateEl = document.getElementById('regBannerDate');
+    if (dateEl && regData.gameDate) dateEl.textContent = `${regData.gameDate}${regData.gameTime ? ' • ' + regData.gameTime : ''}`;
+    const link = document.getElementById('regBannerLink');
+    if (link) link.href = buildRegUrl(regId);
+}
+
+function hideRegBanner() {
+    const banner = document.getElementById('regBanner'); if (banner) banner.classList.remove('visible');
+}
+
+function showRegOpenForm() {
+    const form = document.getElementById('regOpenForm'); const panel = document.getElementById('regActivePanel');
+    if (form) form.style.display = 'block';
+    if (panel) panel.style.display = 'none';
+}
+
+function showRegActivePanel(regId) {
+    const form = document.getElementById('regOpenForm'); const panel = document.getElementById('regActivePanel');
+    if (form) form.style.display = 'none';
+    if (panel) panel.style.display = 'block';
+    const linkDisplay = document.getElementById('regLinkDisplay');
+    if (linkDisplay) linkDisplay.textContent = buildRegUrl(regId);
+}
+
+function buildRegUrl(regId) {
+    return `${window.location.origin}${window.location.pathname.replace('index.html', '')}registration.html?group=${currentGroupId}&reg=${regId}`;
+}
+
+async function openRegistration() {
+    const dateInput = document.getElementById('regDateInput');
+    const timeInput = document.getElementById('regTimeInput');
+    const noticeInput = document.getElementById('regNoticeInput');
+    if (!dateInput.value) return alert('נא לבחור תאריך למשחק.');
+    const gameDateRaw = dateInput.value; // YYYY-MM-DD for storage
+    const [y, m, d] = gameDateRaw.split('-');
+    const gameDateDisplay = `${d}-${m}-${y}`; // DD-MM-YYYY for display
+    const gameTime = timeInput.value || '20:00';
+    const noticeText = noticeInput.value.trim();
+    try {
+        await groupRef.update({ lastRegNotice: noticeText });
+        const newRegRef = await groupRef.collection('registrations').add({
+            gameDate: gameDateDisplay, gameDateRaw, gameTime, noticeText, open: true,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            groupId: currentGroupId
+        });
+        await groupRef.update({ activeRegistrationId: newRegRef.id });
+        alert('ההרשמה נפתחה בהצלחה! ✅');
+    } catch (e) { console.error(e); alert('שגיאה בפתיחת ההרשמה: ' + e.message); }
+}
+
+async function closeRegistration() {
+    if (!currentRegId) return;
+    if (!confirm('לסגור את ההרשמה? שחקנים לא יוכלו להירשם יותר.')) return;
+    try {
+        await groupRef.collection('registrations').doc(currentRegId).update({ open: false });
+        await groupRef.update({ activeRegistrationId: firebase.firestore.FieldValue.delete() });
+    } catch (e) { console.error(e); alert('שגיאה בסגירת ההרשמה.'); }
+}
+
+function copyRegLink() {
+    const el = document.getElementById('regLinkDisplay'); if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(() => alert('הקישור הועתק! 📋'));
+}
+
+function shareRegWhatsApp() {
+    if (!currentRegId) return;
+    const link = buildRegUrl(currentRegId);
+    groupRef.collection('registrations').doc(currentRegId).get().then(doc => {
+        const d = doc.data() || {};
+        const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ', '');
+        const dateStr = d.gameDate ? ` — ${d.gameDate}` : '';
+        const timeStr = d.gameTime ? ` בשעה ${d.gameTime}` : '';
+        const msg = `⚽ *${groupName} — הרשמה למשחק${dateStr}${timeStr}*\n\nלחצו להירשם:\n${link}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    });
+}
+// ========== REG CALENDAR ==========
+let regCalYear, regCalMonth;
+
+function initRegCalendar() {
+    const now = new Date();
+    regCalYear = now.getFullYear();
+    regCalMonth = now.getMonth();
+    // Set today as default
+    setRegCalendarDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+function renderRegCalendar() {
+    const title = document.getElementById('regCalendarTitle');
+    const daysEl = document.getElementById('regCalendarDays');
+    if (!title || !daysEl) return;
+
+    title.textContent = `${HE_MONTHS[regCalMonth]} ${regCalYear}`;
+
+    const firstDay = new Date(regCalYear, regCalMonth, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(regCalYear, regCalMonth + 1, 0).getDate();
+    const selectedVal = document.getElementById('regDateInput').value;
+
+    let html = '';
+    // Empty cells before first day (week starts Sunday=col0)
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const ymd = `${regCalYear}-${String(regCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isSelected = ymd === selectedVal;
+        const isToday = ymd === new Date().toISOString().split('T')[0];
+        html += `<div onclick="setRegCalendarDate(${regCalYear},${regCalMonth},${d})" style="
+            text-align:center; padding:6px 2px; border-radius:8px; cursor:pointer; font-size:0.88rem; font-weight:700;
+            background:${isSelected ? 'var(--primary-color)' : isToday ? 'rgba(16,185,129,0.15)' : 'transparent'};
+            color:${isSelected ? '#fff' : isToday ? 'var(--primary-color)' : 'var(--text-main)'};
+            border:${isToday && !isSelected ? '1px solid rgba(16,185,129,0.4)' : '1px solid transparent'};
+            transition:background 0.15s;
+        " onmouseover="if(!${isSelected}) this.style.background='rgba(255,255,255,0.08)'" onmouseout="if(!${isSelected}) this.style.background='${isToday ? 'rgba(16,185,129,0.15)' : 'transparent'}'">
+            ${d}
+        </div>`;
+    }
+    daysEl.innerHTML = html;
+}
+
+function setRegCalendarDate(y, m, d) {
+    const ymd = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    document.getElementById('regDateInput').value = ymd;
+    const display = `${String(d).padStart(2,'0')}-${String(m+1).padStart(2,'0')}-${y}`;
+    document.getElementById('regDateDisplay').value = display;
+    regCalYear = y; regCalMonth = m;
+    renderRegCalendar();
+    // Close after selection
+    document.getElementById('regCalendarDrop').style.display = 'none';
+}
+
+function toggleRegCalendar() {
+    const drop = document.getElementById('regCalendarDrop');
+    if (!drop) return;
+    const isOpen = drop.style.display !== 'none';
+    drop.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderRegCalendar();
+}
+
+function regCalendarPrev() {
+    regCalMonth--;
+    if (regCalMonth < 0) { regCalMonth = 11; regCalYear--; }
+    renderRegCalendar();
+}
+
+function regCalendarNext() {
+    regCalMonth++;
+    if (regCalMonth > 11) { regCalMonth = 0; regCalYear++; }
+    renderRegCalendar();
+}
+
+// Close calendar on outside click
+document.addEventListener('click', e => {
+    const drop = document.getElementById('regCalendarDrop');
+    const display = document.getElementById('regDateDisplay');
+    if (drop && display && !drop.contains(e.target) && e.target !== display) {
+        drop.style.display = 'none';
+    }
+});
+// ========== END REG CALENDAR ==========
+
+// ========== END REGISTRATION SYSTEM ==========
 </script>
 </body>
 </html>
