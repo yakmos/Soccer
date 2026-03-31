@@ -161,7 +161,7 @@
         .team-header-name::before { content: ''; display: block; width: 14px; height: 14px; border-radius: 50%; }
         
         .t-0 .team-header-name::before { background: #3B82F6; box-shadow: 0 0 8px #3B82F6;}
-        .t-1 .team-header-name::before { background: #F8FAFC; box-shadow: 0 0 8px #F8FAFC;}
+        .t-1 .team-header-name::before { background: #1a1a1a; box-shadow: 0 0 8px #555;}
         .t-2 .team-header-name::before { background: #EAB308; box-shadow: 0 0 8px #EAB308;}
         .t-3 .team-header-name::before { background: #EF4444; box-shadow: 0 0 8px #EF4444;}
         .t-4 .team-header-name::before { background: #10B981; box-shadow: 0 0 8px #10B981;}
@@ -1382,7 +1382,7 @@ async function finishGame() {
         const nowDate = new Date();
         const historyRef = groupRef.collection('history');
         const historyGamesRef = groupRef.collection('history_games');
-        const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+        const teamNames = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
         const teamsSnapshot = activeTeams.map((team, i) => ({
             name: teamNames[i] || `קבוצה ${i+1}`,
             wins: activeWins[i] || 0,
@@ -1857,7 +1857,7 @@ function assignRolesNoGk(team, currentGkId) {
 
 function displayTeams(teams, gkIds, hasFixedGk, wins) {
     const r = document.getElementById('results');
-    const teamNames = ["קבוצה כחולה","קבוצה לבנה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+    const teamNames = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
     const renderPitchCard = (p, icon, roleName) => {
         if (!p) return `<div class="pitch-player" style="opacity:0.5;"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
         const latestData = players.find(x => x.id === p.id) || p;
@@ -1940,7 +1940,7 @@ function shareGlobalVoteLink() {
 function renderHistory() {
     const container = document.getElementById('historyList'); if (!container) return;
     if (gamesHistoryCache.length === 0) { container.innerHTML = `<div class="history-empty"><div style="font-size: 2rem; margin-bottom: 10px;">📭</div>עוד לא נסכם אף משחק.</div>`; return; }
-    const teamColors = ['#3B82F6','#F8FAFC','#EAB308','#EF4444','#10B981'];
+    const teamColors = ['#3B82F6','#6B7280','#EAB308','#EF4444','#10B981'];
     container.innerHTML = gamesHistoryCache.map((game, gameIndex) => {
         let dateStr = 'תאריך לא ידוע', timeStr = '';
         if (game.date && game.date.toDate) { const d = game.date.toDate(); dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
