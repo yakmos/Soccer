@@ -365,6 +365,82 @@
             border-color: var(--primary-color);
             color: var(--primary-color);
         }
+        /* Birthday Picker */
+.birthday-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 15px;
+    position: relative;
+}
+.birthday-label { font-weight: 800; color: #A5B4FC; font-size: 0.95rem; }
+.birthday-sub   { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.birthday-value { font-weight: 900; color: var(--text-main); font-size: 0.95rem; cursor: pointer;
+    background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.35);
+    padding: 6px 12px; border-radius: 8px; min-width: 110px; text-align: center; transition: 0.2s; }
+.birthday-value:hover { background: rgba(99,102,241,0.25); }
+.birthday-clear { background: transparent; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 6px; transition: 0.15s; }
+.birthday-clear:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+
+.bday-cal-drop {
+    display: none; position: absolute;
+    top: calc(100% + 8px); left: 0; right: 0;
+    background: var(--surface-color); border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 14px; z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+}
+.bday-cal-drop.open { display: block; }
+
+.bday-year-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; gap: 8px;
+}
+.bday-year-row input[type="number"] {
+    width: 80px; text-align: center; padding: 6px 8px;
+    border-radius: 8px; border: 1px solid var(--border-color);
+    background: var(--bg-color); color: var(--text-main);
+    font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 800;
+}
+.bday-nav-btn {
+    background: rgba(255,255,255,0.08); border: none; color: var(--text-main);
+    width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 1rem;
+}
+.bday-month-title { font-weight: 900; font-size: 0.95rem; flex: 1; text-align: center; }
+.bday-day-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.bday-day-header {
+    text-align: center; font-size: 0.7rem; color: var(--text-muted);
+    font-weight: 800; padding: 4px 0;
+}
+.bday-day-cell {
+    text-align: center; padding: 6px 2px; border-radius: 8px;
+    cursor: pointer; font-size: 0.85rem; font-weight: 700;
+    transition: background 0.12s;
+    color: var(--text-main); border: 1px solid transparent;
+}
+.bday-day-cell:hover { background: rgba(255,255,255,0.08); }
+.bday-day-cell.selected { background: #6366F1; color: white; }
+.bday-day-cell.today { border-color: rgba(99,102,241,0.4); color: #A5B4FC; }
+.bday-day-cell.empty { cursor: default; }
+
+.age-badge-modal {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(99,102,241,0.12); color: #A5B4FC;
+    border: 1px solid rgba(99,102,241,0.3);
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 0.82rem; font-weight: 800; vertical-align: middle;
+}
+.age-badge-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: rgba(99,102,241,0.12); color: #A5B4FC;
+    border: 1px solid rgba(99,102,241,0.3);
+    padding: 1px 6px; border-radius: 5px;
+    font-size: 0.68rem; font-weight: 800;
+}
     </style>
 </head>
 <body id="mainBody">
@@ -560,6 +636,41 @@
                             <button type="button" id="veteranToggleBtn" onclick="toggleVeteranMode()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא ותיק</button>
                         </div>
                         <input type="hidden" id="pIsVeteran" value="false">
+                        <!-- Birthday Field -->
+        <div class="birthday-field-row" id="birthdayFieldRow">
+            <div>
+                <div class="birthday-label">🎂 תאריך לידה</div>
+                <div class="birthday-sub">הגיל יחושב אוטומטית ויוצג בכרטיס השחקן</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <div class="birthday-value" id="bdayDisplayBtn" onclick="toggleBdayCal()">בחר תאריך</div>
+                <button type="button" class="birthday-clear" id="bdayClearBtn" onclick="clearBirthday()" style="display:none;" title="נקה תאריך">✕</button>
+            </div>
+            <input type="hidden" id="pBirthDate" value="">
+            <div class="bday-cal-drop" id="bdayCalDrop">
+                <div class="bday-year-row">
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalPrevYear()">«</button>
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalPrevMonth()">‹</button>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1;">
+                        <div id="bdayMonthTitle" class="bday-month-title"></div>
+                        <input type="number" id="bdayYearInput" min="1940" max="2020" value="1990"
+                            onchange="bdayYearChanged()" onclick="event.stopPropagation()"
+                            style="width:80px; text-align:center; padding:4px 8px; border-radius:8px;
+                            border:1px solid var(--border-color); background:var(--bg-color);
+                            color:var(--text-main); font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:800;">
+                    </div>
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalNextMonth()">›</button>
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalNextYear()">»</button>
+                </div>
+                <div class="bday-day-grid" style="margin-bottom:6px;">
+                    <div class="bday-day-header">א</div><div class="bday-day-header">ב</div>
+                    <div class="bday-day-header">ג</div><div class="bday-day-header">ד</div>
+                    <div class="bday-day-header">ה</div><div class="bday-day-header">ו</div>
+                    <div class="bday-day-header">ש</div>
+                </div>
+                <div class="bday-day-grid" id="bdayDayGrid"></div>
+            </div>
+        </div>
 
                         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--gk-bg); border:1px solid var(--gk-border); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
                             <div>
@@ -869,6 +980,7 @@ window.onload = async () => {
         updateGroupLinkUI();
         startRealtimeListeners();
         initRegCalendar();
+        initBdayCal();
     }
 };
 
@@ -1212,8 +1324,8 @@ async function savePlayer() {
     const hasLocked = Object.keys(currentLockedParams).length > 0;
     const lockedParams = hasLocked ? { ...currentLockedParams } : {};
 
-    let playerData = { name, isGk, isVeteran, lockedParams };
-
+const birthDate = document.getElementById('pBirthDate').value || null;
+    let playerData = { name, isGk, isVeteran, lockedParams, birthDate };
     if (isGk) {
         const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
         const gkHan = parseFloat(document.getElementById('pGkHan').value) || 5;
@@ -1275,6 +1387,7 @@ async function savePlayer() {
         vBtn.textContent = 'לא ותיק'; vBtn.style.background = 'transparent';
         vBtn.style.color = 'var(--text-muted)'; vBtn.style.borderColor = 'var(--border-color)';
         resetLockedParamsUI();
+        resetBirthdayField();
     }
 }
 
@@ -1314,6 +1427,7 @@ function startEdit(id, p) {
         });
         fillCustomParamInputs(p);
     }
+    fillBirthdayField(p.birthDate || null);
     fillLockedParamsUI(p.lockedParams || null);
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
     document.getElementById('cancelBtn').style.display = "block";
@@ -1341,6 +1455,7 @@ function cancelEdit() {
     document.getElementById('saveBtn').innerText = "שמור שחקן";
     document.getElementById('cancelBtn').style.display = "none";
     resetLockedParamsUI();
+    resetBirthdayField();
 }
 
 async function toggleLineup(id, currentState) { await playersRef.doc(id).update({ inLineup: !currentState }); }
@@ -1470,6 +1585,8 @@ function showPlayerCard(id) {
     const lockedCount = Object.keys(lockedParams).length;
     const lockedBadge = lockedCount > 0 ? `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--lock-bg); color:var(--lock-color); border:1px solid var(--lock-border); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:800; margin-right:6px;">🔒 ${lockedCount} פרמטרים נעולים</span>` : '';
     const vetBadge = p.isVeteran ? `<span class="veteran-badge" style="vertical-align:middle; margin-right:4px;">⭐ ותיק</span>` : '';
+    const age = calcAge(p.birthDate);
+    const ageBadge = age !== null ? `<span class="age-badge-modal">🎂 גיל ${age}</span>` : '';
     const getBar = (label, val, color) => {
         const c = color || getColorStyles(val||5).hex;
         return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${c};"></div></div><div class="stat-bar-val" style="color:${c};">${val||5}</div></div>`;
@@ -1506,7 +1623,7 @@ function showPlayerCard(id) {
     const content = `
         ${avatar}
         <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''} ${vetBadge}</h2>
-        <div style="margin-bottom:8px;">${lockedBadge}</div>
+        <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap;">${lockedBadge}${ageBadge}</div>
         <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
         <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
         <div style="display:flex; justify-content:center; gap:10px; margin-bottom:25px;">
@@ -2344,6 +2461,120 @@ document.addEventListener('click', e => {
         drop.style.display = 'none';
     }
 });
+    // ========== BIRTHDAY CALENDAR ==========
+let bdayCalYear = 1990, bdayCalMonth = 0;
+
+function initBdayCal() {
+    const now = new Date();
+    bdayCalYear = 1990; bdayCalMonth = 0;
+    renderBdayCal();
+}
+
+function renderBdayCal() {
+    const titleEl = document.getElementById('bdayMonthTitle');
+    const gridEl  = document.getElementById('bdayDayGrid');
+    const yearEl  = document.getElementById('bdayYearInput');
+    if (!titleEl || !gridEl) return;
+
+    titleEl.textContent = HE_MONTHS[bdayCalMonth];
+    if (yearEl) yearEl.value = bdayCalYear;
+
+    const firstDay    = new Date(bdayCalYear, bdayCalMonth, 1).getDay();
+    const daysInMonth = new Date(bdayCalYear, bdayCalMonth + 1, 0).getDate();
+    const selectedVal = document.getElementById('pBirthDate').value;
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) html += '<div class="bday-day-cell empty"></div>';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const ymd = `${bdayCalYear}-${String(bdayCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isSel = ymd === selectedVal;
+        html += `<div class="bday-day-cell ${isSel ? 'selected' : ''}" onclick="selectBdayDate('${ymd}')">${d}</div>`;
+    }
+    gridEl.innerHTML = html;
+}
+
+function toggleBdayCal() {
+    const drop = document.getElementById('bdayCalDrop');
+    if (!drop) return;
+    const isOpen = drop.classList.contains('open');
+    // close calendar & timepicker if open
+    document.getElementById('regCalendarDrop') && (document.getElementById('regCalendarDrop').style.display = 'none');
+    document.getElementById('timePickerDrop')  && (document.getElementById('timePickerDrop').style.display  = 'none');
+    drop.classList.toggle('open', !isOpen);
+    if (!isOpen) {
+        const curVal = document.getElementById('pBirthDate').value;
+        if (curVal) {
+            const [y, m] = curVal.split('-').map(Number);
+            bdayCalYear = y; bdayCalMonth = m - 1;
+        }
+        renderBdayCal();
+    }
+}
+
+function selectBdayDate(ymd) {
+    document.getElementById('pBirthDate').value = ymd;
+    const [y, m, d] = ymd.split('-');
+    document.getElementById('bdayDisplayBtn').textContent = `${d}-${m}-${y}`;
+    document.getElementById('bdayClearBtn').style.display = 'block';
+    renderBdayCal();
+    setTimeout(() => document.getElementById('bdayCalDrop').classList.remove('open'), 180);
+}
+
+function clearBirthday() {
+    document.getElementById('pBirthDate').value = '';
+    document.getElementById('bdayDisplayBtn').textContent = 'בחר תאריך';
+    document.getElementById('bdayClearBtn').style.display = 'none';
+}
+
+function bdayCalPrevMonth() { bdayCalMonth--; if (bdayCalMonth < 0)  { bdayCalMonth = 11; bdayCalYear--; } renderBdayCal(); }
+function bdayCalNextMonth() { bdayCalMonth++; if (bdayCalMonth > 11) { bdayCalMonth = 0;  bdayCalYear++; } renderBdayCal(); }
+function bdayCalPrevYear()  { bdayCalYear--; renderBdayCal(); }
+function bdayCalNextYear()  { bdayCalYear++; renderBdayCal(); }
+function bdayYearChanged()  { const y = parseInt(document.getElementById('bdayYearInput').value); if (!isNaN(y) && y >= 1900 && y <= 2020) { bdayCalYear = y; renderBdayCal(); } }
+
+// close bday calendar on outside click
+document.addEventListener('click', e => {
+    const drop    = document.getElementById('bdayCalDrop');
+    const trigger = document.getElementById('bdayDisplayBtn');
+    if (drop && drop.classList.contains('open') && !drop.contains(e.target) && e.target !== trigger) {
+        drop.classList.remove('open');
+    }
+});
+
+// ========== BIRTHDAY UTILITIES ==========
+function calcAge(birthDateStr) {
+    if (!birthDateStr) return null;
+    const [y, m, d] = birthDateStr.split('-').map(Number);
+    const today = new Date();
+    let age = today.getFullYear() - y;
+    const monthDiff = today.getMonth() + 1 - m;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) age--;
+    return age;
+}
+
+function fillBirthdayField(birthDate) {
+    const hidden  = document.getElementById('pBirthDate');
+    const display = document.getElementById('bdayDisplayBtn');
+    const clearBtn= document.getElementById('bdayClearBtn');
+    if (!hidden || !display) return;
+    if (birthDate) {
+        hidden.value = birthDate;
+        const [y, m, d] = birthDate.split('-');
+        display.textContent = `${d}-${m}-${y}`;
+        if (clearBtn) clearBtn.style.display = 'block';
+        bdayCalYear  = parseInt(y);
+        bdayCalMonth = parseInt(m) - 1;
+    } else {
+        hidden.value = '';
+        display.textContent = 'בחר תאריך';
+        if (clearBtn) clearBtn.style.display = 'none';
+    }
+}
+
+function resetBirthdayField() {
+    fillBirthdayField(null);
+}
 </script>
 </body>
 </html>
