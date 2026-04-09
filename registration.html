@@ -863,11 +863,10 @@ function showClosed() {
 // 4 = לא פעיל + לא חדש
 // 5 = לא פעיל + חדש
 function getPriorityScore(entry) {
-    if (entry.isMoshavResident) return 1;
-    if (entry.isActive && !entry.isNew) return 2;
-    if (entry.isActive && entry.isNew) return 3;
-    if (!entry.isActive && !entry.isNew) return 4;
-    return 5; // לא פעיל + חדש
+    if (entry.isMoshavResident || (entry.isActive && !entry.isNew)) return 1;
+    if (entry.isActive && entry.isNew) return 2;
+    if (!entry.isActive && !entry.isNew) return 3;
+    return 4; // לא פעיל + חדש
 }
 
 function getEntryBadgesHTML(entry) {
