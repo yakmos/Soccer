@@ -1000,21 +1000,36 @@ async function registerPlayer() {
         const confirmedCount = registrations.filter(r => !r.isWaiting).length;
         const isFullBeforeAdd = confirmedCount >= maxPlayers;
 
-        // Priority bump logic:
-        // The new player can bump a confirmed player only if the new player has a strictly
-        // higher priority (lower score) than at least one confirmed player.
-        // We bump the lowest-priority confirmed player (highest score, latest registeredAt as tie-break).
+        // Check if we're within 4 hours of game start — no bumping allowed in that window
+        const isWithin4Hours = (() => {
+            if (!gameData.gameDate || !gameData.gameTime) return false;
+            try {
+                // gameDate is like "DD/MM/YYYY" or "YYYY-MM-DD", gameTime is "HH:MM"
+                let dateParts, gameDateTime;
+                if (gameData.gameDate.includes('/')) {
+                    dateParts = gameData.gameDate.split('/');
+                    // DD/MM/YYYY
+                    gameDateTime = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${gameData.gameTime}:00`);
+                } else {
+                    gameDateTime = new Date(`${gameData.gameDate}T${gameData.gameTime}:00`);
+                }
+                const now = new Date();
+                const diffMs = gameDateTime - now;
+                return diffMs >= 0 && diffMs <= 4 * 60 * 60 * 1000;
+            } catch(e) { return false; }
+        })();
+
+        // Priority bump logic (only outside the 4-hour window):
         let bumpedPlayerId = null;
-        if (isFullBeforeAdd) {
+        if (isFullBeforeAdd && !isWithin4Hours) {
             const newPriority = getPriorityScore(selectedPlayer);
             const confirmed = registrations.filter(r => !r.isWaiting);
-            // Find the worst confirmed player
             const worstConfirmed = confirmed.sort((a, b) => {
                 const pa = getPriorityScore(a), pb = getPriorityScore(b);
-                if (pb !== pa) return pb - pa; // highest score (worst) first
+                if (pb !== pa) return pb - pa;
                 const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
                 const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-                return tb - ta; // latest registered first (tie-break)
+                return tb - ta;
             })[0];
 
             if (worstConfirmed && getPriorityScore(worstConfirmed) > newPriority) {
