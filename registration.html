@@ -22,9 +22,15 @@
             --border: #334155;
             --danger: #EF4444;
             --danger-dim: rgba(239,68,68,0.12);
-            --veteran: #FCD34D;
-            --veteran-dim: rgba(252,211,77,0.12);
-            --veteran-border: rgba(252,211,77,0.3);
+            --active-color: #10B981;
+            --active-dim: rgba(16,185,129,0.12);
+            --active-border: rgba(16,185,129,0.3);
+            --new-color: #60A5FA;
+            --new-dim: rgba(59,130,246,0.12);
+            --new-border: rgba(59,130,246,0.3);
+            --resident-color: #FCD34D;
+            --resident-dim: rgba(252,211,77,0.12);
+            --resident-border: rgba(252,211,77,0.3);
             --waiting-color: #F97316;
             --waiting-dim: rgba(249,115,22,0.12);
             --waiting-border: rgba(249,115,22,0.3);
@@ -267,18 +273,26 @@
             word-spacing: 0;
         }
 
-        .veteran-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            background: var(--veteran-dim);
-            color: var(--veteran);
-            border: 1px solid var(--veteran-border);
-            padding: 1px 7px;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            font-weight: 800;
-            letter-spacing: 0.3px;
+        .badge-active {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: var(--active-dim); color: var(--active-color);
+            border: 1px solid var(--active-border);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.3px;
+        }
+        .badge-new {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: var(--new-dim); color: var(--new-color);
+            border: 1px solid var(--new-border);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.3px;
+        }
+        .badge-resident {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: var(--resident-dim); color: var(--resident-color);
+            border: 1px solid var(--resident-border);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.3px;
         }
 
         .ac-sub {
@@ -841,6 +855,29 @@ function showClosed() {
     document.getElementById('closedView').style.display = 'block';
 }
 
+// ========== Priority ==========
+// Priority score (lower = higher priority):
+// 1 = תושב מגדים
+// 2 = פעיל + לא חדש
+// 3 = פעיל + חדש
+// 4 = לא פעיל + לא חדש
+// 5 = לא פעיל + חדש
+function getPriorityScore(entry) {
+    if (entry.isMoshavResident) return 1;
+    if (entry.isActive && !entry.isNew) return 2;
+    if (entry.isActive && entry.isNew) return 3;
+    if (!entry.isActive && !entry.isNew) return 4;
+    return 5; // לא פעיל + חדש
+}
+
+function getEntryBadgesHTML(entry) {
+    let badges = '';
+    if (entry.isActive) badges += `<span class="badge-active">✅ פעיל</span>`;
+    if (entry.isNew) badges += `<span class="badge-new">🆕 חדש</span>`;
+    if (entry.isMoshavResident) badges += `<span class="badge-resident">🏠 תושב</span>`;
+    return badges;
+}
+
 function updateDateBadge(data) {
     const badge = document.getElementById('gameDateBadge');
     if (data.gameDate && data.gameTime) {
@@ -904,7 +941,7 @@ function renderAutocomplete(results, query) {
         const highlight = idx >= 0
             ? p.name.slice(0, idx) + `<span class="highlight">${p.name.slice(idx, idx + query.length)}</span>` + p.name.slice(idx + query.length)
             : p.name;
-        const vetBadge = p.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+        const playerBadges = getEntryBadgesHTML(p);
         const avatar = p.imgUrl
             ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>`
             : `<div class="ac-avatar">👤</div>`;
@@ -916,7 +953,7 @@ function renderAutocomplete(results, query) {
             onclick="selectPlayer('${p.id}')">
             ${avatar}
             <div class="ac-info">
-                <div class="ac-name"><span class="ac-name-text">${highlight}</span> ${vetBadge} ${statusText}</div>
+                <div class="ac-name"><span class="ac-name-text">${highlight}</span> ${playerBadges} ${statusText}</div>
                 <div class="ac-sub">${scores}</div>
             </div>
         </div>`;
@@ -964,21 +1001,25 @@ async function registerPlayer() {
         const confirmedCount = registrations.filter(r => !r.isWaiting).length;
         const isFullBeforeAdd = confirmedCount >= maxPlayers;
 
-        // Veteran bump logic:
-        // If the game is full but this is a veteran AND there's a non-veteran in the confirmed list,
-        // we bump the last non-veteran to waiting.
+        // Priority bump logic:
+        // The new player can bump a confirmed player only if the new player has a strictly
+        // higher priority (lower score) than at least one confirmed player.
+        // We bump the lowest-priority confirmed player (highest score, latest registeredAt as tie-break).
         let bumpedPlayerId = null;
-        if (isFullBeforeAdd && selectedPlayer.isVeteran) {
-            // Find the last confirmed non-veteran (latest registeredAt)
-            const confirmedNonVets = registrations
-                .filter(r => !r.isWaiting && !r.isVeteran)
-                .sort((a, b) => {
-                    const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
-                    const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-                    return tb - ta; // latest first
-                });
-            if (confirmedNonVets.length > 0) {
-                bumpedPlayerId = confirmedNonVets[0].id;
+        if (isFullBeforeAdd) {
+            const newPriority = getPriorityScore(selectedPlayer);
+            const confirmed = registrations.filter(r => !r.isWaiting);
+            // Find the worst confirmed player
+            const worstConfirmed = confirmed.sort((a, b) => {
+                const pa = getPriorityScore(a), pb = getPriorityScore(b);
+                if (pb !== pa) return pb - pa; // highest score (worst) first
+                const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
+                const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
+                return tb - ta; // latest registered first (tie-break)
+            })[0];
+
+            if (worstConfirmed && getPriorityScore(worstConfirmed) > newPriority) {
+                bumpedPlayerId = worstConfirmed.id;
             }
         }
 
@@ -995,7 +1036,9 @@ async function registerPlayer() {
             playerId: selectedPlayer.id,
             name: selectedPlayer.name,
             imgUrl: selectedPlayer.imgUrl || null,
-            isVeteran: !!selectedPlayer.isVeteran,
+            isActive: !!selectedPlayer.isActive,
+            isNew: !!selectedPlayer.isNew,
+            isMoshavResident: !!selectedPlayer.isMoshavResident,
             isGk: !!selectedPlayer.isGk,
             attScore: selectedPlayer.attScore || 5,
             defScore: selectedPlayer.defScore || 5,
@@ -1004,7 +1047,7 @@ async function registerPlayer() {
             registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Bump non-veteran to waiting if needed
+        // Bump lower-priority player to waiting if needed
         if (bumpedPlayerId) {
             batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
         }
@@ -1018,7 +1061,7 @@ async function registerPlayer() {
         if (isWaiting) {
             showToast('נרשמת לרשימת המתנה ⏳', 'info');
         } else if (bumpedPlayerId) {
-            showToast('נרשמת! שחקן אחר עבר להמתנה (ותיק בקדימות) ✅', 'success');
+            showToast('נרשמת! שחקן אחר עבר להמתנה (קדימות גבוהה יותר) ✅', 'success');
         } else {
             showToast('נרשמת בהצלחה! ✅', 'success');
         }
@@ -1043,13 +1086,12 @@ function renderPlayersList() {
         return;
     }
 
-    // Sort: confirmed first (sorted by registeredAt), then waiting
+    // Sort: confirmed first (by priority, then by time), then waiting (by priority, then by time)
     const confirmed = registrations
         .filter(r => !r.isWaiting)
         .sort((a, b) => {
-            // Veterans first, then by time
-            if (a.isVeteran && !b.isVeteran) return -1;
-            if (!a.isVeteran && b.isVeteran) return 1;
+            const pa = getPriorityScore(a), pb = getPriorityScore(b);
+            if (pa !== pb) return pa - pb; // lower score = higher priority first
             const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
             const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
             return ta - tb;
@@ -1058,6 +1100,8 @@ function renderPlayersList() {
     const waiting = registrations
         .filter(r => r.isWaiting)
         .sort((a, b) => {
+            const pa = getPriorityScore(a), pb = getPriorityScore(b);
+            if (pa !== pb) return pa - pb;
             const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
             const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
             return ta - tb;
@@ -1090,7 +1134,7 @@ function renderPlayerRow(r, pos, isWaiting) {
     const avatar = r.imgUrl
         ? `<div class="player-avatar"><img src="${r.imgUrl}"></div>`
         : `<div class="player-avatar">👤</div>`;
-    const vetBadge = r.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+    const playerBadges = getEntryBadgesHTML(r);
     const gkBadge = r.isGk ? `<span style="font-size:0.72rem; background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.3); padding:1px 7px; border-radius:6px; font-weight:800;">🧤 שוער</span>` : '';
     const posClass = isWaiting ? 'waiting-pos' : 'confirmed';
     const timeStr = r.registeredAt?.toDate
@@ -1103,7 +1147,7 @@ function renderPlayerRow(r, pos, isWaiting) {
         ${avatar}
         <div class="player-name-wrap">
             <span class="player-name">${r.name}</span>
-            ${vetBadge}${gkBadge}${waitingTag}
+            ${playerBadges}${gkBadge}${waitingTag}
         </div>
         ${timeStr ? `<span class="player-time">${timeStr}</span>` : ''}
         <button class="remove-btn" onclick="removePlayer('${r.id}')" title="הסר שחקן">✕</button>
@@ -1135,7 +1179,9 @@ async function removePlayer(entryId) {
             playerId: removedEntry.playerId,
             name: removedEntry.name,
             imgUrl: removedEntry.imgUrl || null,
-            isVeteran: !!removedEntry.isVeteran,
+            isActive: !!removedEntry.isActive,
+            isNew: !!removedEntry.isNew,
+            isMoshavResident: !!removedEntry.isMoshavResident,
             wasConfirmed,
             registeredAt: removedEntry.registeredAt,
             cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1144,18 +1190,20 @@ async function removePlayer(entryId) {
         // Delete from entries
         batch.delete(entriesRef.doc(entryId));
 
-        // If was confirmed → promote first waiting
+        // If was confirmed → promote highest-priority waiting player
         if (wasConfirmed) {
-            const firstWaiting = registrations
+            const waitingList = registrations
                 .filter(r => r.isWaiting && r.id !== entryId)
                 .sort((a, b) => {
+                    const pa = getPriorityScore(a), pb = getPriorityScore(b);
+                    if (pa !== pb) return pa - pb; // highest priority first
                     const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
                     const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-                    return ta - tb;
-                })[0];
+                    return ta - tb; // earliest registered as tie-break
+                });
 
-            if (firstWaiting) {
-                batch.update(entriesRef.doc(firstWaiting.id), { isWaiting: false });
+            if (waitingList.length > 0) {
+                batch.update(entriesRef.doc(waitingList[0].id), { isWaiting: false });
             }
         }
 
@@ -1183,7 +1231,7 @@ function renderCancelledList() {
         const avatar = r.imgUrl
             ? `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);"><img src="${r.imgUrl}"></div>`
             : `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);">👤</div>`;
-        const vetBadge = r.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+        const playerBadges = getEntryBadgesHTML(r);
         const cancelTimeStr = r.cancelledAt?.toDate
             ? r.cancelledAt.toDate().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             : '';
@@ -1192,7 +1240,7 @@ function renderCancelledList() {
             ${avatar}
             <div class="player-name-wrap">
                 <span class="player-name" style="color:#F87171;">${r.name}</span>
-                ${vetBadge}
+                ${playerBadges}
                 <span class="cancelled-tag">בוטל</span>
             </div>
             ${cancelTimeStr ? `<span class="cancel-time">${cancelTimeStr}</span>` : ''}

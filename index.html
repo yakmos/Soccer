@@ -299,7 +299,21 @@
         .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
         .pitch-player.is-rotating-gk { border: 2px dashed var(--gk-text); background: rgba(167,139,250,0.1); }
 
-        .veteran-badge {
+        .badge-active {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(16,185,129,0.12); color: #10B981;
+            border: 1px solid rgba(16,185,129,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+        .badge-new {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(59,130,246,0.12); color: #60A5FA;
+            border: 1px solid rgba(59,130,246,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+        .badge-resident {
             display: inline-flex; align-items: center; gap: 3px;
             background: rgba(252,211,77,0.12); color: #FCD34D;
             border: 1px solid rgba(252,211,77,0.3);
@@ -628,14 +642,36 @@
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
 
-                        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(252,211,77,0.06); border:1px solid rgba(252,211,77,0.25); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
-                            <div>
-                                <div style="font-weight:800; color:#FCD34D; font-size:0.95rem;">⭐ שחקן ותיק?</div>
-                                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">ותיקים מקבלים קדימות בהרשמה למשחקים</div>
+                        <!-- Player Classification Toggles -->
+                        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+                            <!-- Active toggle -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div style="font-weight:800; color:#10B981; font-size:0.95rem;">✅ שחקן פעיל?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים פעילים מקבלים קדימות בהרשמה</div>
+                                </div>
+                                <button type="button" id="activeToggleBtn" onclick="togglePlayerFlag('isActive','activeToggleBtn','✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא פעיל</button>
                             </div>
-                            <button type="button" id="veteranToggleBtn" onclick="toggleVeteranMode()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא ותיק</button>
+                            <!-- New toggle -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div style="font-weight:800; color:#60A5FA; font-size:0.95rem;">🆕 שחקן חדש?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים חדשים מקבלים עדיפות נמוכה יותר</div>
+                                </div>
+                                <button type="button" id="newToggleBtn" onclick="togglePlayerFlag('isNew','newToggleBtn','🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא חדש</button>
+                            </div>
+                            <!-- Resident toggle -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(252,211,77,0.06); border:1px solid rgba(252,211,77,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div style="font-weight:800; color:#FCD34D; font-size:0.95rem;">🏠 תושב מגדים?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">תושבי מגדים מקבלים קדימות ראשונה תמיד</div>
+                                </div>
+                                <button type="button" id="residentToggleBtn" onclick="togglePlayerFlag('isMoshavResident','residentToggleBtn','🏠 תושב מגדים','לא תושב','rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא תושב</button>
+                            </div>
                         </div>
-                        <input type="hidden" id="pIsVeteran" value="false">
+                        <input type="hidden" id="pIsActive" value="false">
+                        <input type="hidden" id="pIsNew" value="false">
+                        <input type="hidden" id="pIsMoshavResident" value="false">
                         <!-- Birthday Field -->
         <div class="birthday-field-row" id="birthdayFieldRow">
             <div>
@@ -1040,16 +1076,34 @@ function startRealtimeListeners() {
     startRegistrationListener();
 }
 
-// ========== Veteran Toggle ==========
-function toggleVeteranMode() {
-    const isVet = document.getElementById('pIsVeteran').value === 'true';
-    const newVal = !isVet;
-    document.getElementById('pIsVeteran').value = String(newVal);
-    const btn = document.getElementById('veteranToggleBtn');
-    btn.textContent = newVal ? '⭐ ותיק' : 'לא ותיק';
-    btn.style.background = newVal ? 'rgba(252,211,77,0.2)' : 'transparent';
-    btn.style.color = newVal ? '#FCD34D' : 'var(--text-muted)';
-    btn.style.borderColor = newVal ? 'rgba(252,211,77,0.4)' : 'var(--border-color)';
+// ========== Player Flag Toggles ==========
+function togglePlayerFlag(fieldId, btnId, labelOn, labelOff, bgOn, colorOn, borderOn) {
+    const hidden = document.getElementById('p' + fieldId.charAt(0).toUpperCase() + fieldId.slice(1));
+    const btn = document.getElementById(btnId);
+    if (!hidden || !btn) return;
+    const newVal = hidden.value !== 'true';
+    hidden.value = String(newVal);
+    btn.textContent = newVal ? labelOn : labelOff;
+    btn.style.background = newVal ? bgOn : 'transparent';
+    btn.style.color = newVal ? colorOn : 'var(--text-muted)';
+    btn.style.borderColor = newVal ? borderOn : 'var(--border-color)';
+}
+
+function setPlayerFlagUI(fieldId, btnId, val, labelOn, labelOff, bgOn, colorOn, borderOn) {
+    const hidden = document.getElementById('p' + fieldId.charAt(0).toUpperCase() + fieldId.slice(1));
+    const btn = document.getElementById(btnId);
+    if (!hidden || !btn) return;
+    hidden.value = String(val);
+    btn.textContent = val ? labelOn : labelOff;
+    btn.style.background = val ? bgOn : 'transparent';
+    btn.style.color = val ? colorOn : 'var(--text-muted)';
+    btn.style.borderColor = val ? borderOn : 'var(--border-color)';
+}
+
+function resetAllFlagButtons() {
+    setPlayerFlagUI('isActive','activeToggleBtn',false,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
+    setPlayerFlagUI('isNew','newToggleBtn',false,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
+    setPlayerFlagUI('isMoshavResident','residentToggleBtn',false,'🏠 תושב מגדים','לא תושב','rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)');
 }
 
 // ========== Custom Params Logic ==========
@@ -1318,14 +1372,16 @@ async function savePlayer() {
     if(!name) return;
 
     const isGk = document.getElementById('pIsGk').value === 'true';
-    const isVeteran = document.getElementById('pIsVeteran').value === 'true';
+    const isActive = document.getElementById('pIsActive').value === 'true';
+    const isNew = document.getElementById('pIsNew').value === 'true';
+    const isMoshavResident = document.getElementById('pIsMoshavResident').value === 'true';
 
     // ✅ FIX: FieldValue.delete() cannot be used with add(). Use empty object instead.
     const hasLocked = Object.keys(currentLockedParams).length > 0;
     const lockedParams = hasLocked ? { ...currentLockedParams } : {};
 
 const birthDate = document.getElementById('pBirthDate').value || null;
-    let playerData = { name, isGk, isVeteran, lockedParams, birthDate };
+    let playerData = { name, isGk, isActive, isNew, isMoshavResident, lockedParams, birthDate };
     if (isGk) {
         const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
         const gkHan = parseFloat(document.getElementById('pGkHan').value) || 5;
@@ -1382,10 +1438,7 @@ const birthDate = document.getElementById('pBirthDate').value || null;
         document.getElementById('pImage').value = '';
         customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
         document.getElementById('saveBtn').innerText = "שמור שחקן";
-        document.getElementById('pIsVeteran').value = 'false';
-        const vBtn = document.getElementById('veteranToggleBtn');
-        vBtn.textContent = 'לא ותיק'; vBtn.style.background = 'transparent';
-        vBtn.style.color = 'var(--text-muted)'; vBtn.style.borderColor = 'var(--border-color)';
+        resetAllFlagButtons();
         resetLockedParamsUI();
         resetBirthdayField();
     }
@@ -1399,13 +1452,12 @@ function startEdit(id, p) {
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
 
-    const isVet = !!p.isVeteran;
-    document.getElementById('pIsVeteran').value = String(isVet);
-    const vBtn = document.getElementById('veteranToggleBtn');
-    vBtn.textContent = isVet ? '⭐ ותיק' : 'לא ותיק';
-    vBtn.style.background = isVet ? 'rgba(252,211,77,0.2)' : 'transparent';
-    vBtn.style.color = isVet ? '#FCD34D' : 'var(--text-muted)';
-    vBtn.style.borderColor = isVet ? 'rgba(252,211,77,0.4)' : 'var(--border-color)';
+    const isActive = !!p.isActive;
+    const isNew = !!p.isNew;
+    const isMoshavResident = !!p.isMoshavResident;
+    setPlayerFlagUI('isActive','activeToggleBtn',isActive,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
+    setPlayerFlagUI('isNew','newToggleBtn',isNew,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
+    setPlayerFlagUI('isMoshavResident','residentToggleBtn',isMoshavResident,'🏠 תושב מגדים','לא תושב','rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)');
 
     const isGk = !!p.isGk;
     document.getElementById('pIsGk').value = String(isGk);
@@ -1445,10 +1497,7 @@ function cancelEdit() {
     document.getElementById('gkToggleBtn').style.background = '';
     document.getElementById('fieldStatsSection').style.display = 'block';
     document.getElementById('gkStatsSection').style.display = 'none';
-    document.getElementById('pIsVeteran').value = 'false';
-    const vBtn = document.getElementById('veteranToggleBtn');
-    vBtn.textContent = 'לא ותיק'; vBtn.style.background = 'transparent';
-    vBtn.style.color = 'var(--text-muted)'; vBtn.style.borderColor = 'var(--border-color)';
+    resetAllFlagButtons();
     ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
     ['pGkDiv','pGkHan','pGkKic','pGkPos','pGkRef'].forEach(id => document.getElementById(id).value = 5);
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
@@ -1584,7 +1633,7 @@ function showPlayerCard(id) {
     const lockedParams = p.lockedParams || {};
     const lockedCount = Object.keys(lockedParams).length;
     const lockedBadge = lockedCount > 0 ? `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--lock-bg); color:var(--lock-color); border:1px solid var(--lock-border); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:800; margin-right:6px;">🔒 ${lockedCount} פרמטרים נעולים</span>` : '';
-    const vetBadge = p.isVeteran ? `<span class="veteran-badge" style="vertical-align:middle; margin-right:4px;">⭐ ותיק</span>` : '';
+    const playerModalBadges = getPlayerBadgesHTML(p);
     const age = calcAge(p.birthDate);
     const ageBadge = age !== null ? `<span class="age-badge-modal">🎂 גיל ${age}</span>` : '';
     const getBar = (label, val, color) => {
@@ -1622,7 +1671,7 @@ function showPlayerCard(id) {
     }
     const content = `
         ${avatar}
-        <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''} ${vetBadge}</h2>
+        <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''} ${playerModalBadges}</h2>
         <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap;">${lockedBadge}${ageBadge}</div>
         <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
         <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
@@ -1661,7 +1710,7 @@ function renderTopScorers() {
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3 ? 'var(--primary-color)':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal} ${p.isVeteran ? '<span class="veteran-badge">⭐ ותיק</span>' : ''}</div>
+                <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal} ${getPlayerBadgesHTML(p)}</div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
                 <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
@@ -1699,7 +1748,7 @@ function renderLeaderboards() {
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${p.isVeteran ? '<span class="veteran-badge">⭐</span>' : ''} ${lockIcon} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${getPlayerBadgesHTML(p, true)} ${lockIcon} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
             </div>
             <div style="background:rgba(255,255,255,0.1); color:${colorClass}; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid ${colorClass};">${Number.isInteger(val) ? val : val.toFixed(1)}</div>
         </div>`;
@@ -1719,14 +1768,14 @@ function render() {
         squadList.innerHTML = players.map(p => {
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
             const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
-            const vetTag = p.isVeteran ? `<span class="veteran-badge">⭐ ותיק</span>` : '';
+            const playerBadges = getPlayerBadgesHTML(p);
             return `<div class="squad-item">
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
                     <div class="squad-name">
                         ${p.name}
                         ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''}
-                        ${vetTag}
+                        ${playerBadges}
                         ${lockTag}
                         <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals || 0})</span>
                     </div>
@@ -1751,10 +1800,10 @@ function render() {
             lineupGrid.innerHTML = lineupPlayers.map(p => {
                 const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
                 const lockIcon = lockedCount > 0 ? `<span class="admin-only lock-badge" style="font-size:0.65rem;">🔒${lockedCount}</span>` : '';
-                const vetIcon = p.isVeteran ? `<span class="veteran-badge" style="font-size:0.65rem;">⭐</span>` : '';
+                const playerBadgesSmall = getPlayerBadgesHTML(p, true);
                 return `<div class="player-chip" ${p.isGk ? 'style="border-color:var(--gk-border); background:rgba(167,139,250,0.07);"' : ''}>
                     ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
-                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''} ${vetIcon} ${lockIcon}</div>
+                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''} ${playerBadgesSmall} ${lockIcon}</div>
                     <div class="chip-stats-container">
                         ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
                     </div>
@@ -1792,6 +1841,14 @@ function getColorStyles(val) {
 function getColoredBadge(icon, val) {
     const v = val || 5; const c = getColorStyles(v);
     return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
+}
+function getPlayerBadgesHTML(p, small = false) {
+    const sz = small ? 'font-size:0.65rem;' : '';
+    let badges = '';
+    if (p.isActive) badges += `<span class="badge-active" style="${sz}">✅ פעיל</span>`;
+    if (p.isNew) badges += `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
+    if (p.isMoshavResident) badges += `<span class="badge-resident" style="${sz}">🏠 תושב</span>`;
+    return badges;
 }
 function getAvatarHTML(url, className, id) {
     return url
