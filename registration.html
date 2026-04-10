@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -73,6 +74,7 @@
             line-height: 1.2;
         }
 
+        /* ===== DATE BADGE (normal + editing) ===== */
         .game-date-badge {
             background: var(--primary-dim);
             border: 1px solid var(--primary-border);
@@ -83,8 +85,67 @@
             font-weight: 800;
             white-space: nowrap;
             flex-shrink: 0;
+            transition: background 0.2s, border-color 0.2s;
         }
 
+        /* admin: badge becomes clickable */
+        body.is-admin .game-date-badge {
+            cursor: pointer;
+        }
+        body.is-admin .game-date-badge:hover {
+            background: rgba(16,185,129,0.25);
+            border-color: var(--primary);
+        }
+
+        /* inline date editor */
+        .date-edit-wrap {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .date-edit-wrap.visible { display: flex; }
+
+        .date-edit-input {
+            background: var(--bg);
+            border: 1.5px solid var(--primary);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 5px 8px;
+            outline: none;
+            width: 120px;
+        }
+        .time-edit-input {
+            background: var(--bg);
+            border: 1.5px solid var(--primary);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 5px 8px;
+            outline: none;
+            width: 76px;
+        }
+
+        .edit-save-btn, .edit-cancel-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .edit-save-btn   { background: var(--primary); color: #fff; }
+        .edit-cancel-btn { background: var(--border); color: var(--muted); }
+        .edit-save-btn:active, .edit-cancel-btn:active { opacity: 0.7; }
+
+        /* ===== CAPACITY ===== */
         .capacity-bar-wrap {
             display: flex;
             align-items: center;
@@ -106,9 +167,7 @@
             transition: width 0.4s ease;
         }
 
-        .capacity-bar-fill.full {
-            background: var(--waiting-color);
-        }
+        .capacity-bar-fill.full { background: var(--waiting-color); }
 
         .capacity-text {
             font-size: 0.82rem;
@@ -116,18 +175,16 @@
             color: var(--muted);
             white-space: nowrap;
         }
-
-        .capacity-text span {
-            color: var(--primary);
-        }
-
-        .capacity-text.full span {
-            color: var(--waiting-color);
-        }
+        .capacity-text span { color: var(--primary); }
+        .capacity-text.full span { color: var(--waiting-color); }
 
         /* ===== NOTICE BOX ===== */
-        .notice-box {
+        .notice-box-outer {
             margin: 16px 16px 0;
+            position: relative;
+        }
+
+        .notice-box {
             background: rgba(16,185,129,0.06);
             border: 1px solid var(--primary-border);
             border-radius: 14px;
@@ -137,6 +194,50 @@
             line-height: 1.55;
             white-space: pre-wrap;
         }
+
+        /* admin edit button on notice */
+        .notice-edit-btn {
+            display: none;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(16,185,129,0.15);
+            border: 1px solid var(--primary-border);
+            color: var(--primary);
+            border-radius: 8px;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .notice-edit-btn:active { background: rgba(16,185,129,0.3); }
+        body.is-admin .notice-edit-btn { display: block; }
+
+        /* notice textarea (shown while editing) */
+        .notice-edit-area {
+            display: none;
+            width: 100%;
+            min-height: 80px;
+            background: var(--bg);
+            border: 1.5px solid var(--primary);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.88rem;
+            padding: 12px 14px;
+            outline: none;
+            resize: vertical;
+            line-height: 1.55;
+        }
+        .notice-edit-area.visible { display: block; }
+
+        .notice-edit-actions {
+            display: none;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .notice-edit-actions.visible { display: flex; }
 
         /* ===== CONTAINER ===== */
         .container {
@@ -165,10 +266,7 @@
         }
 
         /* ===== SEARCH INPUT ===== */
-        .search-wrap {
-            position: relative;
-            margin-bottom: 8px;
-        }
+        .search-wrap { position: relative; margin-bottom: 8px; }
 
         .search-input {
             width: 100%;
@@ -180,20 +278,12 @@
             font-family: 'Heebo', sans-serif;
             font-size: 1.05rem;
             font-weight: 500;
-            letter-spacing: 0;
             outline: none;
             transition: border-color 0.2s;
             -webkit-appearance: none;
         }
-
-        .search-input:focus {
-            border-color: var(--primary);
-        }
-
-        .search-input::placeholder {
-            color: var(--muted);
-            font-weight: 400;
-        }
+        .search-input:focus { border-color: var(--primary); }
+        .search-input::placeholder { color: var(--muted); font-weight: 400; }
 
         /* ===== AUTOCOMPLETE ===== */
         .autocomplete-list {
@@ -205,10 +295,7 @@
             margin-bottom: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
-
-        .autocomplete-list.visible {
-            display: block;
-        }
+        .autocomplete-list.visible { display: block; }
 
         .autocomplete-item {
             display: flex;
@@ -219,433 +306,136 @@
             transition: background 0.15s;
             border-bottom: 1px solid var(--border);
         }
-
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
+        .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:active,
-        .autocomplete-item:hover {
-            background: rgba(16,185,129,0.1);
-        }
-
-        .autocomplete-item.disabled {
-            opacity: 0.45;
-            cursor: default;
-            pointer-events: none;
-        }
+        .autocomplete-item:hover { background: rgba(16,185,129,0.1); }
+        .autocomplete-item.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
 
         .ac-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.06);
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-            overflow: hidden;
+            width: 38px; height: 38px; border-radius: 50%;
+            background: rgba(255,255,255,0.06); border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0; overflow: hidden;
         }
+        .ac-avatar img { width:100%; height:100%; object-fit:cover; }
 
-        .ac-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        .ac-info { flex: 1; }
+        .ac-name { font-weight: 800; font-size: 0.97rem; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+        .ac-name-text { letter-spacing: 0; word-spacing: 0; }
 
-        .ac-info {
-            flex: 1;
-        }
+        .badge-active  { display:inline-flex; align-items:center; gap:3px; background:var(--active-dim);   color:var(--active-color);   border:1px solid var(--active-border);   padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
+        .badge-new     { display:inline-flex; align-items:center; gap:3px; background:var(--new-dim);      color:var(--new-color);      border:1px solid var(--new-border);      padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
+        .badge-resident{ display:inline-flex; align-items:center; gap:3px; background:var(--resident-dim); color:var(--resident-color); border:1px solid var(--resident-border); padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
 
-        .ac-name {
-            font-weight: 800;
-            font-size: 0.97rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-wrap: nowrap;
-        }
-
-        .ac-name-text {
-            letter-spacing: 0;
-            word-spacing: 0;
-        }
-
-        .badge-active {
-            display: inline-flex; align-items: center; gap: 3px;
-            background: var(--active-dim); color: var(--active-color);
-            border: 1px solid var(--active-border);
-            padding: 1px 7px; border-radius: 6px;
-            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.3px;
-        }
-        .badge-new {
-            display: inline-flex; align-items: center; gap: 3px;
-            background: var(--new-dim); color: var(--new-color);
-            border: 1px solid var(--new-border);
-            padding: 1px 7px; border-radius: 6px;
-            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.3px;
-        }
-        .badge-resident {
-            display: inline-flex; align-items: center; gap: 3px;
-            background: var(--resident-dim); color: var(--resident-color);
-            border: 1px solid var(--resident-border);
-            padding: 1px 7px; border-radius: 6px;
-            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.3px;
-        }
-
-        .ac-sub {
-            font-size: 0.78rem;
-            color: var(--muted);
-            margin-top: 2px;
-        }
-
-        .ac-status {
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-
-        .ac-status.registered {
-            color: var(--muted);
-        }
+        .ac-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+        .ac-status { font-size: 0.75rem; font-weight: 800; color: var(--primary); }
+        .ac-status.registered { color: var(--muted); }
 
         /* ===== REGISTER BUTTON ===== */
         .register-btn {
-            width: 100%;
-            padding: 15px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-family: 'Heebo', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 900;
-            cursor: pointer;
+            width: 100%; padding: 15px;
+            background: var(--primary); color: white; border: none;
+            border-radius: 12px; font-family: 'Heebo', sans-serif;
+            font-size: 1.1rem; font-weight: 900; cursor: pointer;
             transition: all 0.2s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
         }
-
-        .register-btn:disabled {
-            background: var(--border);
-            color: var(--muted);
-            cursor: not-allowed;
-        }
-
-        .register-btn:not(:disabled):active {
-            transform: scale(0.97);
-        }
+        .register-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+        .register-btn:not(:disabled):active { transform: scale(0.97); }
 
         /* ===== PLAYERS LIST ===== */
         .section-label {
-            font-size: 0.78rem;
-            font-weight: 900;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 0.78rem; font-weight: 900; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 8px;
         }
+        .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
 
-        .section-label::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        .players-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .players-list { display: flex; flex-direction: column; gap: 8px; }
 
         .player-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 11px 14px;
+            display: flex; align-items: center; gap: 12px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 11px 14px;
             animation: slideIn 0.25s ease;
         }
+        @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .player-row.waiting { border-color: var(--waiting-border); background: var(--waiting-dim); }
 
-        .player-row.waiting {
-            border-color: var(--waiting-border);
-            background: var(--waiting-dim);
-        }
-
-        .player-pos {
-            font-size: 0.8rem;
-            font-weight: 900;
-            color: var(--muted);
-            width: 22px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-
-        .player-pos.confirmed {
-            color: var(--primary);
-        }
-
-        .player-pos.waiting-pos {
-            color: var(--waiting-color);
-        }
+        .player-pos { font-size:0.8rem; font-weight:900; color:var(--muted); width:22px; text-align:center; flex-shrink:0; }
+        .player-pos.confirmed { color: var(--primary); }
+        .player-pos.waiting-pos { color: var(--waiting-color); }
 
         .player-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-            overflow: hidden;
+            width:36px; height:36px; border-radius:50%;
+            background:rgba(255,255,255,0.05); border:2px solid var(--border);
+            display:flex; align-items:center; justify-content:center;
+            font-size:16px; flex-shrink:0; overflow:hidden;
         }
+        .player-avatar img { width:100%; height:100%; object-fit:cover; }
 
-        .player-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .player-name-wrap {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            flex-wrap: wrap;
-        }
-
-        .player-name {
-            font-weight: 800;
-            font-size: 0.97rem;
-        }
-
-        .player-time {
-            font-size: 0.75rem;
-            color: var(--muted);
-            margin-right: auto;
-        }
-
-        .waiting-tag {
-            font-size: 0.72rem;
-            font-weight: 800;
-            background: var(--waiting-dim);
-            color: var(--waiting-color);
-            border: 1px solid var(--waiting-border);
-            padding: 1px 8px;
-            border-radius: 6px;
-        }
+        .player-name-wrap { flex:1; display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+        .player-name { font-weight:800; font-size:0.97rem; }
+        .player-time { font-size:0.75rem; color:var(--muted); margin-right:auto; }
+        .waiting-tag { font-size:0.72rem; font-weight:800; background:var(--waiting-dim); color:var(--waiting-color); border:1px solid var(--waiting-border); padding:1px 8px; border-radius:6px; }
 
         /* ===== EMPTY STATE ===== */
-        .empty-state {
-            text-align: center;
-            padding: 30px 20px;
-            color: var(--muted);
-        }
-
-        .empty-state .icon {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-
-        .empty-state p {
-            font-size: 0.9rem;
-        }
+        .empty-state { text-align:center; padding:30px 20px; color:var(--muted); }
+        .empty-state .icon { font-size:2.5rem; margin-bottom:10px; }
+        .empty-state p { font-size:0.9rem; }
 
         /* ===== CLOSED STATE ===== */
-        .closed-banner {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            border-radius: 16px;
-            padding: 30px 20px;
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .closed-banner .icon {
-            font-size: 3rem;
-            margin-bottom: 12px;
-        }
-
-        .closed-banner h2 {
-            font-size: 1.4rem;
-            font-weight: 900;
-            margin-bottom: 8px;
-        }
-
-        .closed-banner p {
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
+        .closed-banner { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:16px; padding:30px 20px; text-align:center; margin:20px 0; }
+        .closed-banner .icon { font-size:3rem; margin-bottom:12px; }
+        .closed-banner h2 { font-size:1.4rem; font-weight:900; margin-bottom:8px; }
+        .closed-banner p { color:var(--muted); font-size:0.9rem; }
 
         /* ===== TOAST ===== */
         .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(80px);
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 20px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            z-index: 999;
-            transition: transform 0.3s ease;
-            white-space: nowrap;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            position:fixed; bottom:30px; left:50%;
+            transform:translateX(-50%) translateY(80px);
+            background:var(--surface2); border:1px solid var(--border);
+            border-radius:12px; padding:12px 20px;
+            font-weight:800; font-size:0.95rem; z-index:999;
+            transition:transform 0.3s ease; white-space:nowrap;
+            box-shadow:0 8px 24px rgba(0,0,0,0.5);
         }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .toast.success { border-color: var(--primary-border); color: var(--primary); }
-        .toast.error { border-color: rgba(239,68,68,0.4); color: #F87171; }
-        .toast.info { border-color: rgba(99,102,241,0.4); color: #818CF8; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .toast.success { border-color:var(--primary-border); color:var(--primary); }
+        .toast.error   { border-color:rgba(239,68,68,0.4); color:#F87171; }
+        .toast.info    { border-color:rgba(99,102,241,0.4); color:#818CF8; }
 
         /* ===== LOADING ===== */
-        .loading-wrap {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--muted);
-        }
+        .loading-wrap { text-align:center; padding:60px 20px; color:var(--muted); }
+        .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.7s linear infinite; margin:0 auto 16px; }
+        @keyframes spin { to { transform:rotate(360deg); } }
 
-        .spinner {
-            width: 36px;
-            height: 36px;
-            border: 3px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            margin: 0 auto 16px;
-        }
+        /* ===== DIVIDERS ===== */
+        .waiting-divider { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:0.75rem; font-weight:800; color:var(--waiting-color); }
+        .waiting-divider::before,.waiting-divider::after { content:''; flex:1; height:1px; background:var(--waiting-border); }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .cancelled-divider { display:flex; align-items:center; gap:10px; margin:12px 0 8px; font-size:0.75rem; font-weight:800; color:var(--danger); }
+        .cancelled-divider::before,.cancelled-divider::after { content:''; flex:1; height:1px; background:rgba(239,68,68,0.3); }
 
-        /* ===== DIVIDER ===== */
-        .waiting-divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 8px 0;
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: var(--waiting-color);
-        }
-
-        .waiting-divider::before,
-        .waiting-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--waiting-border);
-        }
-
-        /* ===== CANCELLED LIST ===== */
-        .cancelled-divider {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 12px 0 8px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: var(--danger);
-        }
-        .cancelled-divider::before,
-        .cancelled-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(239,68,68,0.3);
-        }
-
-        .player-row.cancelled {
-            border-color: rgba(239,68,68,0.25);
-            background: rgba(239,68,68,0.06);
-            opacity: 0.85;
-        }
-
-        .cancelled-tag {
-            font-size: 0.72rem;
-            font-weight: 800;
-            background: rgba(239,68,68,0.12);
-            color: #F87171;
-            border: 1px solid rgba(239,68,68,0.3);
-            padding: 1px 8px;
-            border-radius: 6px;
-        }
-
-        .cancel-time {
-            font-size: 0.72rem;
-            color: #F87171;
-            font-weight: 700;
-            white-space: nowrap;
-        }
+        .player-row.cancelled { border-color:rgba(239,68,68,0.25); background:rgba(239,68,68,0.06); opacity:0.85; }
+        .cancelled-tag { font-size:0.72rem; font-weight:800; background:rgba(239,68,68,0.12); color:#F87171; border:1px solid rgba(239,68,68,0.3); padding:1px 8px; border-radius:6px; }
+        .cancel-time { font-size:0.72rem; color:#F87171; font-weight:700; white-space:nowrap; }
 
         /* ===== REMOVE BUTTON (admin) ===== */
         .remove-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            border: none;
-            background: rgba(239,68,68,0.15);
-            color: #F87171;
-            font-size: 1rem;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background 0.15s;
+            width:30px; height:30px; border-radius:8px; border:none;
+            background:rgba(239,68,68,0.15); color:#F87171; font-size:1rem;
+            cursor:pointer; display:none; align-items:center; justify-content:center;
+            flex-shrink:0; transition:background 0.15s;
         }
-        .remove-btn:active { background: rgba(239,68,68,0.35); }
-        body.is-admin .remove-btn { display: flex; }
+        .remove-btn:active { background:rgba(239,68,68,0.35); }
+        body.is-admin .remove-btn { display:flex; }
 
-        /* ===== HIGHLIGHT MATCH ===== */
-        .highlight {
-            color: var(--primary);
-        }
+        .highlight { color: var(--primary); }
 
-        /* ===== CANCELLED TABLE (admin only) ===== */
-        .cancelled-card { display: none; }
-        body.is-admin .cancelled-card { display: block; }
-        .cancelled-row {
-            display: flex; align-items: center; gap: 10px;
-            background: var(--bg); border: 1px solid rgba(239,68,68,0.2);
-            border-radius: 10px; padding: 10px 13px;
-            animation: slideIn 0.25s ease;
-        }
-        .cancelled-avatar {
-            width: 32px; height: 32px; border-radius: 50%;
-            background: rgba(239,68,68,0.1); border: 2px solid rgba(239,68,68,0.25);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; flex-shrink: 0; overflow: hidden;
-        }
-        .cancelled-avatar img { width:100%; height:100%; object-fit:cover; }
-        .cancelled-name {
-            flex: 1; font-weight: 800; font-size: 0.92rem; color: var(--muted);
-            text-decoration: line-through; text-decoration-color: rgba(239,68,68,0.4);
-        }
-        .cancelled-time { font-size: 0.75rem; color: rgba(239,68,68,0.7); font-weight: 700; white-space: nowrap; }
-        .cancelled-source { font-size: 0.7rem; font-weight: 800; background: rgba(239,68,68,0.12); color: #F87171; border: 1px solid rgba(239,68,68,0.25); padding: 1px 7px; border-radius: 6px; white-space: nowrap; }
+        .cancelled-card { display:none; }
+        body.is-admin .cancelled-card { display:block; }
     </style>
 </head>
 <body>
@@ -656,9 +446,22 @@
         <div>
             <div class="group-name" id="groupNameEl">⚽ טוען...</div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-            <button onclick="promptAdminLogin()" id="adminLoginBtn" style="background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:5px 10px; font-size:0.78rem; font-weight:800; cursor:pointer; font-family:Heebo,sans-serif;">ניהול 🔒</button>
-            <div class="game-date-badge" id="gameDateBadge">—</div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+            <button onclick="promptAdminLogin()" id="adminLoginBtn"
+                style="background:transparent; border:1px solid var(--border); color:var(--muted);
+                       border-radius:8px; padding:5px 10px; font-size:0.78rem; font-weight:800;
+                       cursor:pointer; font-family:Heebo,sans-serif;">ניהול 🔒</button>
+
+            <!-- Badge (normal view) -->
+            <div class="game-date-badge" id="gameDateBadge" onclick="startDateEdit()" title="לחץ לעריכה">—</div>
+
+            <!-- Inline editor (admin only, hidden by default) -->
+            <div class="date-edit-wrap" id="dateEditWrap">
+                <input type="date" id="dateEditInput" class="date-edit-input" />
+                <input type="time" id="timeEditInput" class="time-edit-input" />
+                <button class="edit-save-btn"   onclick="saveDateEdit()">✓</button>
+                <button class="edit-cancel-btn" onclick="cancelDateEdit()">✕</button>
+            </div>
         </div>
     </div>
     <div class="capacity-bar-wrap">
@@ -685,24 +488,29 @@
     </div>
 
     <div id="mainView" style="display:none;">
-        <!-- Notice -->
-        <div id="noticeBoxWrap" style="display:none;">
-            <div class="notice-box" id="noticeBoxText"></div>
+
+        <!-- Notice box -->
+        <div id="noticeBoxWrap" style="display:none; margin-top:16px;">
+            <div class="notice-box-outer">
+                <!-- normal text view -->
+                <div class="notice-box" id="noticeBoxText"></div>
+                <button class="notice-edit-btn" onclick="startNoticeEdit()">✏️ ערוך</button>
+                <!-- edit mode -->
+                <textarea class="notice-edit-area" id="noticeEditArea"></textarea>
+                <div class="notice-edit-actions" id="noticeEditActions">
+                    <button class="edit-save-btn"   onclick="saveNoticeEdit()">שמור ✓</button>
+                    <button class="edit-cancel-btn" onclick="cancelNoticeEdit()">ביטול</button>
+                </div>
+            </div>
         </div>
 
         <!-- Register Form -->
         <div class="card" style="margin-top:16px;">
             <div class="card-title">✍️ הרשמה למשחק</div>
             <div class="search-wrap">
-                <input
-                    type="text"
-                    id="playerSearchInput"
-                    class="search-input"
-                    placeholder="הקלד את שמך..."
-                    autocomplete="off"
-                    oninput="onSearchInput()"
-                    onfocus="onSearchFocus()"
-                />
+                <input type="text" id="playerSearchInput" class="search-input"
+                    placeholder="הקלד את שמך..." autocomplete="off"
+                    oninput="onSearchInput()" onfocus="onSearchFocus()" />
             </div>
             <div class="autocomplete-list" id="autocompleteList"></div>
             <button class="register-btn" id="registerBtn" disabled onclick="registerPlayer()">
@@ -724,12 +532,6 @@
                 <div id="cancelledList" class="players-list"></div>
             </div>
         </div>
-
-        <!-- Cancelled List (admin only) -->
-        <div class="card cancelled-card" id="cancelledCard" style="border-color: rgba(239,68,68,0.2); display:none;">
-            <div class="card-title" style="color:#F87171;">🚫 מבטלים</div>
-            <div id="cancelledList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
     </div>
 </div>
 
@@ -750,28 +552,24 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ========== State ==========
-const urlParams = new URLSearchParams(window.location.search);
-const groupId = urlParams.get('group');
+const urlParams   = new URLSearchParams(window.location.search);
+const groupId      = urlParams.get('group');
 const registrationId = urlParams.get('reg');
 
-let groupData = null;
-let allPlayers = []; // all players in the group
-let registrations = []; // registrations for this game
-let selectedPlayer = null; // the player selected from autocomplete
-let gameData = null; // this registration doc
-let maxPlayers = 10; // numTeams * playersPerTeam
-let isAdmin = false;
-let cancelled = []; // cancelled entries
+let groupData    = null;
+let allPlayers   = [];
+let registrations = [];
+let selectedPlayer = null;
+let gameData     = null;
+let maxPlayers   = 10;
+let isAdmin      = false;
+let cancelled    = [];
 
 // ========== Init ==========
 window.onload = async () => {
-    if (!groupId || !registrationId) {
-        showClosed();
-        return;
-    }
+    if (!groupId || !registrationId) { showClosed(); return; }
 
     try {
-        // Load group
         const groupDoc = await db.collection('groups').doc(groupId).get();
         if (!groupDoc.exists) { showClosed(); return; }
         groupData = groupDoc.data();
@@ -779,7 +577,6 @@ window.onload = async () => {
         const settings = groupData.settings || {};
         maxPlayers = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
 
-        // Load registration doc
         const regRef = db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId);
         const regDoc = await regRef.get();
@@ -788,7 +585,7 @@ window.onload = async () => {
 
         if (!gameData.open) { showClosed(); return; }
 
-        // Check admin (URL param admin=1 + password)
+        // Check admin
         if (urlParams.get("admin") === "1") {
             const pwd = prompt("סיסמת מנהל:");
             if (pwd === groupData.password) {
@@ -797,7 +594,7 @@ window.onload = async () => {
             }
         }
 
-        // Load all players for autocomplete
+        // Load players
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -805,15 +602,15 @@ window.onload = async () => {
         document.getElementById('gameHeader').style.display = 'block';
         document.getElementById('groupNameEl').textContent = '⚽ ' + (groupData.name || 'קבוצה');
         updateDateBadge(gameData);
+
         if (gameData.noticeText) {
-            document.getElementById('noticeBoxWrap').style.display = 'block';
-            document.getElementById('noticeBoxText').textContent = gameData.noticeText;
+            showNoticeBox(gameData.noticeText);
         }
 
-        document.getElementById('loadingView').style.display = 'none';
-        document.getElementById('mainView').style.display = 'block';
+        document.getElementById('loadingView').style.display  = 'none';
+        document.getElementById('mainView').style.display     = 'block';
 
-        // Realtime listener on registrations sub-collection
+        // Realtime: entries
         db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
             .collection('entries')
@@ -824,7 +621,7 @@ window.onload = async () => {
                 updateCapacityBar();
             });
 
-        // Realtime listener on cancelled sub-collection
+        // Realtime: cancelled
         db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
             .collection('cancelled')
@@ -832,16 +629,6 @@ window.onload = async () => {
             .onSnapshot(snap => {
                 cancelled = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderCancelledList();
-            });
-
-        // Realtime listener on cancelled sub-collection (admin only view)
-        db.collection('groups').doc(groupId)
-            .collection('registrations').doc(registrationId)
-            .collection('cancelled')
-            .orderBy('cancelledAt', 'desc')
-            .onSnapshot(snap => {
-                const cancelled = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderCancelledList(cancelled);
             });
 
     } catch (e) {
@@ -852,45 +639,168 @@ window.onload = async () => {
 
 function showClosed() {
     document.getElementById('loadingView').style.display = 'none';
-    document.getElementById('closedView').style.display = 'block';
+    document.getElementById('closedView').style.display  = 'block';
+}
+
+function showNoticeBox(text) {
+    const wrap = document.getElementById('noticeBoxWrap');
+    const box  = document.getElementById('noticeBoxText');
+    if (!text || !text.trim()) {
+        wrap.style.display = 'none';
+        return;
+    }
+    wrap.style.display = 'block';
+    box.textContent    = text;
 }
 
 // ========== Priority ==========
-// Priority score (lower = higher priority):
-// 1 = תושב מגדים
-// 2 = פעיל + לא חדש
-// 3 = פעיל + חדש
-// 4 = לא פעיל + לא חדש
-// 5 = לא פעיל + חדש
 function getPriorityScore(entry) {
     if (entry.isMoshavResident || (entry.isActive && !entry.isNew)) return 1;
-    if (entry.isActive && entry.isNew) return 2;
+    if (entry.isActive && entry.isNew)  return 2;
     if (!entry.isActive && !entry.isNew) return 3;
-    return 4; // לא פעיל + חדש
+    return 4;
 }
 
 function getEntryBadgesHTML(entry) {
-    let badges = '';
-    if (entry.isActive) badges += `<span class="badge-active">✅ פעיל</span>`;
-    if (entry.isNew) badges += `<span class="badge-new">🆕 חדש</span>`;
-    if (entry.isMoshavResident) badges += `<span class="badge-resident">🏠 תושב</span>`;
-    return badges;
+    let b = '';
+    if (entry.isActive)         b += `<span class="badge-active">✅ פעיל</span>`;
+    if (entry.isNew)            b += `<span class="badge-new">🆕 חדש</span>`;
+    if (entry.isMoshavResident) b += `<span class="badge-resident">🏠 תושב</span>`;
+    return b;
 }
 
+// ========== Date Badge ==========
 function updateDateBadge(data) {
     const badge = document.getElementById('gameDateBadge');
     if (data.gameDate && data.gameTime) {
         badge.textContent = `📅 ${data.gameDate} • ${data.gameTime}`;
     } else if (data.gameDate) {
         badge.textContent = `📅 ${data.gameDate}`;
+    } else {
+        badge.textContent = '📅 קבע תאריך';
+    }
+    // Add pencil hint for admin
+    if (isAdmin) badge.title = '✏️ לחץ לעריכה';
+}
+
+// ========== Inline Date Edit ==========
+function startDateEdit() {
+    if (!isAdmin) return;
+
+    // Pre-fill inputs from current gameData
+    const dateInput = document.getElementById('dateEditInput');
+    const timeInput = document.getElementById('timeEditInput');
+
+    // Convert gameDate DD/MM/YYYY → YYYY-MM-DD for input[type=date]
+    if (gameData.gameDate) {
+        try {
+            let iso;
+            if (gameData.gameDate.includes('/')) {
+                const [d, m, y] = gameData.gameDate.split('/');
+                iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+            } else {
+                iso = gameData.gameDate;
+            }
+            dateInput.value = iso;
+        } catch(e) { dateInput.value = ''; }
+    } else {
+        dateInput.value = '';
+    }
+
+    timeInput.value = gameData.gameTime || '';
+
+    // Toggle visibility
+    document.getElementById('gameDateBadge').style.display = 'none';
+    document.getElementById('dateEditWrap').classList.add('visible');
+    dateInput.focus();
+}
+
+function cancelDateEdit() {
+    document.getElementById('dateEditWrap').classList.remove('visible');
+    document.getElementById('gameDateBadge').style.display = '';
+}
+
+async function saveDateEdit() {
+    const rawDate = document.getElementById('dateEditInput').value; // YYYY-MM-DD
+    const rawTime = document.getElementById('timeEditInput').value; // HH:MM
+
+    if (!rawDate) { showToast('יש לבחור תאריך', 'error'); return; }
+
+    // Convert YYYY-MM-DD → DD/MM/YYYY for display
+    const [y, m, d] = rawDate.split('-');
+    const displayDate = `${d}/${m}/${y}`;
+
+    try {
+        await db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .update({
+                gameDate: displayDate,
+                gameTime: rawTime || ''
+            });
+
+        gameData.gameDate = displayDate;
+        gameData.gameTime = rawTime || '';
+
+        cancelDateEdit();
+        updateDateBadge(gameData);
+        showToast('התאריך עודכן ✅', 'success');
+    } catch(e) {
+        console.error(e);
+        showToast('שגיאה בשמירה', 'error');
+    }
+}
+
+// ========== Inline Notice Edit ==========
+function startNoticeEdit() {
+    const area    = document.getElementById('noticeEditArea');
+    const actions = document.getElementById('noticeEditActions');
+    const box     = document.getElementById('noticeBoxText');
+    const editBtn = document.querySelector('.notice-edit-btn');
+
+    area.value = gameData.noticeText || '';
+    box.style.display    = 'none';
+    editBtn.style.display = 'none';
+    area.classList.add('visible');
+    actions.classList.add('visible');
+    area.focus();
+    area.setSelectionRange(area.value.length, area.value.length);
+}
+
+function cancelNoticeEdit() {
+    const area    = document.getElementById('noticeEditArea');
+    const actions = document.getElementById('noticeEditActions');
+    const box     = document.getElementById('noticeBoxText');
+    const editBtn = document.querySelector('.notice-edit-btn');
+
+    area.classList.remove('visible');
+    actions.classList.remove('visible');
+    box.style.display    = '';
+    editBtn.style.display = '';
+}
+
+async function saveNoticeEdit() {
+    const newText = document.getElementById('noticeEditArea').value.trim();
+
+    try {
+        await db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .update({ noticeText: newText });
+
+        gameData.noticeText = newText;
+        cancelNoticeEdit();
+        showNoticeBox(newText);
+        showToast('ההודעה עודכנה ✅', 'success');
+    } catch(e) {
+        console.error(e);
+        showToast('שגיאה בשמירה', 'error');
     }
 }
 
 // ========== Capacity ==========
 function updateCapacityBar() {
     const confirmed = registrations.filter(r => !r.isWaiting).length;
-    const total = registrations.length;
-    const pct = Math.min(100, (confirmed / maxPlayers) * 100);
+    const total     = registrations.length;
+    const pct       = Math.min(100, (confirmed / maxPlayers) * 100);
 
     const fill = document.getElementById('capacityFill');
     const text = document.getElementById('capacityText');
@@ -912,14 +822,8 @@ function onSearchInput() {
     selectedPlayer = null;
     document.getElementById('registerBtn').disabled = true;
     const q = document.getElementById('playerSearchInput').value.trim();
-    if (q.length < 1) {
-        hideAutocomplete();
-        return;
-    }
-    const results = allPlayers.filter(p =>
-        p.name && p.name.startsWith(q)
-    );
-    renderAutocomplete(results, q);
+    if (q.length < 1) { hideAutocomplete(); return; }
+    renderAutocomplete(allPlayers.filter(p => p.name && p.name.startsWith(q)), q);
 }
 
 function onSearchFocus() {
@@ -935,24 +839,19 @@ function renderAutocomplete(results, query) {
         return;
     }
     list.innerHTML = results.map(p => {
-        const alreadyRegistered = registrations.some(r => r.playerId === p.id);
-        const idx = p.name.indexOf(query);
-        const highlight = idx >= 0
-            ? p.name.slice(0, idx) + `<span class="highlight">${p.name.slice(idx, idx + query.length)}</span>` + p.name.slice(idx + query.length)
+        const already  = registrations.some(r => r.playerId === p.id);
+        const idx      = p.name.indexOf(query);
+        const hl       = idx >= 0
+            ? p.name.slice(0,idx) + `<span class="highlight">${p.name.slice(idx,idx+query.length)}</span>` + p.name.slice(idx+query.length)
             : p.name;
-        const playerBadges = getEntryBadgesHTML(p);
-        const avatar = p.imgUrl
-            ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>`
-            : `<div class="ac-avatar">👤</div>`;
-        const statusText = alreadyRegistered ? `<span class="ac-status registered">כבר רשום</span>` : '';
-        const scores = p.isGk
-            ? `🧤 ${p.gkScore || 5}`
-            : `🛡️${p.defScore || 5} 🎯${p.attScore || 5}`;
-        return `<div class="autocomplete-item ${alreadyRegistered ? 'disabled' : ''}"
-            onclick="selectPlayer('${p.id}')">
+        const badges   = getEntryBadgesHTML(p);
+        const avatar   = p.imgUrl ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>` : `<div class="ac-avatar">👤</div>`;
+        const status   = already ? `<span class="ac-status registered">כבר רשום</span>` : '';
+        const scores   = p.isGk ? `🧤 ${p.gkScore||5}` : `🛡️${p.defScore||5} 🎯${p.attScore||5}`;
+        return `<div class="autocomplete-item ${already?'disabled':''}" onclick="selectPlayer('${p.id}')">
             ${avatar}
             <div class="ac-info">
-                <div class="ac-name"><span class="ac-name-text">${highlight}</span> ${playerBadges} ${statusText}</div>
+                <div class="ac-name"><span class="ac-name-text">${hl}</span> ${badges} ${status}</div>
                 <div class="ac-sub">${scores}</div>
             </div>
         </div>`;
@@ -960,9 +859,7 @@ function renderAutocomplete(results, query) {
     list.classList.add('visible');
 }
 
-function hideAutocomplete() {
-    document.getElementById('autocompleteList').classList.remove('visible');
-}
+function hideAutocomplete() { document.getElementById('autocompleteList').classList.remove('visible'); }
 
 function selectPlayer(playerId) {
     const p = allPlayers.find(x => x.id === playerId);
@@ -973,11 +870,8 @@ function selectPlayer(playerId) {
     document.getElementById('registerBtn').disabled = false;
 }
 
-// Close autocomplete on outside click
 document.addEventListener('click', e => {
-    if (!e.target.closest('.search-wrap') && !e.target.closest('.autocomplete-list')) {
-        hideAutocomplete();
-    }
+    if (!e.target.closest('.search-wrap') && !e.target.closest('.autocomplete-list')) hideAutocomplete();
 });
 
 // ========== Register ==========
@@ -988,7 +882,6 @@ async function registerPlayer() {
     btn.textContent = 'רושם... ⏳';
 
     try {
-        // Check not already registered
         if (registrations.some(r => r.playerId === selectedPlayer.id)) {
             showToast('כבר רשום למשחק זה!', 'info');
             btn.textContent = 'הירשם למשחק ⚽';
@@ -996,57 +889,44 @@ async function registerPlayer() {
             return;
         }
 
-        // Determine if waiting
-        const confirmedCount = registrations.filter(r => !r.isWaiting).length;
+        const confirmedCount  = registrations.filter(r => !r.isWaiting).length;
         const isFullBeforeAdd = confirmedCount >= maxPlayers;
 
-        // Check if we're within 4 hours of game start — no bumping allowed in that window
         const isWithin4Hours = (() => {
             if (!gameData.gameDate || !gameData.gameTime) return false;
             try {
-                // gameDate is like "DD/MM/YYYY" or "YYYY-MM-DD", gameTime is "HH:MM"
-                let dateParts, gameDateTime;
+                let gameDateTime;
                 if (gameData.gameDate.includes('/')) {
-                    dateParts = gameData.gameDate.split('/');
-                    // DD/MM/YYYY
-                    gameDateTime = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${gameData.gameTime}:00`);
+                    const [d,m,y] = gameData.gameDate.split('/');
+                    gameDateTime = new Date(`${y}-${m}-${d}T${gameData.gameTime}:00`);
                 } else {
                     gameDateTime = new Date(`${gameData.gameDate}T${gameData.gameTime}:00`);
                 }
-                const now = new Date();
-                const diffMs = gameDateTime - now;
-                return diffMs >= 0 && diffMs <= 4 * 60 * 60 * 1000;
+                const diffMs = gameDateTime - new Date();
+                return diffMs >= 0 && diffMs <= 4*60*60*1000;
             } catch(e) { return false; }
         })();
 
-        // Priority bump logic (only outside the 4-hour window):
         let bumpedPlayerId = null;
         if (isFullBeforeAdd && !isWithin4Hours) {
             const newPriority = getPriorityScore(selectedPlayer);
-            const confirmed = registrations.filter(r => !r.isWaiting);
-            const worstConfirmed = confirmed.sort((a, b) => {
-                const pa = getPriorityScore(a), pb = getPriorityScore(b);
-                if (pb !== pa) return pb - pa;
-                const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
-                const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-                return tb - ta;
-            })[0];
-
-            if (worstConfirmed && getPriorityScore(worstConfirmed) > newPriority) {
-                bumpedPlayerId = worstConfirmed.id;
-            }
+            const worst = registrations.filter(r => !r.isWaiting)
+                .sort((a,b) => {
+                    const pa=getPriorityScore(a), pb=getPriorityScore(b);
+                    if (pb!==pa) return pb-pa;
+                    const ta=a.registeredAt?.toMillis?a.registeredAt.toMillis():0;
+                    const tb=b.registeredAt?.toMillis?b.registeredAt.toMillis():0;
+                    return tb-ta;
+                })[0];
+            if (worst && getPriorityScore(worst) > newPriority) bumpedPlayerId = worst.id;
         }
 
         const isWaiting = isFullBeforeAdd && !bumpedPlayerId;
-
         const batch = db.batch();
         const entriesRef = db.collection('groups').doc(groupId)
-            .collection('registrations').doc(registrationId)
-            .collection('entries');
+            .collection('registrations').doc(registrationId).collection('entries');
 
-        // Add new player
-        const newEntryRef = entriesRef.doc();
-        batch.set(newEntryRef, {
+        batch.set(entriesRef.doc(), {
             playerId: selectedPlayer.id,
             name: selectedPlayer.name,
             imgUrl: selectedPlayer.imgUrl || null,
@@ -1061,10 +941,7 @@ async function registerPlayer() {
             registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Bump lower-priority player to waiting if needed
-        if (bumpedPlayerId) {
-            batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
-        }
+        if (bumpedPlayerId) batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
 
         await batch.commit();
 
@@ -1072,15 +949,11 @@ async function registerPlayer() {
         selectedPlayer = null;
         btn.textContent = 'הירשם למשחק ⚽';
 
-        if (isWaiting) {
-            showToast('נרשמת לרשימת המתנה ⏳', 'info');
-        } else if (bumpedPlayerId) {
-            showToast('נרשמת! שחקן אחר עבר להמתנה (קדימות גבוהה יותר) ✅', 'success');
-        } else {
-            showToast('נרשמת בהצלחה! ✅', 'success');
-        }
+        if (isWaiting)           showToast('נרשמת לרשימת המתנה ⏳', 'info');
+        else if (bumpedPlayerId) showToast('נרשמת! שחקן אחר עבר להמתנה ✅', 'success');
+        else                     showToast('נרשמת בהצלחה! ✅', 'success');
 
-    } catch (e) {
+    } catch(e) {
         console.error(e);
         showToast('שגיאה ברישום, נסה שוב', 'error');
         btn.textContent = 'הירשם למשחק ⚽';
@@ -1088,142 +961,87 @@ async function registerPlayer() {
     }
 }
 
-// ========== Render List ==========
+// ========== Render Players ==========
 function renderPlayersList() {
     const container = document.getElementById('playersList');
     if (registrations.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="icon">📋</div>
-                <p>עוד אף אחד לא נרשם.<br>היה הראשון!</p>
-            </div>`;
+        container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>עוד אף אחד לא נרשם.<br>היה הראשון!</p></div>`;
         return;
     }
 
-    // Sort: confirmed first (by priority, then by time), then waiting (by priority, then by time)
-    const confirmed = registrations
-        .filter(r => !r.isWaiting)
-        .sort((a, b) => {
-            const pa = getPriorityScore(a), pb = getPriorityScore(b);
-            if (pa !== pb) return pa - pb; // lower score = higher priority first
-            const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
-            const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-            return ta - tb;
-        });
+    const confirmed = registrations.filter(r=>!r.isWaiting)
+        .sort((a,b)=>{ const pa=getPriorityScore(a),pb=getPriorityScore(b); if(pa!==pb)return pa-pb; return (a.registeredAt?.toMillis?a.registeredAt.toMillis():0)-(b.registeredAt?.toMillis?b.registeredAt.toMillis():0); });
 
-    const waiting = registrations
-        .filter(r => r.isWaiting)
-        .sort((a, b) => {
-            const pa = getPriorityScore(a), pb = getPriorityScore(b);
-            if (pa !== pb) return pa - pb;
-            const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
-            const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-            return ta - tb;
-        });
+    const waiting = registrations.filter(r=>r.isWaiting)
+        .sort((a,b)=>{ const pa=getPriorityScore(a),pb=getPriorityScore(b); if(pa!==pb)return pa-pb; return (a.registeredAt?.toMillis?a.registeredAt.toMillis():0)-(b.registeredAt?.toMillis?b.registeredAt.toMillis():0); });
 
     let html = '';
-
     if (confirmed.length > 0) {
-        html += `<div class="section-label">מאושרים (${confirmed.length}/${maxPlayers})</div>`;
-        html += '<div class="players-list">';
-        confirmed.forEach((r, i) => {
-            html += renderPlayerRow(r, i + 1, false);
-        });
+        html += `<div class="section-label">מאושרים (${confirmed.length}/${maxPlayers})</div><div class="players-list">`;
+        confirmed.forEach((r,i) => { html += renderPlayerRow(r, i+1, false); });
         html += '</div>';
     }
-
     if (waiting.length > 0) {
-        html += `<div class="waiting-divider">המתנה (${waiting.length})</div>`;
-        html += '<div class="players-list">';
-        waiting.forEach((r, i) => {
-            html += renderPlayerRow(r, i + 1, true);
-        });
+        html += `<div class="waiting-divider">המתנה (${waiting.length})</div><div class="players-list">`;
+        waiting.forEach((r,i) => { html += renderPlayerRow(r, i+1, true); });
         html += '</div>';
     }
-
     container.innerHTML = html;
 }
 
 function renderPlayerRow(r, pos, isWaiting) {
-    const avatar = r.imgUrl
-        ? `<div class="player-avatar"><img src="${r.imgUrl}"></div>`
-        : `<div class="player-avatar">👤</div>`;
-    const playerBadges = getEntryBadgesHTML(r);
-    const gkBadge = r.isGk ? `<span style="font-size:0.72rem; background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.3); padding:1px 7px; border-radius:6px; font-weight:800;">🧤 שוער</span>` : '';
-    const posClass = isWaiting ? 'waiting-pos' : 'confirmed';
-    const timeStr = r.registeredAt?.toDate
-        ? r.registeredAt.toDate().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        : '';
-    const waitingTag = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
+    const avatar   = r.imgUrl ? `<div class="player-avatar"><img src="${r.imgUrl}"></div>` : `<div class="player-avatar">👤</div>`;
+    const badges   = getEntryBadgesHTML(r);
+    const gkBadge  = r.isGk ? `<span style="font-size:0.72rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:1px 7px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
+    const timeStr  = r.registeredAt?.toDate ? r.registeredAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+    const waitTag  = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
 
-    return `<div class="player-row ${isWaiting ? 'waiting' : ''}">
-        <div class="player-pos ${posClass}">${isWaiting ? '⏳' : pos}</div>
+    return `<div class="player-row ${isWaiting?'waiting':''}">
+        <div class="player-pos ${isWaiting?'waiting-pos':'confirmed'}">${isWaiting?'⏳':pos}</div>
         ${avatar}
         <div class="player-name-wrap">
             <span class="player-name">${r.name}</span>
-            ${playerBadges}${gkBadge}${waitingTag}
+            ${badges}${gkBadge}${waitTag}
         </div>
-        ${timeStr ? `<span class="player-time">${timeStr}</span>` : ''}
+        ${timeStr?`<span class="player-time">${timeStr}</span>`:''}
         <button class="remove-btn" onclick="removePlayer('${r.id}')" title="הסר שחקן">✕</button>
     </div>`;
 }
 
-// ========== Remove Player (Admin) ==========
+// ========== Remove Player ==========
 async function removePlayer(entryId) {
     if (!isAdmin) return;
     if (!confirm('להסיר שחקן זה מהרשימה?')) return;
 
-    const entriesRef = db.collection('groups').doc(groupId)
-        .collection('registrations').doc(registrationId)
-        .collection('entries');
-
-    const cancelledRef = db.collection('groups').doc(groupId)
-        .collection('registrations').doc(registrationId)
-        .collection('cancelled');
+    const entriesRef   = db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('entries');
+    const cancelledRef = db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('cancelled');
 
     try {
         const removedEntry = registrations.find(r => r.id === entryId);
         if (!removedEntry) return;
         const wasConfirmed = !removedEntry.isWaiting;
-
         const batch = db.batch();
 
-        // Move to cancelled collection
         batch.set(cancelledRef.doc(), {
-            playerId: removedEntry.playerId,
-            name: removedEntry.name,
+            playerId: removedEntry.playerId, name: removedEntry.name,
             imgUrl: removedEntry.imgUrl || null,
-            isActive: !!removedEntry.isActive,
-            isNew: !!removedEntry.isNew,
+            isActive: !!removedEntry.isActive, isNew: !!removedEntry.isNew,
             isMoshavResident: !!removedEntry.isMoshavResident,
-            wasConfirmed,
-            registeredAt: removedEntry.registeredAt,
+            wasConfirmed, registeredAt: removedEntry.registeredAt,
             cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Delete from entries
         batch.delete(entriesRef.doc(entryId));
 
-        // If was confirmed → promote highest-priority waiting player
         if (wasConfirmed) {
-            const waitingList = registrations
-                .filter(r => r.isWaiting && r.id !== entryId)
-                .sort((a, b) => {
-                    const pa = getPriorityScore(a), pb = getPriorityScore(b);
-                    if (pa !== pb) return pa - pb; // highest priority first
-                    const ta = a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0;
-                    const tb = b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0;
-                    return ta - tb; // earliest registered as tie-break
-                });
-
-            if (waitingList.length > 0) {
-                batch.update(entriesRef.doc(waitingList[0].id), { isWaiting: false });
-            }
+            const wl = registrations.filter(r=>r.isWaiting&&r.id!==entryId)
+                .sort((a,b)=>{ const pa=getPriorityScore(a),pb=getPriorityScore(b); if(pa!==pb)return pa-pb; return (a.registeredAt?.toMillis?a.registeredAt.toMillis():0)-(b.registeredAt?.toMillis?b.registeredAt.toMillis():0); });
+            if (wl.length>0) batch.update(entriesRef.doc(wl[0].id),{isWaiting:false});
         }
 
         await batch.commit();
         showToast('השחקן הוסר ✅', 'success');
-    } catch (e) {
+    } catch(e) {
         console.error(e);
         showToast('שגיאה בהסרה', 'error');
     }
@@ -1231,58 +1049,51 @@ async function removePlayer(entryId) {
 
 // ========== Render Cancelled ==========
 function renderCancelledList() {
-    const section = document.getElementById('cancelledSection');
+    const section   = document.getElementById('cancelledSection');
     const container = document.getElementById('cancelledList');
     if (!section || !container) return;
-
-    if (cancelled.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
+    if (cancelled.length === 0) { section.style.display='none'; return; }
 
     section.style.display = 'block';
     container.innerHTML = cancelled.map(r => {
-        const avatar = r.imgUrl
-            ? `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);"><img src="${r.imgUrl}"></div>`
-            : `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);">👤</div>`;
-        const playerBadges = getEntryBadgesHTML(r);
-        const cancelTimeStr = r.cancelledAt?.toDate
-            ? r.cancelledAt.toDate().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            : '';
+        const avatar  = r.imgUrl ? `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);"><img src="${r.imgUrl}"></div>` : `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);">👤</div>`;
+        const badges  = getEntryBadgesHTML(r);
+        const timeStr = r.cancelledAt?.toDate ? r.cancelledAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
         return `<div class="player-row cancelled">
             <div class="player-pos" style="color:#F87171;">✕</div>
             ${avatar}
             <div class="player-name-wrap">
                 <span class="player-name" style="color:#F87171;">${r.name}</span>
-                ${playerBadges}
-                <span class="cancelled-tag">בוטל</span>
+                ${badges}<span class="cancelled-tag">בוטל</span>
             </div>
-            ${cancelTimeStr ? `<span class="cancel-time">${cancelTimeStr}</span>` : ''}
+            ${timeStr?`<span class="cancel-time">${timeStr}</span>`:''}
         </div>`;
     }).join('');
 }
 
 // ========== Admin Login ==========
 function promptAdminLogin() {
-    if (isAdmin) { showToast('כבר מחובר כמנהל ✅', 'success'); return; }
+    if (isAdmin) { showToast('כבר מחובר כמנהל ✅','success'); return; }
     if (!groupData) return;
     const pwd = prompt('סיסמת מנהל:');
     if (pwd === groupData.password) {
         isAdmin = true;
         document.body.classList.add('is-admin');
         const btn = document.getElementById('adminLoginBtn');
-        if (btn) { btn.textContent = '✅ מנהל'; btn.style.color = 'var(--primary)'; btn.style.borderColor = 'var(--primary-border)'; }
-        showToast('מחובר כמנהל ✅', 'success');
+        if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
+        updateDateBadge(gameData); // re-adds pencil hint
+        showToast('מחובר כמנהל ✅','success');
     } else if (pwd !== null) {
-        showToast('סיסמה שגויה ❌', 'error');
+        showToast('סיסמה שגויה ❌','error');
     }
 }
 
-function showToast(msg, type = 'success') {
+// ========== Toast ==========
+function showToast(msg, type='success') {
     const t = document.getElementById('toast');
     t.textContent = msg;
-    t.className = 'toast ' + type + ' show';
-    setTimeout(() => { t.classList.remove('show'); }, 3000);
+    t.className   = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3000);
 }
 </script>
 </body>
