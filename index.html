@@ -1376,11 +1376,10 @@ async function savePlayer() {
     const isNew = document.getElementById('pIsNew').value === 'true';
     const isMoshavResident = document.getElementById('pIsMoshavResident').value === 'true';
 
-    // ✅ FIX: FieldValue.delete() cannot be used with add(). Use empty object instead.
     const hasLocked = Object.keys(currentLockedParams).length > 0;
     const lockedParams = hasLocked ? { ...currentLockedParams } : {};
 
-const birthDate = document.getElementById('pBirthDate').value || null;
+    const birthDate = document.getElementById('pBirthDate').value || null;
     let playerData = { name, isGk, isActive, isNew, isMoshavResident, lockedParams, birthDate };
     if (isGk) {
         const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
@@ -1423,7 +1422,6 @@ const birthDate = document.getElementById('pBirthDate').value || null;
     playerData.imgUrl = finalImgUrl;
 
     if(editingId) {
-        // For updates, if no locked params we CAN use FieldValue.delete() to clean up
         const updateData = { ...playerData };
         if (!hasLocked) {
             updateData.lockedParams = firebase.firestore.FieldValue.delete();
@@ -1442,6 +1440,13 @@ const birthDate = document.getElementById('pBirthDate').value || null;
         resetLockedParamsUI();
         resetBirthdayField();
     }
+}
+
+// ========== FIX: startEditById — safe wrapper that avoids JSON-in-onclick ==========
+function startEditById(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    startEdit(id, p);
 }
 
 function startEdit(id, p) {
@@ -1785,7 +1790,7 @@ function render() {
                 </div>
                 <div class="squad-actions">
                     <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button>
-                    <button class="action-btn btn-edit" onclick='startEdit("${p.id}", ${JSON.stringify(p).replace(/'/g, "\\'")})'>✏️</button>
+                    <button class="action-btn btn-edit" onclick="startEditById('${p.id}')">✏️</button>
                 </div>
             </div>`;
         }).join('');
@@ -2518,11 +2523,11 @@ document.addEventListener('click', e => {
         drop.style.display = 'none';
     }
 });
-    // ========== BIRTHDAY CALENDAR ==========
+
+// ========== BIRTHDAY CALENDAR ==========
 let bdayCalYear = 1990, bdayCalMonth = 0;
 
 function initBdayCal() {
-    const now = new Date();
     bdayCalYear = 1990; bdayCalMonth = 0;
     renderBdayCal();
 }
@@ -2555,7 +2560,6 @@ function toggleBdayCal() {
     const drop = document.getElementById('bdayCalDrop');
     if (!drop) return;
     const isOpen = drop.classList.contains('open');
-    // close calendar & timepicker if open
     document.getElementById('regCalendarDrop') && (document.getElementById('regCalendarDrop').style.display = 'none');
     document.getElementById('timePickerDrop')  && (document.getElementById('timePickerDrop').style.display  = 'none');
     drop.classList.toggle('open', !isOpen);
@@ -2590,7 +2594,6 @@ function bdayCalPrevYear()  { bdayCalYear--; renderBdayCal(); }
 function bdayCalNextYear()  { bdayCalYear++; renderBdayCal(); }
 function bdayYearChanged()  { const y = parseInt(document.getElementById('bdayYearInput').value); if (!isNaN(y) && y >= 1900 && y <= 2020) { bdayCalYear = y; renderBdayCal(); } }
 
-// close bday calendar on outside click
 document.addEventListener('click', e => {
     const drop    = document.getElementById('bdayCalDrop');
     const trigger = document.getElementById('bdayDisplayBtn');
