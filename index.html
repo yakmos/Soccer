@@ -298,6 +298,43 @@
         .gk-stats-section { border-color: var(--gk-border) !important; background: rgba(167,139,250,0.04) !important; }
         .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
         .pitch-player.is-rotating-gk { border: 2px dashed var(--gk-text); background: rgba(167,139,250,0.1); }
+        .pitch-player.swap-selected {
+            border: 2px solid #FCD34D !important;
+            background: rgba(252, 211, 77, 0.18) !important;
+            box-shadow: 0 0 0 3px rgba(252,211,77,0.35), 0 4px 6px rgba(0,0,0,0.3) !important;
+            transform: scale(1.04);
+            z-index: 5;
+            position: relative;
+        }
+        .pitch-player.swap-candidate {
+            border: 2px dashed rgba(252,211,77,0.5) !important;
+            cursor: pointer !important;
+        }
+        .pitch-player.swap-candidate:hover {
+            border-color: #FCD34D !important;
+            background: rgba(252,211,77,0.08) !important;
+        }
+        .swap-hint-bar {
+            display: none;
+            background: rgba(252,211,77,0.12);
+            border: 1px solid rgba(252,211,77,0.4);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #FCD34D;
+            text-align: center;
+            animation: fadeIn 0.2s ease;
+        }
+        .swap-hint-bar.visible { display: block; }
+        .swap-flash {
+            animation: swapFlash 0.5s ease;
+        }
+        @keyframes swapFlash {
+            0%   { background: rgba(16,185,129,0.35); }
+            100% { background: rgba(15,23,42,0.85); }
+        }
 
         .badge-active {
             display: inline-flex; align-items: center; gap: 3px;
@@ -2034,64 +2071,213 @@ function assignRolesNoGk(team, currentGkId) {
     return roles;
 }
 
+// ========== Swap State ==========
+let swapSelection = null; // { playerId, teamIndex }
+
+function calcTeamScores(team) {
+    const fieldPlayers = team.filter(p => p && !p.isGk);
+    const def = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.defScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    const att = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.attScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    return { def: parseFloat(def), att: parseFloat(att) };
+}
+
+function updateTeamScoreBadges(teamIndex) {
+    if (!activeTeams) return;
+    const scores = calcTeamScores(activeTeams[teamIndex]);
+    const statsRow = document.getElementById(`team-stats-row-${teamIndex}`);
+    if (statsRow) {
+        const defC = getColorStyles(scores.def);
+        const attC = getColorStyles(scores.att);
+        statsRow.innerHTML = `
+            <span class="stat-badge stat-def" id="def-badge-${teamIndex}">🛡️ הגנה: ${scores.def}</span>
+            <span class="stat-badge stat-att" id="att-badge-${teamIndex}">🎯 התקפה: ${scores.att}</span>`;
+    }
+    const headerEl = document.getElementById(`team-power-${teamIndex}`);
+    if (headerEl) headerEl.textContent = `(כוח: ${(scores.def + scores.att).toFixed(1)})`;
+}
+
+function handleSwapClick(playerId, teamIndex, cardEl) {
+    if (!document.body.classList.contains('is-admin')) return;
+
+    // Same player clicked again → deselect
+    if (swapSelection && swapSelection.playerId === playerId) {
+        clearSwapSelection();
+        return;
+    }
+
+    // No selection yet → select this player
+    if (!swapSelection) {
+        swapSelection = { playerId, teamIndex };
+        cardEl.classList.add('swap-selected');
+        // Mark all OTHER team players as candidates
+        document.querySelectorAll('.pitch-player[data-player-id]').forEach(el => {
+            const elTeam = parseInt(el.dataset.teamIndex);
+            if (elTeam !== teamIndex) el.classList.add('swap-candidate');
+        });
+        const hint = document.getElementById('swapHintBar');
+        if (hint) { hint.classList.add('visible'); hint.textContent = `✏️ ${getPlayerName(playerId)} נבחר — לחץ על שחקן בקבוצה אחרת לחילוף`; }
+        return;
+    }
+
+    // Second click on same team → switch selection to new player
+    if (swapSelection.teamIndex === teamIndex) {
+        const prev = document.querySelector('.pitch-player.swap-selected');
+        if (prev) prev.classList.remove('swap-selected');
+        swapSelection = { playerId, teamIndex };
+        cardEl.classList.add('swap-selected');
+        const hint = document.getElementById('swapHintBar');
+        if (hint) hint.textContent = `✏️ ${getPlayerName(playerId)} נבחר — לחץ על שחקן בקבוצה אחרת לחילוף`;
+        return;
+    }
+
+    // Different team → perform swap
+    performSwap(swapSelection.playerId, swapSelection.teamIndex, playerId, teamIndex);
+}
+
+function getPlayerName(id) {
+    const p = activeTeams?.flat().find(x => x.id === id);
+    return p ? p.name : id;
+}
+
+function clearSwapSelection() {
+    swapSelection = null;
+    document.querySelectorAll('.pitch-player.swap-selected, .pitch-player.swap-candidate').forEach(el => {
+        el.classList.remove('swap-selected', 'swap-candidate');
+    });
+    const hint = document.getElementById('swapHintBar');
+    if (hint) hint.classList.remove('visible');
+}
+
+async function performSwap(idA, teamA, idB, teamB) {
+    if (!activeTeams) return;
+
+    // Find and swap in activeTeams arrays
+    const iA = activeTeams[teamA].findIndex(p => p.id === idA);
+    const iB = activeTeams[teamB].findIndex(p => p.id === idB);
+    if (iA === -1 || iB === -1) { clearSwapSelection(); return; }
+
+    const pA = activeTeams[teamA][iA];
+    const pB = activeTeams[teamB][iB];
+    activeTeams[teamA][iA] = pB;
+    activeTeams[teamB][iB] = pA;
+
+    // Save to Firestore
+    const gameData = {};
+    activeTeams.forEach((team, idx) => { gameData[`team${idx+1}`] = team; });
+    try { await gameRef.update(gameData); } catch(e) { console.error('swap save error', e); }
+
+    clearSwapSelection();
+
+    // Re-render both affected team cards
+    reRenderTeamCard(teamA);
+    reRenderTeamCard(teamB);
+
+    // Flash the two swapped cards
+    setTimeout(() => {
+        [idA, idB].forEach(id => {
+            const el = document.querySelector(`.pitch-player[data-player-id="${id}"]`);
+            if (el) { el.classList.add('swap-flash'); setTimeout(() => el.classList.remove('swap-flash'), 500); }
+        });
+    }, 50);
+}
+
+function reRenderTeamCard(teamIndex) {
+    const container = document.getElementById(`team-card-${teamIndex}`);
+    if (!container || !activeTeams) return;
+    const isFixed = activeHasFixedGk ? activeHasFixedGk[teamIndex] : false;
+    const currentGkId = activeGkIds ? activeGkIds[teamIndex] : null;
+    container.innerHTML = renderTeamCardContent(activeTeams[teamIndex], teamIndex, isFixed, currentGkId, activeWins[teamIndex] || 0);
+}
+
+function renderPitchCard(p, icon, roleName) {
+    if (!p) return `<div class="pitch-player" style="opacity:0.5;"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
+    const latestData = players.find(x => x.id === p.id) || p;
+    const goals = latestData.goals || 0;
+    const isAdmin = document.body.classList.contains('is-admin');
+    const clickHandler = isAdmin ? `onclick="handleSwapClick('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"` : `onclick="showPlayerCard('${p.id}')"`;
+    return `<div class="pitch-player" data-player-id="${p.id}" ${clickHandler} style="cursor:pointer; transition: transform 0.15s, border 0.15s, box-shadow 0.15s;">
+        ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
+        <div style="margin-top:4px; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${p.name}</div>
+        <div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span><span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div>
+        <div class="stat-ticker">
+            <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updatePlayerGoal('${p.id}', -1)">-</button>
+            <span class="ticker-val">⚽ ${goals}</span>
+            <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updatePlayerGoal('${p.id}', 1)">+</button>
+        </div>
+        <span class="pitch-role">${icon} ${roleName}</span>
+    </div>`;
+}
+
+function renderTeamCardContent(t, i, isFixed, currentGkId, wins) {
+    const teamNames = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+    const roles = isFixed ? assignRoles(t, currentGkId) : assignRolesNoGk(t, currentGkId);
+    const currentGkPlayer = roles['שוער'];
+    const fieldPlayers = t.filter(p => p && (!currentGkPlayer || p.id !== currentGkPlayer.id) && !p.isGk);
+    const defTotal = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.defScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    const attTotal = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.attScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    const keys = Object.keys(roles).filter(k => k !== 'שוער');
+    const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם'));
+    const attKeys = keys.filter(k => !defKeys.includes(k));
+    const gkCard = currentGkPlayer
+        ? renderPitchCard(currentGkPlayer, '🧤', isFixed ? 'שוער' : 'שוער (מתחלף)')
+        : `<div class="pitch-player is-rotating-gk"><div style="font-size:0.8rem; color:var(--gk-text);">אין שוער</div></div>`;
+    const rotateBtn = isFixed ? '' : `<button class="gk-btn" onclick="event.stopPropagation(); rotateGk(${i})">🔄 שוער</button>`;
+    return `
+        <div class="team-header t-${i}">
+            <div class="team-header-name">${teamNames[i]||`קבוצה ${i+1}`} <span id="team-power-${i}" style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">(כוח: ${(parseFloat(defTotal)+parseFloat(attTotal)).toFixed(1)})</span></div>
+            <div class="team-header-right">
+                <div class="stat-ticker team-ticker">
+                    <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updateTeamWin(${i}, -1)">-</button>
+                    <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins}</span>
+                    <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updateTeamWin(${i}, 1)">+</button>
+                </div>
+                ${rotateBtn}
+                ${isFixed ? '<span class="gk-badge" style="font-size:0.8rem;">🧤 שוער קבוע</span>' : '<span style="font-size:0.8rem; color:var(--gk-text); font-weight:700;">🔄 שוער מתחלף</span>'}
+            </div>
+        </div>
+        <div class="team-stats-row" id="team-stats-row-${i}">
+            <span class="stat-badge stat-def">🛡️ הגנה: ${defTotal}</span>
+            <span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span>
+        </div>
+        <div class="pitch">
+            <div class="pitch-row">${gkCard}</div>
+            ${defKeys.length>0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k],'🛡️',k)).join('')}</div>` : ''}
+            ${attKeys.length>0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k],'⚽',k)).join('')}</div>` : ''}
+        </div>`;
+}
+
 function displayTeams(teams, gkIds, hasFixedGk, wins) {
     const r = document.getElementById('results');
-    const teamNames = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
-    const renderPitchCard = (p, icon, roleName) => {
-        if (!p) return `<div class="pitch-player" style="opacity:0.5;"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
-        const latestData = players.find(x => x.id === p.id) || p;
-        const goals = latestData.goals || 0;
-        return `<div class="pitch-player">
-            ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
-            <div style="margin-top:4px; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${p.name}</div>
-            <div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span><span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div>
-            <div class="stat-ticker">
-                <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', -1)">-</button>
-                <span class="ticker-val">⚽ ${goals}</span>
-                <button class="admin-only ticker-btn" onclick="updatePlayerGoal('${p.id}', 1)">+</button>
-            </div>
-            <span class="pitch-role">${icon} ${roleName}</span>
-        </div>`;
-    };
-    let content = "<h2 class='card-title'>החלוקה שנקבעה</h2><div id='teamsContainer'>";
+
+    let content = `
+        <h2 class='card-title' style='justify-content:space-between;'>
+            החלוקה שנקבעה
+            <span class="admin-only" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">לחץ על שחקן לחילוף 🔄</span>
+        </h2>
+        <div id="swapHintBar" class="swap-hint-bar admin-only"></div>
+        <div id='teamsContainer'>`;
+
     content += teams.map((t, i) => {
         const isFixed = hasFixedGk ? hasFixedGk[i] : false;
         const currentGkId = gkIds ? gkIds[i] : null;
-        const roles = isFixed ? assignRoles(t, currentGkId) : assignRolesNoGk(t, currentGkId);
-        const currentGkPlayer = roles['שוער'];
-        const fieldPlayers = t.filter(p => p && (!currentGkPlayer || p.id !== currentGkPlayer.id) && !p.isGk);
-        let defTotal = fieldPlayers.reduce((sum,p) => sum+(p.defScore||5), 0).toFixed(1);
-        let attTotal = fieldPlayers.reduce((sum,p) => sum+(p.attScore||5), 0).toFixed(1);
-        const keys = Object.keys(roles).filter(k => k !== 'שוער');
-        const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם'));
-        const attKeys = keys.filter(k => !defKeys.includes(k));
-        const gkCard = currentGkPlayer
-            ? renderPitchCard(currentGkPlayer, '🧤', isFixed ? 'שוער' : 'שוער (מתחלף)')
-            : `<div class="pitch-player is-rotating-gk"><div style="font-size:0.8rem; color:var(--gk-text);">אין שוער</div></div>`;
-        const rotateBtn = isFixed ? '' : `<button class="gk-btn" onclick="rotateGk(${i})">🔄 שוער</button>`;
-        return `<div class="team-row">
-            <div class="team-header t-${i}">
-                <div class="team-header-name">${teamNames[i]||`קבוצה ${i+1}`} <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">(כוח: ${(parseFloat(defTotal)+parseFloat(attTotal)).toFixed(1)})</span></div>
-                <div class="team-header-right">
-                    <div class="stat-ticker team-ticker">
-                        <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, -1)">-</button>
-                        <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins[i]||0}</span>
-                        <button class="admin-only ticker-btn" onclick="updateTeamWin(${i}, 1)">+</button>
-                    </div>
-                    ${rotateBtn}
-                    ${isFixed ? '<span class="gk-badge" style="font-size:0.8rem;">🧤 שוער קבוע</span>' : '<span style="font-size:0.8rem; color:var(--gk-text); font-weight:700;">🔄 שוער מתחלף</span>'}
-                </div>
-            </div>
-            <div class="team-stats-row"><span class="stat-badge stat-def">🛡️ הגנה: ${defTotal}</span><span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span></div>
-            <div class="pitch">
-                <div class="pitch-row">${gkCard}</div>
-                ${defKeys.length>0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k],'🛡️',k)).join('')}</div>` : ''}
-                ${attKeys.length>0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k],'⚽',k)).join('')}</div>` : ''}
-            </div>
-        </div>`;
+        return `<div class="team-row" id="team-card-${i}" data-team-index="${i}">${renderTeamCardContent(t, i, isFixed, currentGkId, wins[i]||0)}</div>`;
     }).join('');
-    content += "</div><div id='shareButtonsBox' style='margin-top:20px;'><button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'>שתף תמונה 📸</button></div>";
-    r.innerHTML = content; r.style.display = 'block';
+
+    content += `</div>
+        <div id='shareButtonsBox' style='margin-top:20px;'>
+            <button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'>שתף תמונה 📸</button>
+        </div>`;
+
+    r.innerHTML = content;
+    r.style.display = 'block';
+
+    // Click outside → cancel swap
+    r.addEventListener('click', e => {
+        if (swapSelection && !e.target.closest('.pitch-player[data-player-id]')) {
+            clearSwapSelection();
+        }
+    }, { capture: false });
+
     if (scrollToTeamsFlag) { setTimeout(() => r.scrollIntoView({behavior:'smooth', block:'end'}), 100); scrollToTeamsFlag = false; }
 }
 
