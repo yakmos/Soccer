@@ -2193,9 +2193,14 @@ function renderPitchCard(p, icon, roleName) {
     if (!p) return `<div class="pitch-player" style="opacity:0.5;"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
     const latestData = players.find(x => x.id === p.id) || p;
     const goals = latestData.goals || 0;
-    const isAdmin = document.body.classList.contains('is-admin');
-    const clickHandler = isAdmin ? `onclick="handleSwapClick('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"` : `onclick="showPlayerCard('${p.id}')"`;
-    return `<div class="pitch-player" data-player-id="${p.id}" ${clickHandler} style="cursor:pointer; transition: transform 0.15s, border 0.15s, box-shadow 0.15s;">
+    return `<div class="pitch-player" data-player-id="${p.id}"
+        onclick="pitchCardTap('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"
+        onmousedown="pitchPressStart('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"
+        onmouseup="pitchPressEnd()"
+        onmouseleave="pitchPressEnd()"
+        ontouchstart="pitchPressStart('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"
+        ontouchend="pitchPressEnd()"
+        style="cursor:pointer; transition: transform 0.15s, border 0.15s, box-shadow 0.15s;">
         ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
         <div style="margin-top:4px; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${p.name}</div>
         <div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span><span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div>
@@ -2206,6 +2211,33 @@ function renderPitchCard(p, icon, roleName) {
         </div>
         <span class="pitch-role">${icon} ${roleName}</span>
     </div>`;
+}
+
+// ---- Tap vs long-press logic ----
+let _pressTimer = null;
+let _pressTriggered = false;
+
+function pitchPressStart(playerId, teamIndex, cardEl) {
+    if (!document.body.classList.contains('is-admin')) return;
+    _pressTriggered = false;
+    _pressTimer = setTimeout(() => {
+        _pressTriggered = true;
+        handleSwapClick(playerId, teamIndex, cardEl);
+    }, 400);
+}
+
+function pitchPressEnd() {
+    clearTimeout(_pressTimer);
+    _pressTimer = null;
+}
+
+function pitchCardTap(playerId, teamIndex, cardEl) {
+    if (_pressTriggered) { _pressTriggered = false; return; }
+    if (document.body.classList.contains('is-admin') && swapSelection) {
+        handleSwapClick(playerId, teamIndex, cardEl);
+        return;
+    }
+    showPlayerCard(playerId);
 }
 
 function renderTeamCardContent(t, i, isFixed, currentGkId, wins) {
@@ -2252,7 +2284,7 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
     let content = `
         <h2 class='card-title' style='justify-content:space-between;'>
             החלוקה שנקבעה
-            <span class="admin-only" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">לחץ על שחקן לחילוף 🔄</span>
+            <span class="admin-only" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">לחיצה = כרטיס | לחיצה ארוכה = חילוף 🔄</span>
         </h2>
         <div id="swapHintBar" class="swap-hint-bar admin-only"></div>
         <div id='teamsContainer'>`;
