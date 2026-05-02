@@ -1103,53 +1103,83 @@ function showToast(msg, type='success') {
     const p = allPlayers.find(x => x.id === playerId);
     if (!p) return;
 
+    const isGk = !!p.isGk;
+    const borderColor = isGk ? '#A78BFA' : '#10B981';
     const avatar = p.imgUrl
-        ? `<img src="${p.imgUrl}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--border);margin-bottom:14px;">`
-        : `<div style="width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.05);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;">👤</div>`;
+        ? `<img src="${p.imgUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid ${borderColor};margin:0 auto 15px;display:block;">`
+        : `<div style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.05);border:4px solid #334155;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 15px;">${isGk?'🧤':'👤'}</div>`;
 
     const badges = getEntryBadgesHTML(p);
-    const gkBadge = p.isGk ? `<span style="font-size:0.75rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:2px 8px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
+    const gkBadge = isGk ? `<span style="background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.35);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:800;">🧤 שוער</span>` : '';
 
-    const getBar = (label, val, color) => `
-        <div style="display:flex;align-items:center;margin-bottom:8px;font-size:0.88rem;gap:8px;">
-            <div style="width:120px;color:#94A3B8;text-align:right;">${label}</div>
-            <div style="flex:1;height:7px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
-                <div style="width:${(val||5)*10}%;height:100%;background:${color};border-radius:4px;"></div>
+    const getBar = (label, val, color) => {
+        const c = color || (val >= 8.5 ? '#06B6D4' : val >= 7.5 ? '#10B981' : val >= 5 ? '#F59E0B' : '#EF4444');
+        return `<div style="display:flex;align-items:center;margin-bottom:10px;font-size:0.9rem;text-align:right;">
+            <div style="width:140px;color:#cbd5e1;font-weight:500;">${label}</div>
+            <div style="flex:1;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin:0 10px;">
+                <div style="width:${(val||5)*10}%;height:100%;background:${c};border-radius:4px;"></div>
             </div>
-            <div style="width:24px;text-align:left;font-weight:800;color:${color};">${val||5}</div>
+            <div style="width:30px;text-align:left;font-weight:800;font-size:1rem;color:${c};">${val||5}</div>
         </div>`;
+    };
 
-    let statsHTML = '';
-    if (p.isGk) {
-        statsHTML = `
-            <div style="font-size:0.8rem;color:#A78BFA;font-weight:800;margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px;">🧤 מדדי שוער</div>
+    let scoreBoxes = '';
+    if (isGk) {
+        const gkC = p.gkScore >= 8.5 ? '#06B6D4' : p.gkScore >= 7.5 ? '#10B981' : p.gkScore >= 5 ? '#F59E0B' : '#EF4444';
+        scoreBoxes = `<div style="display:flex;justify-content:center;margin-bottom:20px;">
+            <div style="border:2px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.1);padding:10px 30px;border-radius:12px;text-align:center;">
+                <div style="font-size:1.6rem;font-weight:900;color:#A78BFA;">${p.gkScore||5}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:#A78BFA;">🧤 ציון שוער</div>
+            </div>
+        </div>`;
+    } else {
+        const attC = p.attScore >= 8.5 ? '#06B6D4' : p.attScore >= 7.5 ? '#10B981' : p.attScore >= 5 ? '#F59E0B' : '#EF4444';
+        const defC = p.defScore >= 8.5 ? '#06B6D4' : p.defScore >= 7.5 ? '#10B981' : p.defScore >= 5 ? '#F59E0B' : '#EF4444';
+        scoreBoxes = `<div style="display:flex;justify-content:center;gap:15px;margin-bottom:20px;">
+            <div style="border:2px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
+                <div style="font-size:1.6rem;font-weight:900;color:${attC};">${p.attScore||5}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:${attC};">🎯 התקפה</div>
+            </div>
+            <div style="border:2px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.1);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
+                <div style="font-size:1.6rem;font-weight:900;color:${defC};">${p.defScore||5}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:${defC};">🛡️ הגנה</div>
+            </div>
+        </div>`;
+    }
+
+    let statsSection = '';
+    if (isGk) {
+        statsSection = `
+            <div style="font-size:1rem;color:#A78BFA;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">🧤 מדדי שוער</div>
             ${getBar('זינוק', p.gkDiv, '#A78BFA')}
-            ${getBar('אחיזה', p.gkHan, '#A78BFA')}
-            ${getBar('בעיטה', p.gkKic, '#A78BFA')}
-            ${getBar('מיקום', p.gkPos, '#A78BFA')}
+            ${getBar('אחיזה בכדור', p.gkHan, '#A78BFA')}
+            ${getBar('בעיטה והוצאה', p.gkKic, '#A78BFA')}
+            ${getBar('מיקום בשער', p.gkPos, '#A78BFA')}
             ${getBar('רפלקסים', p.gkRef, '#A78BFA')}`;
     } else {
-        statsHTML = `
-            <div style="display:flex;gap:10px;justify-content:center;margin:14px 0 12px;">
-                <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:8px 16px;">
-                    <div style="font-size:1.4rem;font-weight:900;color:#60A5FA;">${p.defScore||5}</div>
-                    <div style="font-size:0.72rem;color:#60A5FA;font-weight:800;">🛡️ הגנה</div>
-                </div>
-                <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:8px 16px;">
-                    <div style="font-size:1.4rem;font-weight:900;color:#F87171;">${p.attScore||5}</div>
-                    <div style="font-size:0.72rem;color:#F87171;font-weight:800;">🎯 התקפה</div>
-                </div>
-            </div>`;
+        statsSection = `
+            <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">⚔️ מדדי התקפה</div>
+            ${getBar('סיומת מול שער', p.fin)}
+            ${getBar('דריבל ושליטה', p.dri)}
+            ${getBar('מהירות וזריזות', p.pac)}
+            ${getBar('ראיית משחק', p.vis)}
+            ${getBar('תנועה ללא כדור', p.pos)}
+            <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">🛡️ מדדי הגנה ופיזיות</div>
+            ${getBar('חילוצי כדור', p.tac)}
+            ${getBar('קריאת משחק', p.awa)}
+            ${getBar('פיזיות ועוצמה', p.str)}
+            ${getBar('כושר גופני', p.sta)}
+            ${getBar('יציאה מלחץ', p.com)}`;
     }
 
     document.getElementById('miniCardContent').innerHTML = `
         ${avatar}
-        <div style="font-size:1.4rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
-        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:4px;">${badges}</div>
-        ${statsHTML}`;
+        <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">${badges}</div>
+        ${scoreBoxes}
+        ${statsSection}`;
 
-    const overlay = document.getElementById('miniCardOverlay');
-    overlay.style.display = 'flex';
+    document.getElementById('miniCardOverlay').style.display = 'flex';
 }
 
 function closeMiniCard() {
