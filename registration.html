@@ -564,7 +564,8 @@ let gameData     = null;
 let maxPlayers   = 10;
 let isAdmin      = false;
 let cancelled    = [];
-
+let historyCache = [];
+let customParams = [];
 // ========== Init ==========
 window.onload = async () => {
     if (!groupId || !registrationId) { showClosed(); return; }
@@ -597,6 +598,12 @@ window.onload = async () => {
         // Load players
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Load history (goals + wins)
+const historySnap = await db.collection('groups').doc(groupId).collection('history').get();
+historyCache = historySnap.docs.map(d => d.data());
+
+// Load custom params
+customParams = groupData.customParams || [];
 
         // Show UI
         document.getElementById('gameHeader').style.display = 'block';
@@ -1099,21 +1106,47 @@ function showToast(msg, type='success') {
     t.className   = 'toast ' + type + ' show';
     setTimeout(() => t.classList.remove('show'), 3000);
 }
-    function showMiniCard(playerId) {
+    function calcAge(birthDateStr) {
+    if (!birthDateStr) return null;
+    const [y, m, d] = birthDateStr.split('-').map(Number);
+    const today = new Date();
+    let age = today.getFullYear() - y;
+    const monthDiff = today.getMonth() + 1 - m;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) age--;
+    return age;
+}
+
+function getColorStyles(val) {
+    const v = val || 5;
+    if (v < 5)   return { hex:'#EF4444', bg:'rgba(239,68,68,0.15)',   text:'#EF4444', border:'rgba(239,68,68,0.3)' };
+    if (v < 7.5) return { hex:'#F59E0B', bg:'rgba(245,158,11,0.15)',  text:'#F59E0B', border:'rgba(245,158,11,0.3)' };
+    if (v < 8.5) return { hex:'#10B981', bg:'rgba(16,185,129,0.15)',  text:'#10B981', border:'rgba(16,185,129,0.3)' };
+    return           { hex:'#06B6D4', bg:'rgba(6,182,212,0.15)',   text:'#06B6D4', border:'rgba(6,182,212,0.3)' };
+}
+
+function showMiniCard(playerId) {
     const p = allPlayers.find(x => x.id === playerId);
     if (!p) return;
 
+    const pHistory = historyCache.filter(h => h.playerId === playerId);
+    const totalWins  = pHistory.filter(h => h.type === 'win').length;
+    const totalGoals = pHistory.filter(h => h.type === 'goal').length
+        + pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum, h) => sum + (h.count || 0), 0);
+
     const isGk = !!p.isGk;
-    const borderColor = isGk ? '#A78BFA' : '#10B981';
+    const age  = calcAge(p.birthDate);
+
+    const borderColor = isGk ? '#A78BFA' : getColorStyles((p.attScore + p.defScore) / 2).hex;
     const avatar = p.imgUrl
         ? `<img src="${p.imgUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid ${borderColor};margin:0 auto 15px;display:block;">`
         : `<div style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.05);border:4px solid #334155;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 15px;">${isGk?'🧤':'👤'}</div>`;
 
-    const badges = getEntryBadgesHTML(p);
+    const badges  = getEntryBadgesHTML(p);
     const gkBadge = isGk ? `<span style="background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.35);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:800;">🧤 שוער</span>` : '';
+    const ageBadge = age !== null ? `<span style="background:rgba(99,102,241,0.12);color:#A5B4FC;border:1px solid rgba(99,102,241,0.3);padding:3px 10px;border-radius:20px;font-size:0.82rem;font-weight:800;">🎂 גיל ${age}</span>` : '';
 
     const getBar = (label, val, color) => {
-        const c = color || (val >= 8.5 ? '#06B6D4' : val >= 7.5 ? '#10B981' : val >= 5 ? '#F59E0B' : '#EF4444');
+        const c = color || getColorStyles(val).hex;
         return `<div style="display:flex;align-items:center;margin-bottom:10px;font-size:0.9rem;text-align:right;">
             <div style="width:140px;color:#cbd5e1;font-weight:500;">${label}</div>
             <div style="flex:1;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin:0 10px;">
@@ -1123,59 +1156,75 @@ function showToast(msg, type='success') {
         </div>`;
     };
 
+    // Score boxes
     let scoreBoxes = '';
     if (isGk) {
-        const gkC = p.gkScore >= 8.5 ? '#06B6D4' : p.gkScore >= 7.5 ? '#10B981' : p.gkScore >= 5 ? '#F59E0B' : '#EF4444';
+        const c = getColorStyles(p.gkScore || 5);
         scoreBoxes = `<div style="display:flex;justify-content:center;margin-bottom:20px;">
-            <div style="border:2px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.1);padding:10px 30px;border-radius:12px;text-align:center;">
-                <div style="font-size:1.6rem;font-weight:900;color:#A78BFA;">${p.gkScore||5}</div>
-                <div style="font-size:0.8rem;font-weight:800;color:#A78BFA;">🧤 ציון שוער</div>
+            <div style="border:2px solid ${c.border};background:${c.bg};padding:10px 30px;border-radius:12px;text-align:center;">
+                <div style="font-size:1.6rem;font-weight:900;color:${c.text};">${p.gkScore||5}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:${c.text};">🧤 ציון שוער</div>
             </div>
         </div>`;
     } else {
-        const attC = p.attScore >= 8.5 ? '#06B6D4' : p.attScore >= 7.5 ? '#10B981' : p.attScore >= 5 ? '#F59E0B' : '#EF4444';
-        const defC = p.defScore >= 8.5 ? '#06B6D4' : p.defScore >= 7.5 ? '#10B981' : p.defScore >= 5 ? '#F59E0B' : '#EF4444';
+        const ac = getColorStyles(p.attScore||5), dc = getColorStyles(p.defScore||5);
         scoreBoxes = `<div style="display:flex;justify-content:center;gap:15px;margin-bottom:20px;">
-            <div style="border:2px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.1);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
-                <div style="font-size:1.6rem;font-weight:900;color:${attC};">${p.attScore||5}</div>
-                <div style="font-size:0.8rem;font-weight:800;color:${attC};">🎯 התקפה</div>
+            <div style="border:2px solid ${ac.border};background:${ac.bg};padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
+                <div style="font-size:1.6rem;font-weight:900;color:${ac.text};">${p.attScore||5}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:${ac.text};">🎯 התקפה</div>
             </div>
-            <div style="border:2px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.1);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
-                <div style="font-size:1.6rem;font-weight:900;color:${defC};">${p.defScore||5}</div>
-                <div style="font-size:0.8rem;font-weight:800;color:${defC};">🛡️ הגנה</div>
+            <div style="border:2px solid ${dc.border};background:${dc.bg};padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
+                <div style="font-size:1.6rem;font-weight:900;color:${dc.text};">${p.defScore||5}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:${dc.text};">🛡️ הגנה</div>
             </div>
         </div>`;
     }
 
+    // Stats bars
     let statsSection = '';
     if (isGk) {
         statsSection = `
             <div style="font-size:1rem;color:#A78BFA;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">🧤 מדדי שוער</div>
-            ${getBar('זינוק', p.gkDiv, '#A78BFA')}
+            ${getBar('זינוק',        p.gkDiv, '#A78BFA')}
             ${getBar('אחיזה בכדור', p.gkHan, '#A78BFA')}
-            ${getBar('בעיטה והוצאה', p.gkKic, '#A78BFA')}
-            ${getBar('מיקום בשער', p.gkPos, '#A78BFA')}
-            ${getBar('רפלקסים', p.gkRef, '#A78BFA')}`;
+            ${getBar('בעיטה והוצאה',p.gkKic, '#A78BFA')}
+            ${getBar('מיקום בשער',  p.gkPos, '#A78BFA')}
+            ${getBar('רפלקסים',     p.gkRef, '#A78BFA')}`;
     } else {
+        const attCustom = customParams.filter(cp => cp.type === 'att');
+        const defCustom = customParams.filter(cp => cp.type === 'def');
         statsSection = `
             <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">⚔️ מדדי התקפה</div>
             ${getBar('סיומת מול שער', p.fin)}
             ${getBar('דריבל ושליטה', p.dri)}
-            ${getBar('מהירות וזריזות', p.pac)}
-            ${getBar('ראיית משחק', p.vis)}
-            ${getBar('תנועה ללא כדור', p.pos)}
+            ${getBar('מהירות וזריזות',p.pac)}
+            ${getBar('ראיית משחק',   p.vis)}
+            ${getBar('תנועה ללא כדור',p.pos)}
+            ${attCustom.length > 0 ? `<div style="font-size:0.85rem;color:#F87171;border-bottom:1px solid #334155;padding-bottom:5px;margin:12px 0 10px;text-align:right;">⚔️ התקפה מותאמת</div>${attCustom.map(cp => getBar(cp.name, (p.customStats&&p.customStats[cp.id])||5)).join('')}` : ''}
             <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">🛡️ מדדי הגנה ופיזיות</div>
-            ${getBar('חילוצי כדור', p.tac)}
-            ${getBar('קריאת משחק', p.awa)}
-            ${getBar('פיזיות ועוצמה', p.str)}
-            ${getBar('כושר גופני', p.sta)}
-            ${getBar('יציאה מלחץ', p.com)}`;
+            ${getBar('חילוצי כדור',  p.tac)}
+            ${getBar('קריאת משחק',   p.awa)}
+            ${getBar('פיזיות ועוצמה',p.str)}
+            ${getBar('כושר גופני',   p.sta)}
+            ${getBar('יציאה מלחץ',   p.com)}
+            ${defCustom.length > 0 ? `<div style="font-size:0.85rem;color:#60A5FA;border-bottom:1px solid #334155;padding-bottom:5px;margin:12px 0 10px;text-align:right;">🛡️ הגנה מותאמת</div>${defCustom.map(cp => getBar(cp.name, (p.customStats&&p.customStats[cp.id])||5)).join('')}` : ''}`;
     }
 
     document.getElementById('miniCardContent').innerHTML = `
         ${avatar}
         <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
-        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">${badges}</div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;">${badges}</div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">${ageBadge}</div>
+        <div style="display:flex;justify-content:center;gap:15px;margin-bottom:20px;">
+            <div style="background:rgba(252,211,77,0.1);border:1px solid rgba(252,211,77,0.3);padding:10px 20px;border-radius:12px;text-align:center;width:45%;position:relative;">
+                <div style="font-size:1.6rem;font-weight:900;color:#FCD34D;">${totalGoals}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:#FCD34D;">⚽ גולי קריירה</div>
+            </div>
+            <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
+                <div style="font-size:1.6rem;font-weight:900;color:#10B981;">${totalWins}</div>
+                <div style="font-size:0.8rem;font-weight:800;color:#10B981;">🏆 ניצחונות</div>
+            </div>
+        </div>
         ${scoreBoxes}
         ${statsSection}`;
 
