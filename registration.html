@@ -990,7 +990,11 @@ function renderPlayersList() {
 }
 
 function renderPlayerRow(r, pos, isWaiting) {
-    const avatar   = r.imgUrl ? `<div class="player-avatar"><img src="${r.imgUrl}"></div>` : `<div class="player-avatar">👤</div>`;
+    const avatar = r.imgUrl 
+    ? `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;">
+           <img src="${r.imgUrl}">
+       </div>` 
+    : `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;">👤</div>`;
     const badges   = getEntryBadgesHTML(r);
     const gkBadge  = r.isGk ? `<span style="font-size:0.72rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:1px 7px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
     const timeStr  = r.registeredAt?.toDate ? r.registeredAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
@@ -1095,6 +1099,76 @@ function showToast(msg, type='success') {
     t.className   = 'toast ' + type + ' show';
     setTimeout(() => t.classList.remove('show'), 3000);
 }
+    function showMiniCard(playerId) {
+    const p = allPlayers.find(x => x.id === playerId);
+    if (!p) return;
+
+    const avatar = p.imgUrl
+        ? `<img src="${p.imgUrl}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--border);margin-bottom:14px;">`
+        : `<div style="width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.05);border:3px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;">👤</div>`;
+
+    const badges = getEntryBadgesHTML(p);
+    const gkBadge = p.isGk ? `<span style="font-size:0.75rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:2px 8px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
+
+    const getBar = (label, val, color) => `
+        <div style="display:flex;align-items:center;margin-bottom:8px;font-size:0.88rem;gap:8px;">
+            <div style="width:120px;color:#94A3B8;text-align:right;">${label}</div>
+            <div style="flex:1;height:7px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+                <div style="width:${(val||5)*10}%;height:100%;background:${color};border-radius:4px;"></div>
+            </div>
+            <div style="width:24px;text-align:left;font-weight:800;color:${color};">${val||5}</div>
+        </div>`;
+
+    let statsHTML = '';
+    if (p.isGk) {
+        statsHTML = `
+            <div style="font-size:0.8rem;color:#A78BFA;font-weight:800;margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px;">🧤 מדדי שוער</div>
+            ${getBar('זינוק', p.gkDiv, '#A78BFA')}
+            ${getBar('אחיזה', p.gkHan, '#A78BFA')}
+            ${getBar('בעיטה', p.gkKic, '#A78BFA')}
+            ${getBar('מיקום', p.gkPos, '#A78BFA')}
+            ${getBar('רפלקסים', p.gkRef, '#A78BFA')}`;
+    } else {
+        statsHTML = `
+            <div style="display:flex;gap:10px;justify-content:center;margin:14px 0 12px;">
+                <div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:8px 16px;">
+                    <div style="font-size:1.4rem;font-weight:900;color:#60A5FA;">${p.defScore||5}</div>
+                    <div style="font-size:0.72rem;color:#60A5FA;font-weight:800;">🛡️ הגנה</div>
+                </div>
+                <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:8px 16px;">
+                    <div style="font-size:1.4rem;font-weight:900;color:#F87171;">${p.attScore||5}</div>
+                    <div style="font-size:0.72rem;color:#F87171;font-weight:800;">🎯 התקפה</div>
+                </div>
+            </div>`;
+    }
+
+    document.getElementById('miniCardContent').innerHTML = `
+        ${avatar}
+        <div style="font-size:1.4rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:4px;">${badges}</div>
+        ${statsHTML}`;
+
+    const overlay = document.getElementById('miniCardOverlay');
+    overlay.style.display = 'flex';
+}
+
+function closeMiniCard() {
+    document.getElementById('miniCardOverlay').style.display = 'none';
+}
 </script>
+    <!-- Player Mini Card Modal -->
+<div id="miniCardOverlay" onclick="closeMiniCard()"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8);
+    backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div onclick="event.stopPropagation()"
+        style="background:var(--surface); border:1px solid var(--border); border-radius:20px;
+        width:100%; max-width:340px; padding:24px; position:relative; text-align:center;">
+        <button onclick="closeMiniCard()"
+            style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.1);
+            border:none; color:white; width:28px; height:28px; border-radius:50%;
+            cursor:pointer; font-weight:bold; font-size:0.9rem;">✕</button>
+        <div id="miniCardContent"></div>
+    </div>
+</div>
 </body>
 </html>
