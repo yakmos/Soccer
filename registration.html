@@ -1240,8 +1240,9 @@ function closeMiniCard() {
     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8);
     backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center; padding:20px;">
     <div onclick="event.stopPropagation()"
-        style="background:var(--surface); border:1px solid var(--border); border-radius:20px;
-        width:100%; max-width:340px; padding:24px; position:relative; text-align:center;">
+    style="background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    width:100%; max-width:340px; padding:24px; position:relative; text-align:center;
+    max-height:90vh; overflow-y:auto;">
         <button onclick="closeMiniCard()"
             style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.1);
             border:none; color:white; width:28px; height:28px; border-radius:50%;
