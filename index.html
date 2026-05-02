@@ -1548,7 +1548,17 @@ function cancelEdit() {
     resetLockedParamsUI();
     resetBirthdayField();
 }
-
+async function deletePlayer(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    if (!confirm(`למחוק את ${p.name} מהקבוצה לצמיתות?\nפעולה זו לא ניתנת לביטול.`)) return;
+    try {
+        await playersRef.doc(id).delete();
+    } catch(e) { 
+        console.error(e); 
+        alert("שגיאה במחיקת השחקן."); 
+    }
+}
 async function toggleLineup(id, currentState) { await playersRef.doc(id).update({ inLineup: !currentState }); }
 async function clearLineup() {
     if(!confirm("להסיר את כולם מההרכב הנוכחי?")) return;
@@ -1828,6 +1838,8 @@ function render() {
                 <div class="squad-actions">
                     <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button>
                     <button class="action-btn btn-edit" onclick="startEditById('${p.id}')">✏️</button>
+                    <button class="action-btn admin-only" onclick="deletePlayer('${p.id}')" style="background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4); color:var(--danger);">🗑️</button>
+                </div>
                 </div>
             </div>`;
         }).join('');
