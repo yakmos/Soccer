@@ -873,6 +873,10 @@
                             <option value="gkRef">⚡ רפלקסים</option>
                         </optgroup>
                         <optgroup id="customStatOptgroup" label="מדדים מותאמים אישית" style="display:none;"></optgroup>
+                        <optgroup label="📊 סטטיסטיקות נוספות">
+    <option value="attendance">📅 מתמידים</option>
+    <option value="age">🎂 גיל </option>
+</optgroup>
                     </select>
                     <div id="dynamicLeaderboardList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
                 </div>
@@ -1740,10 +1744,14 @@ function showPlayerCard(id) {
                 <div class="modal-score-val" style="color:#FCD34D;">${totalGoals}</div>
                 <div class="modal-score-label" style="color:#FCD34D;">⚽ גולי קריירה</div>
             </div>
-            <div class="modal-score-box" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); width:45%;">
-                <div class="modal-score-val" style="color:#10B981;">${totalWins}</div>
-                <div class="modal-score-label" style="color:#10B981;">🏆 ניצחונות</div>
-            </div>
+           <div class="modal-score-box" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); width:30%;">
+    <div class="modal-score-val" style="color:#10B981;">${totalWins}</div>
+    <div class="modal-score-label" style="color:#10B981;">🏆 ניצחונות</div>
+</div>
+<div class="modal-score-box" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); width:30%;">
+    <div class="modal-score-val" style="color:var(--primary-color);">${gamesHistoryCache.filter(g => (g.teams||[]).flatMap(t=>t.players||[]).some(pl=>pl.id===p.id)).length}</div>
+    <div class="modal-score-label" style="color:var(--primary-color);">📅 ערבים</div>
+</div>
         </div>
         <div class="modal-scores">${scoreBoxes}</div>
         ${statsSection}`;
@@ -1788,6 +1796,46 @@ function renderLeaderboards() {
     const selector = document.getElementById('statSelector');
     if (!listContainer || !selector) return;
     const statKey = selector.value;
+    // ========== ערבי הגעה וגיל ==========
+if (statKey === 'attendance') {
+    const attendanceMap = {};
+    gamesHistoryCache.forEach(game => {
+        const ids = new Set((game.teams || []).flatMap(t => (t.players || []).map(p => p.id)));
+        ids.forEach(id => { attendanceMap[id] = (attendanceMap[id] || 0) + 1; });
+    });
+    const sorted = [...players].sort((a, b) => (attendanceMap[b.id] || 0) - (attendanceMap[a.id] || 0));
+    listContainer.innerHTML = sorted.map((p, i) => {
+        const count = attendanceMap[p.id] || 0;
+        return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:900; width:20px; color:${i<3?'var(--primary-color)':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk?'<span class="gk-badge" style="font-size:0.7rem;">🧤</span>':''} ${getPlayerBadgesHTML(p,true)} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); color:var(--primary-color); padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid var(--primary-color);">${count} ערבים</div>
+        </div>`;
+    }).join('');
+    return;
+}
+
+if (statKey === 'age') {
+    const withAge = players.filter(p => p.birthDate).map(p => ({ ...p, _age: calcAge(p.birthDate) }))
+        .sort((a, b) => a._age - b._age);
+    const noAge = players.filter(p => !p.birthDate);
+    const sorted = [...withAge, ...noAge];
+    listContainer.innerHTML = sorted.map((p, i) => {
+        const age = calcAge(p.birthDate);
+        return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:900; width:20px; color:${i<3?'#A5B4FC':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk?'<span class="gk-badge" style="font-size:0.7rem;">🧤</span>':''} ${getPlayerBadgesHTML(p,true)}</div>
+            </div>
+            <div style="background:rgba(99,102,241,0.15); color:#A5B4FC; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid rgba(99,102,241,0.3);">${age !== null ? `גיל ${age}` : '—'}</div>
+        </div>`;
+    }).join('');
+    return;
+}
     let colorClass = 'var(--primary-color)';
     if (['attScore','fin','dri','pac','vis','pos'].includes(statKey)) colorClass = 'var(--att-text)';
     else if (['defScore','tac','awa','str','sta','com'].includes(statKey)) colorClass = 'var(--def-text)';
