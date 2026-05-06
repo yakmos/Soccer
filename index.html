@@ -1027,6 +1027,11 @@ window.onload = async () => {
         document.getElementById('lobbyContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('adminBtnHeader').style.display = 'block';
+        if (sessionStorage.getItem(`admin_${currentGroupId}`) === 'true') {
+    document.body.classList.add('is-admin');
+    const bottomBar = document.getElementById('adminBottomBar');
+    if (bottomBar) bottomBar.style.display = 'block';
+}
 
         groupRef = db.collection('groups').doc(currentGroupId);
         playersRef = groupRef.collection('players');
