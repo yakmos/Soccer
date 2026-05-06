@@ -441,7 +441,6 @@
 <div class="generating-overlay" id="generatingOverlay">
     <div class="generating-spinner"></div>
     <div class="generating-title">⚽ יוצר קבוצות מאוזנות...</div>
-    <div class="generating-sub">מריץ 5,000 איטרציות</div>
 </div>
 
 <!-- TOAST -->
@@ -511,11 +510,16 @@ window.onload = async () => {
         if (!gameData.open) { showClosed(); return; }
 
         // Check admin
-        if (urlParams.get("admin") === "1") {
+        const sessionKey = `admin_${groupId}`;
+        if (sessionStorage.getItem(sessionKey) === 'true') {
+            isAdmin = true;
+            document.body.classList.add("is-admin");
+        } else if (urlParams.get("admin") === "1") {
             const pwd = prompt("סיסמת מנהל:");
             if (pwd === groupData.password) {
                 isAdmin = true;
                 document.body.classList.add("is-admin");
+                sessionStorage.setItem(sessionKey, 'true');
             }
         }
 
@@ -967,6 +971,7 @@ function promptAdminLogin() {
     if (pwd === groupData.password) {
         isAdmin = true;
         document.body.classList.add('is-admin');
+        sessionStorage.setItem(`admin_${groupId}`, 'true');
         const btn = document.getElementById('adminLoginBtn');
         if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
         updateDateBadge(gameData);
