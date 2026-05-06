@@ -1991,7 +1991,7 @@ async function createNewGroup() {
 function promptAdmin() {
     const sessionKey = `admin_${currentGroupId}`;
     if (document.body.classList.contains('is-admin')) {
-        alert('כבר מחובר כמנהל ✅');
+        showToast('כבר מחובר כמנהל ✅', 'success');
         return;
     }
     if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) {
@@ -2879,6 +2879,22 @@ function fillBirthdayField(birthDate) {
 
 function resetBirthdayField() {
     fillBirthdayField(null);
+}
+
+    function showToast(msg, type='success') {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:#1E293B; border:1px solid #334155; border-radius:12px; padding:12px 20px; font-weight:800; font-size:0.95rem; z-index:9999; transition:transform 0.3s ease; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.5);`;
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    if (type === 'success') { toast.style.borderColor = 'rgba(16,185,129,0.35)'; toast.style.color = '#10B981'; }
+    else if (type === 'error') { toast.style.borderColor = 'rgba(239,68,68,0.4)'; toast.style.color = '#F87171'; }
+    else { toast.style.borderColor = 'rgba(99,102,241,0.4)'; toast.style.color = '#818CF8'; }
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(() => { toast.style.transform = 'translateX(-50%) translateY(80px)'; }, 3000);
 }
 </script>
 </body>
