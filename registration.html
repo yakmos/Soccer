@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -48,7 +47,6 @@
             padding-bottom: 40px;
         }
 
-        /* ===== HEADER ===== */
         .game-header {
             background: linear-gradient(135deg, #0a3d2e 0%, #0F172A 60%);
             border-bottom: 1px solid var(--border);
@@ -74,7 +72,6 @@
             line-height: 1.2;
         }
 
-        /* ===== DATE BADGE (normal + editing) ===== */
         .game-date-badge {
             background: var(--primary-dim);
             border: 1px solid var(--primary-border);
@@ -88,227 +85,99 @@
             transition: background 0.2s, border-color 0.2s;
         }
 
-        /* admin: badge becomes clickable */
-        body.is-admin .game-date-badge {
-            cursor: pointer;
-        }
-        body.is-admin .game-date-badge:hover {
-            background: rgba(16,185,129,0.25);
-            border-color: var(--primary);
-        }
+        body.is-admin .game-date-badge { cursor: pointer; }
+        body.is-admin .game-date-badge:hover { background: rgba(16,185,129,0.25); border-color: var(--primary); }
 
-        /* inline date editor */
-        .date-edit-wrap {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
-        }
+        .date-edit-wrap { display: none; align-items: center; gap: 6px; flex-shrink: 0; }
         .date-edit-wrap.visible { display: flex; }
 
         .date-edit-input {
-            background: var(--bg);
-            border: 1.5px solid var(--primary);
-            border-radius: 10px;
-            color: var(--text);
-            font-family: 'Heebo', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            padding: 5px 8px;
-            outline: none;
-            width: 120px;
+            background: var(--bg); border: 1.5px solid var(--primary); border-radius: 10px;
+            color: var(--text); font-family: 'Heebo', sans-serif; font-size: 0.82rem;
+            font-weight: 700; padding: 5px 8px; outline: none; width: 120px;
         }
         .time-edit-input {
-            background: var(--bg);
-            border: 1.5px solid var(--primary);
-            border-radius: 10px;
-            color: var(--text);
-            font-family: 'Heebo', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            padding: 5px 8px;
-            outline: none;
-            width: 76px;
+            background: var(--bg); border: 1.5px solid var(--primary); border-radius: 10px;
+            color: var(--text); font-family: 'Heebo', sans-serif; font-size: 0.82rem;
+            font-weight: 700; padding: 5px 8px; outline: none; width: 76px;
         }
 
         .edit-save-btn, .edit-cancel-btn {
-            border: none;
-            border-radius: 8px;
-            padding: 5px 10px;
-            font-family: 'Heebo', sans-serif;
-            font-size: 0.8rem;
-            font-weight: 900;
-            cursor: pointer;
-            transition: opacity 0.15s;
+            border: none; border-radius: 8px; padding: 5px 10px;
+            font-family: 'Heebo', sans-serif; font-size: 0.8rem; font-weight: 900;
+            cursor: pointer; transition: opacity 0.15s;
         }
-        .edit-save-btn   { background: var(--primary); color: #fff; }
+        .edit-save-btn { background: var(--primary); color: #fff; }
         .edit-cancel-btn { background: var(--border); color: var(--muted); }
         .edit-save-btn:active, .edit-cancel-btn:active { opacity: 0.7; }
 
-        /* ===== CAPACITY ===== */
-        .capacity-bar-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .capacity-bar-bg {
-            flex: 1;
-            height: 6px;
-            background: rgba(255,255,255,0.08);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .capacity-bar-fill {
-            height: 100%;
-            background: var(--primary);
-            border-radius: 3px;
-            transition: width 0.4s ease;
-        }
-
+        .capacity-bar-wrap { display: flex; align-items: center; gap: 10px; }
+        .capacity-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+        .capacity-bar-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.4s ease; }
         .capacity-bar-fill.full { background: var(--waiting-color); }
-
-        .capacity-text {
-            font-size: 0.82rem;
-            font-weight: 800;
-            color: var(--muted);
-            white-space: nowrap;
-        }
+        .capacity-text { font-size: 0.82rem; font-weight: 800; color: var(--muted); white-space: nowrap; }
         .capacity-text span { color: var(--primary); }
         .capacity-text.full span { color: var(--waiting-color); }
 
-        /* ===== NOTICE BOX ===== */
-        .notice-box-outer {
-            margin: 16px 16px 0;
-            position: relative;
-        }
-
+        .notice-box-outer { margin: 16px 16px 0; position: relative; }
         .notice-box {
-            background: rgba(16,185,129,0.06);
-            border: 1px solid var(--primary-border);
-            border-radius: 14px;
-            padding: 14px 16px;
-            font-size: 0.88rem;
-            color: var(--muted);
-            line-height: 1.55;
-            white-space: pre-wrap;
+            background: rgba(16,185,129,0.06); border: 1px solid var(--primary-border);
+            border-radius: 14px; padding: 14px 16px; font-size: 0.88rem;
+            color: var(--muted); line-height: 1.55; white-space: pre-wrap;
         }
-
-        /* admin edit button on notice */
         .notice-edit-btn {
-            display: none;
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            background: rgba(16,185,129,0.15);
-            border: 1px solid var(--primary-border);
-            color: var(--primary);
-            border-radius: 8px;
-            padding: 3px 8px;
-            font-size: 0.75rem;
-            font-weight: 900;
-            cursor: pointer;
-            transition: background 0.15s;
+            display: none; position: absolute; top: 8px; left: 8px;
+            background: rgba(16,185,129,0.15); border: 1px solid var(--primary-border);
+            color: var(--primary); border-radius: 8px; padding: 3px 8px;
+            font-size: 0.75rem; font-weight: 900; cursor: pointer; transition: background 0.15s;
         }
         .notice-edit-btn:active { background: rgba(16,185,129,0.3); }
         body.is-admin .notice-edit-btn { display: block; }
 
-        /* notice textarea (shown while editing) */
         .notice-edit-area {
-            display: none;
-            width: 100%;
-            min-height: 80px;
-            background: var(--bg);
-            border: 1.5px solid var(--primary);
-            border-radius: 12px;
-            color: var(--text);
-            font-family: 'Heebo', sans-serif;
-            font-size: 0.88rem;
-            padding: 12px 14px;
-            outline: none;
-            resize: vertical;
-            line-height: 1.55;
+            display: none; width: 100%; min-height: 80px; background: var(--bg);
+            border: 1.5px solid var(--primary); border-radius: 12px; color: var(--text);
+            font-family: 'Heebo', sans-serif; font-size: 0.88rem; padding: 12px 14px;
+            outline: none; resize: vertical; line-height: 1.55;
         }
         .notice-edit-area.visible { display: block; }
-
-        .notice-edit-actions {
-            display: none;
-            gap: 8px;
-            margin-top: 8px;
-        }
+        .notice-edit-actions { display: none; gap: 8px; margin-top: 8px; }
         .notice-edit-actions.visible { display: flex; }
 
-        /* ===== CONTAINER ===== */
-        .container {
-            max-width: 540px;
-            margin: 0 auto;
-            padding: 16px;
-        }
+        .container { max-width: 540px; margin: 0 auto; padding: 16px; }
 
-        /* ===== CARD ===== */
         .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 20px; margin-bottom: 16px;
         }
-
         .card-title {
-            font-size: 1rem;
-            font-weight: 900;
-            color: var(--text);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 1rem; font-weight: 900; color: var(--text);
+            margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
         }
 
-        /* ===== SEARCH INPUT ===== */
         .search-wrap { position: relative; margin-bottom: 8px; }
-
         .search-input {
-            width: 100%;
-            padding: 14px 16px;
-            background: var(--bg);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            font-family: 'Heebo', sans-serif;
-            font-size: 1.05rem;
-            font-weight: 500;
-            outline: none;
-            transition: border-color 0.2s;
-            -webkit-appearance: none;
+            width: 100%; padding: 14px 16px; background: var(--bg);
+            border: 2px solid var(--border); border-radius: 12px; color: var(--text);
+            font-family: 'Heebo', sans-serif; font-size: 1.05rem; font-weight: 500;
+            outline: none; transition: border-color 0.2s; -webkit-appearance: none;
         }
         .search-input:focus { border-color: var(--primary); }
         .search-input::placeholder { color: var(--muted); font-weight: 400; }
 
-        /* ===== AUTOCOMPLETE ===== */
         .autocomplete-list {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            display: none;
-            margin-bottom: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden; display: none;
+            margin-bottom: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
         .autocomplete-list.visible { display: block; }
 
         .autocomplete-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            cursor: pointer;
-            transition: background 0.15s;
-            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+            cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border);
         }
         .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:active,
-        .autocomplete-item:hover { background: rgba(16,185,129,0.1); }
+        .autocomplete-item:active, .autocomplete-item:hover { background: rgba(16,185,129,0.1); }
         .autocomplete-item.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
 
         .ac-avatar {
@@ -318,7 +187,6 @@
             font-size: 18px; flex-shrink: 0; overflow: hidden;
         }
         .ac-avatar img { width:100%; height:100%; object-fit:cover; }
-
         .ac-info { flex: 1; }
         .ac-name { font-weight: 800; font-size: 0.97rem; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
         .ac-name-text { letter-spacing: 0; word-spacing: 0; }
@@ -331,19 +199,15 @@
         .ac-status { font-size: 0.75rem; font-weight: 800; color: var(--primary); }
         .ac-status.registered { color: var(--muted); }
 
-        /* ===== REGISTER BUTTON ===== */
         .register-btn {
-            width: 100%; padding: 15px;
-            background: var(--primary); color: white; border: none;
-            border-radius: 12px; font-family: 'Heebo', sans-serif;
-            font-size: 1.1rem; font-weight: 900; cursor: pointer;
-            transition: all 0.2s;
+            width: 100%; padding: 15px; background: var(--primary); color: white; border: none;
+            border-radius: 12px; font-family: 'Heebo', sans-serif; font-size: 1.1rem;
+            font-weight: 900; cursor: pointer; transition: all 0.2s;
             display: flex; justify-content: center; align-items: center; gap: 8px;
         }
         .register-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
         .register-btn:not(:disabled):active { transform: scale(0.97); }
 
-        /* ===== PLAYERS LIST ===== */
         .section-label {
             font-size: 0.78rem; font-weight: 900; color: var(--muted);
             text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
@@ -356,8 +220,7 @@
         .player-row {
             display: flex; align-items: center; gap: 12px;
             background: var(--bg); border: 1px solid var(--border);
-            border-radius: 12px; padding: 11px 14px;
-            animation: slideIn 0.25s ease;
+            border-radius: 12px; padding: 11px 14px; animation: slideIn 0.25s ease;
         }
         @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
 
@@ -380,18 +243,15 @@
         .player-time { font-size:0.75rem; color:var(--muted); margin-right:auto; }
         .waiting-tag { font-size:0.72rem; font-weight:800; background:var(--waiting-dim); color:var(--waiting-color); border:1px solid var(--waiting-border); padding:1px 8px; border-radius:6px; }
 
-        /* ===== EMPTY STATE ===== */
         .empty-state { text-align:center; padding:30px 20px; color:var(--muted); }
         .empty-state .icon { font-size:2.5rem; margin-bottom:10px; }
         .empty-state p { font-size:0.9rem; }
 
-        /* ===== CLOSED STATE ===== */
         .closed-banner { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:16px; padding:30px 20px; text-align:center; margin:20px 0; }
         .closed-banner .icon { font-size:3rem; margin-bottom:12px; }
         .closed-banner h2 { font-size:1.4rem; font-weight:900; margin-bottom:8px; }
         .closed-banner p { color:var(--muted); font-size:0.9rem; }
 
-        /* ===== TOAST ===== */
         .toast {
             position:fixed; bottom:30px; left:50%;
             transform:translateX(-50%) translateY(80px);
@@ -406,12 +266,10 @@
         .toast.error   { border-color:rgba(239,68,68,0.4); color:#F87171; }
         .toast.info    { border-color:rgba(99,102,241,0.4); color:#818CF8; }
 
-        /* ===== LOADING ===== */
         .loading-wrap { text-align:center; padding:60px 20px; color:var(--muted); }
         .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.7s linear infinite; margin:0 auto 16px; }
         @keyframes spin { to { transform:rotate(360deg); } }
 
-        /* ===== DIVIDERS ===== */
         .waiting-divider { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:0.75rem; font-weight:800; color:var(--waiting-color); }
         .waiting-divider::before,.waiting-divider::after { content:''; flex:1; height:1px; background:var(--waiting-border); }
 
@@ -422,7 +280,6 @@
         .cancelled-tag { font-size:0.72rem; font-weight:800; background:rgba(239,68,68,0.12); color:#F87171; border:1px solid rgba(239,68,68,0.3); padding:1px 8px; border-radius:6px; }
         .cancel-time { font-size:0.72rem; color:#F87171; font-weight:700; white-space:nowrap; }
 
-        /* ===== REMOVE BUTTON (admin) ===== */
         .remove-btn {
             width:30px; height:30px; border-radius:8px; border:none;
             background:rgba(239,68,68,0.15); color:#F87171; font-size:1rem;
@@ -436,6 +293,51 @@
 
         .cancelled-card { display:none; }
         body.is-admin .cancelled-card { display:block; }
+
+        /* ===== GENERATE TEAMS BTN ===== */
+        .generate-teams-btn {
+            display: none;
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white; border: none; border-radius: 12px;
+            font-family: 'Heebo', sans-serif;
+            font-size: 1.1rem; font-weight: 900; cursor: pointer;
+            transition: all 0.2s; margin-top: 12px;
+            box-shadow: 0 4px 15px rgba(16,185,129,0.4);
+            align-items: center; justify-content: center; gap: 8px;
+        }
+        body.is-admin .generate-teams-btn { display: flex; }
+        .generate-teams-btn:active { transform: scale(0.97); }
+        .generate-teams-btn:disabled { background: var(--border); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+
+        /* ===== GENERATING OVERLAY ===== */
+        .generating-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(15,23,42,0.92); backdrop-filter: blur(6px);
+            z-index: 2000; flex-direction: column;
+            align-items: center; justify-content: center; gap: 20px;
+        }
+        .generating-overlay.visible { display: flex; }
+        .generating-spinner {
+            width: 60px; height: 60px;
+            border: 4px solid rgba(16,185,129,0.2);
+            border-top-color: #10B981;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .generating-title { font-size: 1.3rem; font-weight: 900; color: #F8FAFC; }
+        .generating-sub {
+            font-size: 0.9rem; color: #94A3B8; font-weight: 700;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ===== MINI CARD MODAL ===== */
+        #miniCardOverlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -451,15 +353,11 @@
                 style="background:transparent; border:1px solid var(--border); color:var(--muted);
                        border-radius:8px; padding:5px 10px; font-size:0.78rem; font-weight:800;
                        cursor:pointer; font-family:Heebo,sans-serif;">ניהול 🔒</button>
-
-            <!-- Badge (normal view) -->
             <div class="game-date-badge" id="gameDateBadge" onclick="startDateEdit()" title="לחץ לעריכה">—</div>
-
-            <!-- Inline editor (admin only, hidden by default) -->
             <div class="date-edit-wrap" id="dateEditWrap">
                 <input type="date" id="dateEditInput" class="date-edit-input" />
                 <input type="time" id="timeEditInput" class="time-edit-input" />
-                <button class="edit-save-btn"   onclick="saveDateEdit()">✓</button>
+                <button class="edit-save-btn" onclick="saveDateEdit()">✓</button>
                 <button class="edit-cancel-btn" onclick="cancelDateEdit()">✕</button>
             </div>
         </div>
@@ -492,13 +390,11 @@
         <!-- Notice box -->
         <div id="noticeBoxWrap" style="display:none; margin-top:16px;">
             <div class="notice-box-outer">
-                <!-- normal text view -->
                 <div class="notice-box" id="noticeBoxText"></div>
                 <button class="notice-edit-btn" onclick="startNoticeEdit()">✏️ ערוך</button>
-                <!-- edit mode -->
                 <textarea class="notice-edit-area" id="noticeEditArea"></textarea>
                 <div class="notice-edit-actions" id="noticeEditActions">
-                    <button class="edit-save-btn"   onclick="saveNoticeEdit()">שמור ✓</button>
+                    <button class="edit-save-btn" onclick="saveNoticeEdit()">שמור ✓</button>
                     <button class="edit-cancel-btn" onclick="cancelNoticeEdit()">ביטול</button>
                 </div>
             </div>
@@ -532,11 +428,38 @@
                 <div id="cancelledList" class="players-list"></div>
             </div>
         </div>
+
+        <!-- Generate Teams Button (admin only) -->
+        <button class="generate-teams-btn" id="generateTeamsBtn" onclick="generateTeamsFromReg()">
+            🔒 סגור הרשמה וצור קבוצות מאוזנות 🔥
+        </button>
+
     </div>
+</div>
+
+<!-- Generating Overlay -->
+<div class="generating-overlay" id="generatingOverlay">
+    <div class="generating-spinner"></div>
+    <div class="generating-title">⚽ יוצר קבוצות מאוזנות...</div>
+    <div class="generating-sub">מריץ 5,000 איטרציות</div>
 </div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- Mini Card Modal -->
+<div id="miniCardOverlay" onclick="closeMiniCard()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div onclick="event.stopPropagation()"
+        style="background:var(--surface); border:1px solid var(--border); border-radius:20px;
+        width:100%; max-width:380px; padding:24px; position:relative; text-align:center;
+        max-height:90vh; overflow-y:auto;">
+        <button onclick="closeMiniCard()"
+            style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.1);
+            border:none; color:white; width:28px; height:28px; border-radius:50%;
+            cursor:pointer; font-weight:bold; font-size:0.9rem;">✕</button>
+        <div id="miniCardContent"></div>
+    </div>
+</div>
 
 <script>
 // ========== Firebase ==========
@@ -552,20 +475,21 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ========== State ==========
-const urlParams   = new URLSearchParams(window.location.search);
-const groupId      = urlParams.get('group');
+const urlParams      = new URLSearchParams(window.location.search);
+const groupId        = urlParams.get('group');
 const registrationId = urlParams.get('reg');
 
-let groupData    = null;
-let allPlayers   = [];
+let groupData     = null;
+let allPlayers    = [];
 let registrations = [];
 let selectedPlayer = null;
-let gameData     = null;
-let maxPlayers   = 10;
-let isAdmin      = false;
-let cancelled    = [];
-let historyCache = [];
-let customParams = [];
+let gameData      = null;
+let maxPlayers    = 10;
+let isAdmin       = false;
+let cancelled     = [];
+let historyCache  = [];
+let customParams  = [];
+
 // ========== Init ==========
 window.onload = async () => {
     if (!groupId || !registrationId) { showClosed(); return; }
@@ -577,13 +501,13 @@ window.onload = async () => {
 
         const settings = groupData.settings || {};
         maxPlayers = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
+        customParams = groupData.customParams || [];
 
         const regRef = db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId);
         const regDoc = await regRef.get();
         if (!regDoc.exists) { showClosed(); return; }
         gameData = regDoc.data();
-
         if (!gameData.open) { showClosed(); return; }
 
         // Check admin
@@ -598,24 +522,20 @@ window.onload = async () => {
         // Load players
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        // Load history (goals + wins)
-const historySnap = await db.collection('groups').doc(groupId).collection('history').get();
-historyCache = historySnap.docs.map(d => d.data());
 
-// Load custom params
-customParams = groupData.customParams || [];
+        // Load history
+        const historySnap = await db.collection('groups').doc(groupId).collection('history').get();
+        historyCache = historySnap.docs.map(d => d.data());
 
         // Show UI
         document.getElementById('gameHeader').style.display = 'block';
         document.getElementById('groupNameEl').textContent = '⚽ ' + (groupData.name || 'קבוצה');
         updateDateBadge(gameData);
 
-        if (gameData.noticeText) {
-            showNoticeBox(gameData.noticeText);
-        }
+        if (gameData.noticeText) showNoticeBox(gameData.noticeText);
 
-        document.getElementById('loadingView').style.display  = 'none';
-        document.getElementById('mainView').style.display     = 'block';
+        document.getElementById('loadingView').style.display = 'none';
+        document.getElementById('mainView').style.display    = 'block';
 
         // Realtime: entries
         db.collection('groups').doc(groupId)
@@ -652,10 +572,7 @@ function showClosed() {
 function showNoticeBox(text) {
     const wrap = document.getElementById('noticeBoxWrap');
     const box  = document.getElementById('noticeBoxText');
-    if (!text || !text.trim()) {
-        wrap.style.display = 'none';
-        return;
-    }
+    if (!text || !text.trim()) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'block';
     box.textContent    = text;
 }
@@ -663,7 +580,7 @@ function showNoticeBox(text) {
 // ========== Priority ==========
 function getPriorityScore(entry) {
     if (entry.isMoshavResident || (entry.isActive && !entry.isNew)) return 1;
-    if (entry.isActive && entry.isNew)  return 2;
+    if (entry.isActive && entry.isNew)   return 2;
     if (!entry.isActive && !entry.isNew) return 3;
     return 4;
 }
@@ -679,44 +596,28 @@ function getEntryBadgesHTML(entry) {
 // ========== Date Badge ==========
 function updateDateBadge(data) {
     const badge = document.getElementById('gameDateBadge');
-    if (data.gameDate && data.gameTime) {
-        badge.textContent = `📅 ${data.gameDate} • ${data.gameTime}`;
-    } else if (data.gameDate) {
-        badge.textContent = `📅 ${data.gameDate}`;
-    } else {
-        badge.textContent = '📅 קבע תאריך';
-    }
-    // Add pencil hint for admin
+    if (data.gameDate && data.gameTime) badge.textContent = `📅 ${data.gameDate} • ${data.gameTime}`;
+    else if (data.gameDate)             badge.textContent = `📅 ${data.gameDate}`;
+    else                                badge.textContent = '📅 קבע תאריך';
     if (isAdmin) badge.title = '✏️ לחץ לעריכה';
 }
 
 // ========== Inline Date Edit ==========
 function startDateEdit() {
     if (!isAdmin) return;
-
-    // Pre-fill inputs from current gameData
     const dateInput = document.getElementById('dateEditInput');
     const timeInput = document.getElementById('timeEditInput');
-
-    // Convert gameDate DD/MM/YYYY → YYYY-MM-DD for input[type=date]
     if (gameData.gameDate) {
         try {
             let iso;
             if (gameData.gameDate.includes('/')) {
                 const [d, m, y] = gameData.gameDate.split('/');
                 iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-            } else {
-                iso = gameData.gameDate;
-            }
+            } else { iso = gameData.gameDate; }
             dateInput.value = iso;
         } catch(e) { dateInput.value = ''; }
-    } else {
-        dateInput.value = '';
-    }
-
+    } else { dateInput.value = ''; }
     timeInput.value = gameData.gameTime || '';
-
-    // Toggle visibility
     document.getElementById('gameDateBadge').style.display = 'none';
     document.getElementById('dateEditWrap').classList.add('visible');
     dateInput.focus();
@@ -728,33 +629,21 @@ function cancelDateEdit() {
 }
 
 async function saveDateEdit() {
-    const rawDate = document.getElementById('dateEditInput').value; // YYYY-MM-DD
-    const rawTime = document.getElementById('timeEditInput').value; // HH:MM
-
+    const rawDate = document.getElementById('dateEditInput').value;
+    const rawTime = document.getElementById('timeEditInput').value;
     if (!rawDate) { showToast('יש לבחור תאריך', 'error'); return; }
-
-    // Convert YYYY-MM-DD → DD/MM/YYYY for display
     const [y, m, d] = rawDate.split('-');
     const displayDate = `${d}/${m}/${y}`;
-
     try {
         await db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
-            .update({
-                gameDate: displayDate,
-                gameTime: rawTime || ''
-            });
-
+            .update({ gameDate: displayDate, gameTime: rawTime || '' });
         gameData.gameDate = displayDate;
         gameData.gameTime = rawTime || '';
-
         cancelDateEdit();
         updateDateBadge(gameData);
         showToast('התאריך עודכן ✅', 'success');
-    } catch(e) {
-        console.error(e);
-        showToast('שגיאה בשמירה', 'error');
-    }
+    } catch(e) { console.error(e); showToast('שגיאה בשמירה', 'error'); }
 }
 
 // ========== Inline Notice Edit ==========
@@ -763,9 +652,8 @@ function startNoticeEdit() {
     const actions = document.getElementById('noticeEditActions');
     const box     = document.getElementById('noticeBoxText');
     const editBtn = document.querySelector('.notice-edit-btn');
-
     area.value = gameData.noticeText || '';
-    box.style.display    = 'none';
+    box.style.display     = 'none';
     editBtn.style.display = 'none';
     area.classList.add('visible');
     actions.classList.add('visible');
@@ -778,29 +666,23 @@ function cancelNoticeEdit() {
     const actions = document.getElementById('noticeEditActions');
     const box     = document.getElementById('noticeBoxText');
     const editBtn = document.querySelector('.notice-edit-btn');
-
     area.classList.remove('visible');
     actions.classList.remove('visible');
-    box.style.display    = '';
+    box.style.display     = '';
     editBtn.style.display = '';
 }
 
 async function saveNoticeEdit() {
     const newText = document.getElementById('noticeEditArea').value.trim();
-
     try {
         await db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
             .update({ noticeText: newText });
-
         gameData.noticeText = newText;
         cancelNoticeEdit();
         showNoticeBox(newText);
         showToast('ההודעה עודכנה ✅', 'success');
-    } catch(e) {
-        console.error(e);
-        showToast('שגיאה בשמירה', 'error');
-    }
+    } catch(e) { console.error(e); showToast('שגיאה בשמירה', 'error'); }
 }
 
 // ========== Capacity ==========
@@ -808,10 +690,8 @@ function updateCapacityBar() {
     const confirmed = registrations.filter(r => !r.isWaiting).length;
     const total     = registrations.length;
     const pct       = Math.min(100, (confirmed / maxPlayers) * 100);
-
     const fill = document.getElementById('capacityFill');
     const text = document.getElementById('capacityText');
-
     fill.style.width = pct + '%';
     if (confirmed >= maxPlayers) {
         fill.classList.add('full');
@@ -846,15 +726,15 @@ function renderAutocomplete(results, query) {
         return;
     }
     list.innerHTML = results.map(p => {
-        const already  = registrations.some(r => r.playerId === p.id);
-        const idx      = p.name.indexOf(query);
-        const hl       = idx >= 0
+        const already = registrations.some(r => r.playerId === p.id);
+        const idx = p.name.indexOf(query);
+        const hl  = idx >= 0
             ? p.name.slice(0,idx) + `<span class="highlight">${p.name.slice(idx,idx+query.length)}</span>` + p.name.slice(idx+query.length)
             : p.name;
-        const badges   = getEntryBadgesHTML(p);
-        const avatar   = p.imgUrl ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>` : `<div class="ac-avatar">👤</div>`;
-        const status   = already ? `<span class="ac-status registered">כבר רשום</span>` : '';
-        const scores   = p.isGk ? `🧤 ${p.gkScore||5}` : `🛡️${p.defScore||5} 🎯${p.attScore||5}`;
+        const badges = getEntryBadgesHTML(p);
+        const avatar = p.imgUrl ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>` : `<div class="ac-avatar">👤</div>`;
+        const status = already ? `<span class="ac-status registered">כבר רשום</span>` : '';
+        const scores = p.isGk ? `🧤 ${p.gkScore||5}` : `🛡️${p.defScore||5} 🎯${p.attScore||5}`;
         return `<div class="autocomplete-item ${already?'disabled':''}" onclick="selectPlayer('${p.id}')">
             ${avatar}
             <div class="ac-info">
@@ -949,7 +829,6 @@ async function registerPlayer() {
         });
 
         if (bumpedPlayerId) batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
-
         await batch.commit();
 
         document.getElementById('playerSearchInput').value = '';
@@ -997,15 +876,13 @@ function renderPlayersList() {
 }
 
 function renderPlayerRow(r, pos, isWaiting) {
-    const avatar = r.imgUrl 
-    ? `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;">
-           <img src="${r.imgUrl}">
-       </div>` 
-    : `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;">👤</div>`;
-    const badges   = getEntryBadgesHTML(r);
-    const gkBadge  = r.isGk ? `<span style="font-size:0.72rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:1px 7px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
-    const timeStr  = r.registeredAt?.toDate ? r.registeredAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
-    const waitTag  = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
+    const avatar = r.imgUrl
+        ? `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;"><img src="${r.imgUrl}"></div>`
+        : `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;">👤</div>`;
+    const badges  = getEntryBadgesHTML(r);
+    const gkBadge = r.isGk ? `<span style="font-size:0.72rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:1px 7px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
+    const timeStr = r.registeredAt?.toDate ? r.registeredAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
+    const waitTag = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
 
     return `<div class="player-row ${isWaiting?'waiting':''}">
         <div class="player-pos ${isWaiting?'waiting-pos':'confirmed'}">${isWaiting?'⏳':pos}</div>
@@ -1092,7 +969,7 @@ function promptAdminLogin() {
         document.body.classList.add('is-admin');
         const btn = document.getElementById('adminLoginBtn');
         if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
-        updateDateBadge(gameData); // re-adds pencil hint
+        updateDateBadge(gameData);
         showToast('מחובר כמנהל ✅','success');
     } else if (pwd !== null) {
         showToast('סיסמה שגויה ❌','error');
@@ -1106,7 +983,110 @@ function showToast(msg, type='success') {
     t.className   = 'toast ' + type + ' show';
     setTimeout(() => t.classList.remove('show'), 3000);
 }
-    function calcAge(birthDateStr) {
+
+// ========== Generate Teams ==========
+async function generateTeamsFromReg() {
+    const confirmed = registrations.filter(r => !r.isWaiting);
+    if (confirmed.length !== maxPlayers) {
+        showToast(`צריך בדיוק ${maxPlayers} שחקנים (יש ${confirmed.length})`, 'error');
+        return;
+    }
+    if (!confirm(`לסגור את ההרשמה וליצור קבוצות מ-${confirmed.length} שחקנים?`)) return;
+
+    document.getElementById('generatingOverlay').classList.add('visible');
+    const btn = document.getElementById('generateTeamsBtn');
+    btn.disabled = true;
+
+    try {
+        const lineup = confirmed.map(r => {
+            const full = allPlayers.find(p => p.id === r.playerId);
+            return full || { id: r.playerId, name: r.name, attScore: r.attScore||5, defScore: r.defScore||5, gkScore: r.gkScore||5, isGk: !!r.isGk };
+        });
+
+        const numTeams      = groupData.settings?.numTeams      || 3;
+        const playersPerTeam = groupData.settings?.playersPerTeam || 6;
+
+        // Mark lineup in Firestore
+        const playersRef = db.collection('groups').doc(groupId).collection('players');
+        const batch1 = db.batch();
+        allPlayers.forEach(p => batch1.update(playersRef.doc(p.id), { inLineup: false, goals: 0 }));
+        await batch1.commit();
+
+        const batch2 = db.batch();
+        lineup.forEach(p => batch2.update(playersRef.doc(p.id), { inLineup: true }));
+        await batch2.commit();
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        const gkPlayers    = lineup.filter(p => p.isGk);
+        const fieldPlayers = lineup.filter(p => !p.isGk);
+
+        let best = null, min = Infinity;
+        for (let i = 0; i < 5000; i++) {
+            const teams     = Array.from({ length: numTeams }, () => []);
+            const tempGks   = [...gkPlayers].sort(() => 0.5 - Math.random());
+            const tempField = [...fieldPlayers].sort(() => 0.5 - Math.random());
+            const teamOrder = Array.from({ length: numTeams }, (_, i) => i).sort(() => 0.5 - Math.random());
+
+            tempGks.forEach((gk, i) => teams[teamOrder[i]].push(gk));
+            let fi = 0;
+            for (let t = 0; t < numTeams; t++) {
+                const slots = playersPerTeam - teams[t].length;
+                for (let s = 0; s < slots; s++) {
+                    if (fi < tempField.length) teams[t].push(tempField[fi++]);
+                }
+            }
+
+            const attScores = teams.map(t => {
+                const fp = t.filter(p => !p.isGk);
+                return fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5;
+            });
+            const defScores = teams.map(t => {
+                const fp = t.filter(p => !p.isGk);
+                return fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5;
+            });
+            const diff = (Math.max(...attScores) - Math.min(...attScores)) +
+                         (Math.max(...defScores) - Math.min(...defScores));
+            if (diff < min) { min = diff; best = teams; }
+        }
+
+        const hasFixedGk = best.map(t => t.some(p => p.isGk));
+        const gkIds = best.map((t, i) => {
+            if (hasFixedGk[i]) return t.find(p => p.isGk).id;
+            return [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)))[0]?.id || null;
+        });
+
+        const gameRef  = db.collection('groups').doc(groupId).collection('game').doc('current');
+        const gameData2 = {
+            gkIds, hasFixedGk,
+            teamWins: Array(numTeams).fill(0),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        best.forEach((teamArr, idx) => { gameData2[`team${idx+1}`] = teamArr; });
+        await gameRef.set(gameData2);
+
+        // Close registration
+        await db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .update({ open: false });
+        await db.collection('groups').doc(groupId)
+            .update({ activeRegistrationId: firebase.firestore.FieldValue.delete() });
+
+        // Redirect to index
+        const indexUrl = window.location.pathname.replace('registration.html', 'index.html')
+            + `?group=${groupId}`;
+        window.location.href = indexUrl;
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById('generatingOverlay').classList.remove('visible');
+        btn.disabled = false;
+        showToast('שגיאה ביצירת הקבוצות: ' + e.message, 'error');
+    }
+}
+
+// ========== Mini Card ==========
+function calcAge(birthDateStr) {
     if (!birthDateStr) return null;
     const [y, m, d] = birthDateStr.split('-').map(Number);
     const today = new Date();
@@ -1128,21 +1108,21 @@ function showMiniCard(playerId) {
     const p = allPlayers.find(x => x.id === playerId);
     if (!p) return;
 
-    const pHistory = historyCache.filter(h => h.playerId === playerId);
+    const pHistory   = historyCache.filter(h => h.playerId === playerId);
     const totalWins  = pHistory.filter(h => h.type === 'win').length;
     const totalGoals = pHistory.filter(h => h.type === 'goal').length
-        + pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum, h) => sum + (h.count || 0), 0);
+        + pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
 
     const isGk = !!p.isGk;
     const age  = calcAge(p.birthDate);
 
-    const borderColor = isGk ? '#A78BFA' : getColorStyles((p.attScore + p.defScore) / 2).hex;
+    const borderColor = isGk ? '#A78BFA' : getColorStyles((p.attScore||5 + p.defScore||5) / 2).hex;
     const avatar = p.imgUrl
         ? `<img src="${p.imgUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid ${borderColor};margin:0 auto 15px;display:block;">`
         : `<div style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.05);border:4px solid #334155;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 15px;">${isGk?'🧤':'👤'}</div>`;
 
-    const badges  = getEntryBadgesHTML(p);
-    const gkBadge = isGk ? `<span style="background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.35);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:800;">🧤 שוער</span>` : '';
+    const badges   = getEntryBadgesHTML(p);
+    const gkBadge  = isGk ? `<span style="background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.35);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:800;">🧤 שוער</span>` : '';
     const ageBadge = age !== null ? `<span style="background:rgba(99,102,241,0.12);color:#A5B4FC;border:1px solid rgba(99,102,241,0.3);padding:3px 10px;border-radius:20px;font-size:0.82rem;font-weight:800;">🎂 גיל ${age}</span>` : '';
 
     const getBar = (label, val, color) => {
@@ -1156,10 +1136,9 @@ function showMiniCard(playerId) {
         </div>`;
     };
 
-    // Score boxes
     let scoreBoxes = '';
     if (isGk) {
-        const c = getColorStyles(p.gkScore || 5);
+        const c = getColorStyles(p.gkScore||5);
         scoreBoxes = `<div style="display:flex;justify-content:center;margin-bottom:20px;">
             <div style="border:2px solid ${c.border};background:${c.bg};padding:10px 30px;border-radius:12px;text-align:center;">
                 <div style="font-size:1.6rem;font-weight:900;color:${c.text};">${p.gkScore||5}</div>
@@ -1180,7 +1159,6 @@ function showMiniCard(playerId) {
         </div>`;
     }
 
-    // Stats bars
     let statsSection = '';
     if (isGk) {
         statsSection = `
@@ -1213,10 +1191,10 @@ function showMiniCard(playerId) {
     document.getElementById('miniCardContent').innerHTML = `
         ${avatar}
         <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
-        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;">${badges}</div>
+        <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;">${badges}</div>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">${ageBadge}</div>
         <div style="display:flex;justify-content:center;gap:15px;margin-bottom:20px;">
-            <div style="background:rgba(252,211,77,0.1);border:1px solid rgba(252,211,77,0.3);padding:10px 20px;border-radius:12px;text-align:center;width:45%;position:relative;">
+            <div style="background:rgba(252,211,77,0.1);border:1px solid rgba(252,211,77,0.3);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
                 <div style="font-size:1.6rem;font-weight:900;color:#FCD34D;">${totalGoals}</div>
                 <div style="font-size:0.8rem;font-weight:800;color:#FCD34D;">⚽ גולי קריירה</div>
             </div>
@@ -1235,20 +1213,5 @@ function closeMiniCard() {
     document.getElementById('miniCardOverlay').style.display = 'none';
 }
 </script>
-    <!-- Player Mini Card Modal -->
-<div id="miniCardOverlay" onclick="closeMiniCard()"
-    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8);
-    backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center; padding:20px;">
-    <div onclick="event.stopPropagation()"
-    style="background:var(--surface); border:1px solid var(--border); border-radius:20px;
-    width:100%; max-width:340px; padding:24px; position:relative; text-align:center;
-    max-height:90vh; overflow-y:auto;">
-        <button onclick="closeMiniCard()"
-            style="position:absolute; top:12px; left:12px; background:rgba(255,255,255,0.1);
-            border:none; color:white; width:28px; height:28px; border-radius:50%;
-            cursor:pointer; font-weight:bold; font-size:0.9rem;">✕</button>
-        <div id="miniCardContent"></div>
-    </div>
-</div>
 </body>
 </html>
