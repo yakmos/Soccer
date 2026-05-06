@@ -537,6 +537,11 @@ window.onload = async () => {
         document.getElementById('gameHeader').style.display = 'block';
         document.getElementById('groupNameEl').textContent = '⚽ ' + (groupData.name || 'קבוצה');
         updateDateBadge(gameData);
+        // עדכון כפתור מנהל אם מחובר
+if (isAdmin) {
+    const btn = document.getElementById('adminLoginBtn');
+    if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
+}
 
         if (gameData.noticeText) showNoticeBox(gameData.noticeText);
 
