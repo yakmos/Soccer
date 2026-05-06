@@ -1031,7 +1031,8 @@ window.onload = async () => {
     document.body.classList.add('is-admin');
     const bottomBar = document.getElementById('adminBottomBar');
     if (bottomBar) bottomBar.style.display = 'block';
-    document.getElementById('adminBtnHeader').innerText = 'שלום מנהל 👋';
+    const btn = document.getElementById('adminBtnHeader');
+    if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
 }
 
         groupRef = db.collection('groups').doc(currentGroupId);
@@ -1989,10 +1990,15 @@ async function createNewGroup() {
 // ========== Admin ==========
 function promptAdmin() {
     const sessionKey = `admin_${currentGroupId}`;
+    if (document.body.classList.contains('is-admin')) {
+        alert('כבר מחובר כמנהל ✅');
+        return;
+    }
     if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) {
         document.body.classList.add('is-admin');
         sessionStorage.setItem(sessionKey, 'true');
-        document.getElementById('adminBtnHeader').innerText = 'שלום מנהל 👋';
+        const btn = document.getElementById('adminBtnHeader');
+        if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
         const bottomBar = document.getElementById('adminBottomBar');
         if (bottomBar && document.getElementById('tab-main').classList.contains('active')) bottomBar.style.display = 'block';
         render();
