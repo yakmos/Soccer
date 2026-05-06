@@ -1750,7 +1750,7 @@ function showPlayerCard(id) {
 </div>
 <div class="modal-score-box" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); width:30%;">
     <div class="modal-score-val" style="color:var(--primary-color);">${gamesHistoryCache.filter(g => (g.teams||[]).flatMap(t=>t.players||[]).some(pl=>pl.id===p.id)).length}</div>
-    <div class="modal-score-label" style="color:var(--primary-color);">📅 ערבים</div>
+    <div class="modal-score-label" style="color:var(--primary-color);">📅 מפגשים</div>
 </div>
         </div>
         <div class="modal-scores">${scoreBoxes}</div>
@@ -1812,7 +1812,7 @@ if (statKey === 'attendance') {
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk?'<span class="gk-badge" style="font-size:0.7rem;">🧤</span>':''} ${getPlayerBadgesHTML(p,true)} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
             </div>
-            <div style="background:rgba(255,255,255,0.1); color:var(--primary-color); padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid var(--primary-color);">${count} ערבים</div>
+            <div style="background:rgba(255,255,255,0.1); color:var(--primary-color); padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid var(--primary-color);">${count} מפגשים</div>
         </div>`;
     }).join('');
     return;
