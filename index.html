@@ -1982,8 +1982,10 @@ async function createNewGroup() {
 
 // ========== Admin ==========
 function promptAdmin() {
+    const sessionKey = `admin_${currentGroupId}`;
     if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) {
         document.body.classList.add('is-admin');
+        sessionStorage.setItem(sessionKey, 'true');
         const bottomBar = document.getElementById('adminBottomBar');
         if (bottomBar && document.getElementById('tab-main').classList.contains('active')) bottomBar.style.display = 'block';
         render();
