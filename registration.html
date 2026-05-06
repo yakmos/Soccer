@@ -512,9 +512,11 @@ window.onload = async () => {
         // Check admin
         const sessionKey = `admin_${groupId}`;
         if (sessionStorage.getItem(sessionKey) === 'true') {
-            isAdmin = true;
-            document.body.classList.add("is-admin");
-        } else if (urlParams.get("admin") === "1") {
+    isAdmin = true;
+    document.body.classList.add("is-admin");
+    const btn = document.getElementById('adminLoginBtn');
+    if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
+}else if (urlParams.get("admin") === "1") {
             const pwd = prompt("סיסמת מנהל:");
             if (pwd === groupData.password) {
                 isAdmin = true;
