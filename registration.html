@@ -1085,6 +1085,18 @@ async function generateTeamsFromReg() {
         };
         best.forEach((teamArr, idx) => { gameData2[`team${idx+1}`] = teamArr; });
         await gameRef.set(gameData2);
+        // ====== עדכון היסטוריית נוכחות ======
+const allGroupPlayers = await db.collection('groups').doc(groupId).collection('players').get();
+const registeredIds = new Set(registrations.map(r => r.playerId));
+const attendanceBatch = db.batch();
+allGroupPlayers.docs.forEach(doc => {
+    const wasPresent = registeredIds.has(doc.id) && !cancelled.some(c => c.playerId === doc.id);
+    const currentHistory = doc.data().attendanceHistory || [];
+    const newHistory = [...currentHistory, wasPresent].slice(-8);
+    attendanceBatch.update(doc.ref, { attendanceHistory: newHistory });
+});
+await attendanceBatch.commit();
+// =====================================
 
         // Close registration
         await db.collection('groups').doc(groupId)
