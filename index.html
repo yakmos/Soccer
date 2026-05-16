@@ -1699,6 +1699,14 @@ function showPlayerCard(id) {
     const playerModalBadges = getPlayerBadgesHTML(p);
     const age = calcAge(p.birthDate);
     const ageBadge = age !== null ? `<span class="age-badge-modal">🎂 גיל ${age}</span>` : '';
+    const attendancePct = (() => {
+    const h = p.attendanceHistory || [];
+    if (h.length === 0) return null;
+    return Math.round((h.filter(x => x).length / h.length) * 100);
+})();
+const attendanceBadge = attendancePct !== null
+    ? `<span class="age-badge-modal">${attendancePct >= 70 ? '🔥' : '📊'} נוכחות ${attendancePct}% (${(p.attendanceHistory||[]).length} משחקים)</span>`
+    : '';
     const getBar = (label, val, color) => {
         const c = color || getColorStyles(val||5).hex;
         return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${c};"></div></div><div class="stat-bar-val" style="color:${c};">${val||5}</div></div>`;
@@ -1735,7 +1743,7 @@ function showPlayerCard(id) {
     const content = `
         ${avatar}
         <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''} ${playerModalBadges}</h2>
-        <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap;">${lockedBadge}${ageBadge}</div>
+        <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap;">${lockedBadge}${ageBadge}${attendanceBadge}</div>
         <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
         <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
         <div style="display:flex; justify-content:center; gap:10px; margin-bottom:25px;">
@@ -1798,18 +1806,28 @@ function renderLeaderboards() {
     const statKey = selector.value;
     // ========== ערבי הגעה וגיל ==========
 if (statKey === 'attendance') {
+    const calcAttendance = (history) => {
+        if (!history || history.length === 0) return 0;
+        const attended = history.filter(x => x).length;
+        return Math.round((attended / history.length) * 100);
+    };
     const sorted = [...players].sort((a, b) =>
-        (b.registrationCount || 0) - (a.registrationCount || 0)
+        calcAttendance(b.attendanceHistory) - calcAttendance(a.attendanceHistory)
     );
     listContainer.innerHTML = sorted.map((p, i) => {
-        const count = p.registrationCount || 0;
+        const pct = calcAttendance(p.attendanceHistory);
+        const fire = pct >= 70 ? '🔥' : '';
+        const games = (p.attendanceHistory || []).length;
         return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
             <div style="display:flex; align-items:center; gap:12px;">
                 <span style="font-weight:900; width:20px; color:${i<3?'var(--primary-color)':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk?'<span class="gk-badge" style="font-size:0.7rem;">🧤</span>':''} ${getPlayerBadgesHTML(p,true)} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
             </div>
-            <div style="background:rgba(255,255,255,0.1); color:var(--primary-color); padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid var(--primary-color);">${count} הרשמות</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">(${games} משחקים)</span>
+                <div style="background:rgba(255,255,255,0.1); color:var(--primary-color); padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid var(--primary-color);">${fire}${pct}%</div>
+            </div>
         </div>`;
     }).join('');
     return;
