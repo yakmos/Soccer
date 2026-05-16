@@ -943,6 +943,11 @@ async function removePlayer(entryId) {
         }
 
         await batch.commit();
+        try {
+    await db.collection('groups').doc(groupId)
+        .collection('players').doc(removedEntry.playerId)
+        .update({ registrationCount: firebase.firestore.FieldValue.increment(-1) });
+} catch(e) { console.warn('registrationCount decrement failed:', e); }
         showToast('השחקן הוסר ✅', 'success');
     } catch(e) {
         console.error(e);
