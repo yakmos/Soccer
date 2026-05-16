@@ -841,7 +841,11 @@ async function registerPlayer() {
 
         if (bumpedPlayerId) batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
         await batch.commit();
-
+try {
+    await db.collection('groups').doc(groupId)
+        .collection('players').doc(selectedPlayer.id)
+        .update({ registrationCount: firebase.firestore.FieldValue.increment(1) });
+} catch(e) { console.warn('registrationCount update failed:', e); }
         document.getElementById('playerSearchInput').value = '';
         selectedPlayer = null;
         btn.textContent = 'הירשם למשחק ⚽';
