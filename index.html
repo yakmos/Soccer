@@ -1645,7 +1645,13 @@ async function finishGame() {
                 for(let i=0; i<wins; i++) batch.set(historyRef.doc(), { playerId: player.id, type: 'win', timestamp: now });
             });
         });
-        players.forEach(p => { if (p.goals > 0 || p.inLineup) batch.update(playersRef.doc(p.id), { goals: 0 }); });
+        const playedIds = new Set(allPlayersFlat.map(fp => fp.id));
+        players.forEach(p => {
+            const wasInGame = playedIds.has(p.id);
+            const updateData = { attendanceHistory: firebase.firestore.FieldValue.arrayUnion(wasInGame) };
+            if (p.goals > 0 || p.inLineup) updateData.goals = 0;
+            batch.update(playersRef.doc(p.id), updateData);
+        });
         batch.delete(gameRef);
         await batch.commit();
         await completeLaundryForGame();
@@ -2961,4 +2967,4 @@ function resetBirthdayField() {
 }
 </script>
 </body>
-</html>
+                                    </html>
