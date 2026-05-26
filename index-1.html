@@ -1,0 +1,2970 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Soccer Manager Pro - Multi Groups</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0F172A; 
+            --surface-color: #1E293B; 
+            --primary-color: #10B981; 
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --danger: #EF4444;
+            --edit-color: #3B82F6;
+            --lock-color: #FCD34D;
+            --lock-bg: rgba(252, 211, 77, 0.1);
+            --lock-border: rgba(252, 211, 77, 0.3);
+            
+            --def-bg: rgba(59, 130, 246, 0.15);
+            --def-text: #60A5FA;
+            --def-border: rgba(59, 130, 246, 0.3);
+            
+            --att-bg: rgba(239, 68, 68, 0.15);
+            --att-text: #F87171;
+            --att-border: rgba(239, 68, 68, 0.3);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Heebo', sans-serif; background-color: var(--bg-color); 
+            color: var(--text-main); margin: 0; padding: 0; padding-bottom: 100px; direction: rtl; 
+        }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+
+        header { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px); position: sticky; top: 0;
+            z-index: 100; border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 { font-weight: 800; font-size: 1.2rem; margin: 0; }
+        .admin-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 5px; transition: 0.2s;}
+        .admin-btn:active { transform: scale(0.9); }
+
+        #lobbyContainer { display: none; text-align: center; margin-top: 50px; }
+        .lobby-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px 20px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .lobby-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 20px; color: var(--primary-color); }
+        .lobby-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5; }
+
+        .tabs-nav {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 57px;
+            z-index: 90;
+        }
+        .tab-btn {
+            padding: 11px 4px 9px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: 0.2s;
+            font-family: 'Heebo', sans-serif;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            line-height: 1.2;
+        }
+        .tab-btn .tab-icon { font-size: 1.1rem; line-height: 1; }
+        .tab-btn .tab-label { font-size: 0.72rem; }
+        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-btn:nth-child(n+4) { border-top: 1px solid var(--border-color); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--surface-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .card-title { font-size: 1.1rem; font-weight: 800; margin-top: 0; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--text-main);}
+
+        .admin-only { display: none; }
+        body.is-admin .admin-only { display: block; }
+        body.is-admin .admin-goal-btns { display: flex; align-items: center; gap: 4px; }
+
+        .form-input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 15px; font-size: 1rem; color: var(--text-main); font-family: 'Heebo', sans-serif;}
+        .form-input:focus { border-color: var(--primary-color); outline: none; }
+        
+        .avatar-list { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; background: rgba(255,255,255,0.05); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
+        .avatar-chip { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 24px; background: rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;}
+        .avatar-pitch { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); margin-bottom: 4px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: rgba(255,255,255,0.1); flex-shrink: 0; cursor: pointer; transition: 0.2s;}
+
+        .stats-section { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.02); }
+        .stats-section h4 { margin-top: 0; margin-bottom: 12px; color: var(--text-main); font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;}
+        .param-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
+        .param-row span { color: var(--text-muted); font-size: 0.95rem; flex: 1; text-align: right; }
+        .param-row input[type="number"] { width: 55px; padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: #fff; text-align: center; font-weight: 700; font-size: 1rem; flex-shrink: 0; }
+
+        .btn { background: var(--primary-color); color: #fff; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; width: 100%; cursor: pointer; transition: 0.2s; font-family: 'Heebo', sans-serif; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .btn:disabled { background: var(--border-color); color: var(--text-muted); cursor: not-allowed; }
+        .btn-whatsapp { background: #25D366; width: 100%; margin-top: 15px; }
+
+        .squad-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
+        .squad-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .squad-info { flex: 1; }
+        .squad-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .squad-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;}
+        .action-btn { width: 35px; height: 35px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-size: 16px; font-weight: bold;}
+        .btn-toggle { background: var(--border-color); }
+        .btn-toggle.active { background: var(--primary-color); }
+        .btn-edit { background: var(--edit-color); }
+
+        .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .player-chip { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 8px; text-align: center; color: var(--text-muted); position: relative; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .chip-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main); transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+        
+        .chip-stats-container { display: flex; gap: 8px; width: 100%; justify-content: center; }
+        .stat-badge { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-weight: 900; font-size: 0.95rem; }
+        .stat-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
+        .stat-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
+
+        .lock-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 0.7rem; background: var(--lock-bg); color: var(--lock-color);
+            border: 1px solid var(--lock-border); padding: 1px 6px; border-radius: 5px;
+            font-weight: 800; vertical-align: middle;
+        }
+
+        .delete-btn { position: absolute; top: -6px; right: -6px; background: var(--danger); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid var(--surface-color); z-index: 5; cursor: pointer; }
+
+        .counter { background: var(--bg-color); padding: 4px 12px; border-radius: 20px; font-size: 0.95rem; font-weight: 800; color: var(--text-muted); border: 1px solid var(--border-color);}
+        .counter.ready { background: rgba(16, 185, 129, 0.2); color: var(--primary-color); border-color: var(--primary-color); }
+
+        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; display: none;}
+        body.is-admin .tab-content.active #tab-main-content .bottom-bar-wrapper { display: block; }
+        .bottom-bar-wrapper { display: none; }
+
+        #results { display: none; }
+        .team-row { margin-bottom: 25px; }
+        .team-header { font-size: 1.2rem; font-weight: 900; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;}
+        .team-header-name { display: flex; align-items: center; gap: 8px; }
+        .team-header-name::before { content: ''; display: block; width: 14px; height: 14px; border-radius: 50%; }
+        
+        .t-0 .team-header-name::before { background: #3B82F6; box-shadow: 0 0 8px #3B82F6;}
+        .t-1 .team-header-name::before { background: #1a1a1a; box-shadow: 0 0 8px #555;}
+        .t-2 .team-header-name::before { background: #EAB308; box-shadow: 0 0 8px #EAB308;}
+        .t-3 .team-header-name::before { background: #EF4444; box-shadow: 0 0 8px #EF4444;}
+        .t-4 .team-header-name::before { background: #10B981; box-shadow: 0 0 8px #10B981;}
+        
+        .team-header-right { display: flex; align-items: center; gap: 8px; }
+        .gk-btn { display: none; background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 8px; padding: 4px 10px; font-size: 0.85rem; font-weight: 800; cursor: pointer; transition: 0.2s;}
+        body.is-admin .gk-btn { display: inline-block; }
+
+        .team-stats-row { display: flex; gap: 10px; margin-bottom: 15px; font-size: 0.9rem; }
+        .pitch { background: linear-gradient(180deg, #166534 0%, #14532D 100%); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 15px 5px; position: relative; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+        .pitch::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 40px; border: 2px solid rgba(255,255,255,0.15); border-top: none; border-radius: 0 0 60px 60px; }
+        .pitch::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 40px; border: 2px solid rgba(255,255,255,0.15); border-bottom: none; border-radius: 60px 60px 0 0; }
+        
+        .pitch-row { display: flex; justify-content: space-evenly; gap: 5px; margin-bottom: 25px; position: relative; z-index: 2; }
+        .pitch-row:last-child { margin-bottom: 5px; }
+        
+        .pitch-player {
+            background: rgba(15, 23, 42, 0.85); color: #fff; padding: 8px 4px; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 800; text-align: center; border: 1px solid rgba(255,255,255,0.15);
+            flex: 1; max-width: 32%; margin: 0 2px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .pitch-player-stats { font-size: 0.75rem; font-weight: 800; margin: 3px 0; letter-spacing: 0.5px; display: flex; gap: 6px; }
+        .pitch-role { display: block; font-size: 0.7rem; color: #10B981; margin-top: 2px; font-weight: 500; }
+
+        .stat-ticker { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
+        .ticker-val { font-size: 0.85rem; color: #FCD34D; font-weight: 900; }
+        .ticker-btn { display: none; background: rgba(255,255,255,0.15); border: none; color: white; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;}
+        body.is-admin .ticker-btn { display: flex; align-items: center; justify-content: center; }
+        .team-ticker { background: rgba(255,215,0,0.1); padding: 4px 8px; border-radius: 8px; margin: 0; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .player-card-modal { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 20px; width: 100%; max-width: 400px; padding: 25px; position: relative; max-height: 90vh; overflow-y: auto; text-align: center; }
+        .close-btn { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; display: flex; justify-content: center; align-items: center; }
+        .modal-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid var(--border-color); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: rgba(255,255,255,0.05);}
+        .modal-name { font-size: 1.6rem; font-weight: 900; margin: 0 0 5px 0; }
+        .modal-votes { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px;}
+        .modal-scores { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
+        .modal-score-box { border: 2px solid rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 12px; width: 45%; }
+        .modal-score-val { font-size: 1.6rem; font-weight: 900; }
+        .modal-score-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;}
+        .stat-bar-row { display: flex; align-items: center; margin-bottom: 12px; font-size: 0.9rem; text-align: right;}
+        .stat-bar-label { width: 140px; color: #cbd5e1; font-weight: 500;}
+        .stat-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin: 0 10px; }
+        .stat-bar-fill { height: 100%; border-radius: 4px; }
+        .stat-bar-val { width: 30px; text-align: left; font-weight: 800; font-size: 1rem; }
+        .modal-section-title { font-size: 1rem; color: var(--text-muted); text-align: right; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; }
+
+        .history-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 12px; overflow: hidden; transition: border-color 0.2s; }
+        .history-card:hover { border-color: rgba(16,185,129,0.4); }
+        .history-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; cursor: pointer; user-select: none; }
+        .history-date { font-weight: 900; font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .history-meta { display: flex; align-items: center; gap: 8px; }
+        .history-players-count { font-size: 0.8rem; background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+        .history-chevron { color: var(--text-muted); font-size: 0.85rem; transition: transform 0.2s; }
+        .history-chevron.open { transform: rotate(180deg); }
+        .history-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border-color); }
+        .history-body.open { display: block; }
+        .history-scorers-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+        .history-scorer-chip { display: flex; align-items: center; gap: 5px; background: rgba(252,211,77,0.1); border: 1px solid rgba(252,211,77,0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: #FCD34D; }
+        .history-team-block { background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+        .history-team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 900; font-size: 0.95rem; }
+        .history-team-wins { background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 800; }
+        .history-players-list { display: flex; flex-wrap: wrap; gap: 5px; }
+        .history-player-tag { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: var(--text-muted); }
+        .history-player-tag.scorer { color: #FCD34D; border-color: rgba(252,211,77,0.3); background: rgba(252,211,77,0.08); }
+        .history-section-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 6px 0; }
+        .history-empty { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 0.95rem; }
+
+        .mvp-player-option { background: var(--bg-color); border: 2px solid var(--border-color); border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; }
+        .mvp-player-option:active { transform: scale(0.95); }
+        .mvp-player-option.selected { border-color: #FCD34D; background: rgba(252,211,77,0.1); box-shadow: 0 0 0 2px rgba(252,211,77,0.3); }
+        .mvp-player-option.disabled { opacity: 0.5; cursor: default; }
+        .mvp-player-name { font-weight: 800; font-size: 0.95rem; color: var(--text-main); margin-top: 6px; }
+        .mvp-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 22px; background: rgba(255,255,255,0.05); }
+        .mvp-vote-count { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+        .mvp-result-row { margin-bottom: 10px; }
+        .mvp-result-header { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+        .mvp-result-bar-bg { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+        .mvp-result-bar-fill { height: 100%; border-radius: 4px; background: #FCD34D; transition: width 0.5s ease; }
+        .mvp-result-bar-fill.leader { background: linear-gradient(90deg, #F59E0B, #FCD34D); }
+
+        .custom-param-item { display: flex; align-items: center; gap: 8px; background: var(--bg-color); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 8px; }
+        .custom-param-name { flex: 1; font-weight: 700; font-size: 0.95rem; }
+        .custom-param-type { font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.5px; }
+        .type-att { background: var(--att-bg); color: var(--att-text); border: 1px solid var(--att-border); }
+        .type-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
+        .param-delete-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(239,68,68,0.15); color: var(--danger); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .add-param-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+        .add-param-row input[type="text"] { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; }
+        .add-param-row input[type="text"]:focus { border-color: var(--primary-color); outline: none; }
+        .add-param-row select { padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.9rem; cursor: pointer; }
+        .add-param-row select:focus { outline: none; border-color: var(--primary-color); }
+        .add-param-btn { padding: 10px 14px; border-radius: 10px; border: none; background: var(--primary-color); color: white; font-weight: 800; cursor: pointer; font-family: 'Heebo', sans-serif; font-size: 0.95rem; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+        .custom-params-empty { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 12px 0; }
+        .section-label-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 20px; }
+
+        .param-row { position: relative; }
+        .param-lock-btn {
+            width: 26px; height: 26px; border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: transparent; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0; transition: 0.15s;
+            color: var(--text-muted);
+        }
+        .param-lock-btn.locked {
+            background: rgba(252,211,77,0.2);
+            border-color: rgba(252,211,77,0.5);
+            color: var(--lock-color);
+        }
+        .param-row.is-locked input[type="number"] {
+            border-color: rgba(252,211,77,0.4);
+            background: rgba(252,211,77,0.05);
+            color: var(--lock-color);
+            font-weight: 900;
+        }
+        .lock-hint {
+            font-size: 0.78rem; color: var(--text-muted);
+            background: rgba(252,211,77,0.05);
+            border: 1px solid rgba(252,211,77,0.15);
+            border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 12px; display: none;
+        }
+        .lock-hint.visible { display: block; }
+
+        :root {
+            --gk-bg: rgba(167, 139, 250, 0.15);
+            --gk-text: #A78BFA;
+            --gk-border: rgba(167, 139, 250, 0.35);
+        }
+        .gk-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        .gk-toggle-btn { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; font-family: 'Heebo', sans-serif; transition: 0.2s; }
+        .gk-toggle-btn:hover { background: rgba(167,139,250,0.3); }
+        .gk-stats-section { border-color: var(--gk-border) !important; background: rgba(167,139,250,0.04) !important; }
+        .stat-gk { background: var(--gk-bg); color: var(--gk-text); border: 1px solid var(--gk-border); }
+        .pitch-player.is-rotating-gk { border: 2px dashed var(--gk-text); background: rgba(167,139,250,0.1); }
+        .pitch-player.swap-selected {
+            border: 2px solid #FCD34D !important;
+            background: rgba(252, 211, 77, 0.18) !important;
+            box-shadow: 0 0 0 3px rgba(252,211,77,0.35), 0 4px 6px rgba(0,0,0,0.3) !important;
+            transform: scale(1.04);
+            z-index: 5;
+            position: relative;
+        }
+        .pitch-player.swap-candidate {
+            border: 2px dashed rgba(252,211,77,0.5) !important;
+            cursor: pointer !important;
+        }
+        .pitch-player.swap-candidate:hover {
+            border-color: #FCD34D !important;
+            background: rgba(252,211,77,0.08) !important;
+        }
+        .swap-hint-bar {
+            display: none;
+            background: rgba(252,211,77,0.12);
+            border: 1px solid rgba(252,211,77,0.4);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: #FCD34D;
+            text-align: center;
+            animation: fadeIn 0.2s ease;
+        }
+        .swap-hint-bar.visible { display: block; }
+        .swap-flash {
+            animation: swapFlash 0.5s ease;
+        }
+        @keyframes swapFlash {
+            0%   { background: rgba(16,185,129,0.35); }
+            100% { background: rgba(15,23,42,0.85); }
+        }
+
+        .badge-active {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(16,185,129,0.12); color: #10B981;
+            border: 1px solid rgba(16,185,129,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+        .badge-new {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(59,130,246,0.12); color: #60A5FA;
+            border: 1px solid rgba(59,130,246,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+        .badge-resident {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(252,211,77,0.12); color: #FCD34D;
+            border: 1px solid rgba(252,211,77,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+
+        .reg-banner {
+            display: none;
+            margin: 0 0 12px;
+            background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.06));
+            border: 1px solid rgba(16,185,129,0.4);
+            border-radius: 16px;
+            padding: 16px 18px;
+            animation: regBannerIn 0.4s ease;
+        }
+        @keyframes regBannerIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .reg-banner.visible { display: block; }
+        .reg-banner-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        .reg-banner-title { font-weight: 900; font-size: 1rem; color: var(--primary-color); display: flex; align-items: center; gap: 7px; }
+        .reg-banner-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; }
+        .reg-banner-counts { display: flex; gap: 8px; flex-wrap: wrap; }
+        .reg-count-chip { background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; }
+        .reg-count-chip.waiting { background: rgba(249,115,22,0.12); color: #F97316; border-color: rgba(249,115,22,0.3); }
+        .reg-open-btn { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none; margin-top: 10px; }
+        .reg-open-btn:active { transform: scale(0.97); }
+
+        .reg-admin-card { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+        .reg-admin-title { font-size: 1rem; font-weight: 900; color: var(--primary-color); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .reg-field-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .reg-field-row input[type="date"], .reg-field-row input[type="time"] { flex: 1; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; outline: none; }
+        .reg-field-row input:focus { border-color: var(--primary-color); }
+        .reg-textarea { width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 70px; outline: none; margin-bottom: 12px; }
+        .reg-textarea:focus { border-color: var(--primary-color); }
+        .reg-textarea::placeholder { color: var(--text-muted); }
+        .reg-open-game-btn { width: 100%; padding: 13px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
+        .reg-open-game-btn:active { transform: scale(0.97); }
+        .reg-close-btn { width: 100%; padding: 11px; background: transparent; color: var(--danger); border: 1px solid var(--danger); border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 0.95rem; font-weight: 800; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .reg-share-link-row { display: flex; align-items: center; gap: 8px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 13px; margin-top: 12px; }
+        .reg-share-link-text { flex: 1; font-size: 0.82rem; color: var(--text-muted); font-family: monospace; word-break: break-all; }
+        .reg-copy-btn, .reg-wa-btn { padding: 7px 12px; border-radius: 8px; border: none; font-family: 'Heebo', sans-serif; font-size: 0.8rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+        .reg-copy-btn { background: var(--border-color); color: var(--text-main); }
+        .reg-wa-btn { background: #25D366; color: white; }
+        .reg-live-stats { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .reg-stat-chip { padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 800; background: rgba(16,185,129,0.12); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); }
+        .reg-stat-chip.waiting-chip { background: rgba(249,115,22,0.1); color: #F97316; border-color: rgba(249,115,22,0.3); }
+
+        .time-preset-btn {
+            padding: 7px 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.15s;
+            text-align: center;
+        }
+        .time-preset-btn:hover, .time-preset-btn:active {
+            background: rgba(16,185,129,0.15);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        /* Birthday Picker */
+.birthday-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 15px;
+    position: relative;
+}
+.birthday-label { font-weight: 800; color: #A5B4FC; font-size: 0.95rem; }
+.birthday-sub   { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.birthday-value { font-weight: 900; color: var(--text-main); font-size: 0.95rem; cursor: pointer;
+    background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.35);
+    padding: 6px 12px; border-radius: 8px; min-width: 110px; text-align: center; transition: 0.2s; }
+.birthday-value:hover { background: rgba(99,102,241,0.25); }
+.birthday-clear { background: transparent; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 6px; transition: 0.15s; }
+.birthday-clear:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+
+.bday-cal-drop {
+    display: none; position: absolute;
+    top: calc(100% + 8px); left: 0; right: 0;
+    background: var(--surface-color); border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 14px; z-index: 300;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+}
+.bday-cal-drop.open { display: block; }
+
+.bday-year-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; gap: 8px;
+}
+.bday-year-row input[type="number"] {
+    width: 80px; text-align: center; padding: 6px 8px;
+    border-radius: 8px; border: 1px solid var(--border-color);
+    background: var(--bg-color); color: var(--text-main);
+    font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 800;
+}
+.bday-nav-btn {
+    background: rgba(255,255,255,0.08); border: none; color: var(--text-main);
+    width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 1rem;
+}
+.bday-month-title { font-weight: 900; font-size: 0.95rem; flex: 1; text-align: center; }
+.bday-day-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
+.bday-day-header {
+    text-align: center; font-size: 0.7rem; color: var(--text-muted);
+    font-weight: 800; padding: 4px 0;
+}
+.bday-day-cell {
+    text-align: center; padding: 6px 2px; border-radius: 8px;
+    cursor: pointer; font-size: 0.85rem; font-weight: 700;
+    transition: background 0.12s;
+    color: var(--text-main); border: 1px solid transparent;
+}
+.bday-day-cell:hover { background: rgba(255,255,255,0.08); }
+.bday-day-cell.selected { background: #6366F1; color: white; }
+.bday-day-cell.today { border-color: rgba(99,102,241,0.4); color: #A5B4FC; }
+.bday-day-cell.empty { cursor: default; }
+
+.age-badge-modal {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(99,102,241,0.12); color: #A5B4FC;
+    border: 1px solid rgba(99,102,241,0.3);
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 0.82rem; font-weight: 800; vertical-align: middle;
+}
+.age-badge-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: rgba(99,102,241,0.12); color: #A5B4FC;
+    border: 1px solid rgba(99,102,241,0.3);
+    padding: 1px 6px; border-radius: 5px;
+    font-size: 0.68rem; font-weight: 800;
+}
+    </style>
+</head>
+<body id="mainBody">
+
+    <header>
+        <h1 id="headerTitle">⚽ SOCCER MANAGER</h1>
+        <div style="display:flex; gap:10px;">
+            <button id="settingsBtnHeader" class="admin-btn admin-only" onclick="openSettingsModal()" title="הגדרות קבוצה">⚙️</button>
+            <button id="adminBtnHeader" class="admin-btn" style="display:none;" onclick="promptAdmin()">ניהול 🔒</button>
+        </div>
+    </header>
+
+    <div id="lobbyContainer" class="container">
+        <div class="lobby-card">
+            <div style="text-align:center; margin-bottom: 24px;">
+                <div style="font-size: 2.5rem; margin-bottom: 8px;">⚽</div>
+                <h2 class="lobby-title" style="margin-bottom: 6px;">Soccer Manager</h2>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin:0;">ברוכים הבאים!</p>
+            </div>
+            <div style="background:rgba(59,130,246,0.08); border:2px solid rgba(59,130,246,0.4); border-radius:14px; padding:18px 20px; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="background:rgba(59,130,246,0.2); color:#60A5FA; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:6px;">מומלץ</span>
+                    <span style="font-size:1rem; font-weight:900; color:var(--text-main);">יש לי קישור לקבוצה</span>
+                </div>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 14px 0; line-height:1.5;">קיבלת קישור מהמנהל בוואטסאפ? הדבק אותו כאן</p>
+                <input type="text" id="existingGroupLink" class="form-input" placeholder="הדבק את הקישור לקבוצה..." style="margin-bottom:10px;">
+                <button class="btn" onclick="joinByLink()" style="background:#3B82F6; font-size:1rem; padding:13px;">כניסה לקבוצה ←</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--text-muted); font-size:0.85rem;">
+                <div style="flex:1; height:1px; background:var(--border-color);"></div>
+                <span>או</span>
+                <div style="flex:1; height:1px; background:var(--border-color);"></div>
+            </div>
+            <div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:18px 20px;">
+                <div style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:6px;">צור קבוצה חדשה</div>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 14px 0; line-height:1.5;">הפעם הראשונה שלך? צור קבוצה — ושמור את הקישור שתקבל!</p>
+                <input type="text" id="newGroupName" class="form-input" placeholder="שם הקבוצה (לדוגמה: שישי בשכונה)">
+                <input type="password" id="newGroupPassword" class="form-input" placeholder="בחר סיסמת מנהל">
+                <button class="btn" onclick="createNewGroup()" id="createGroupBtn" style="font-size:1rem; padding:13px;">צור קבוצה ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="appContainer" style="display:none;">
+        <div class="container" style="padding-bottom: 0;">
+            <div class="card" style="margin-bottom: 10px; border-style: dashed; border-color: var(--primary-color); background: rgba(16, 185, 129, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: 800; font-size: 0.9rem; color: var(--primary-color);">🔗 קישור ישיר לקבוצה זו:</span>
+                    <button onclick="copyGroupLink()" style="background: var(--primary-color); border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 700;">העתק</button>
+                </div>
+                <div id="groupLinkDisplay" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted); word-break: break-all; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">טוען קישור...</div>
+                <div class="admin-only" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #FCD34D;">
+                    <strong>📢 תזכורת למנהל:</strong> שמור את הקישור הזה בקיצורי הדרך!
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('tab-main', this)">
+                <span class="tab-icon">⚽</span><span class="tab-label">משחק נוכחי</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-leaderboards', this)">
+                <span class="tab-icon">📊</span><span class="tab-label">דירוגים</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-scorers', this)">
+                <span class="tab-icon">🏆</span><span class="tab-label">מלכי שערים</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-history', this)">
+                <span class="tab-icon">📅</span><span class="tab-label">היסטוריה</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-market', this)">
+                <span class="tab-icon">🤝</span><span class="tab-label">מחפשים שחקן</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('tab-laundry', this)">
+                <span class="tab-icon">👕</span><span class="tab-label">כביסה</span>
+            </button>
+        </div>
+
+        <div class="container" style="padding-bottom:0; padding-top:0;">
+            <div class="reg-banner" id="regBanner">
+                <div class="reg-banner-top">
+                    <div class="reg-banner-title">🟢 הרשמה פתוחה למשחק!</div>
+                    <div class="reg-banner-date" id="regBannerDate"></div>
+                </div>
+                <div class="reg-banner-counts">
+                    <div class="reg-count-chip" id="regBannerConfirmed">0 / 0 נרשמו</div>
+                    <div class="reg-count-chip waiting" id="regBannerWaiting" style="display:none;">0 ממתינים</div>
+                </div>
+                <a class="reg-open-btn" id="regBannerLink" href="#" target="_blank">
+                    להרשמה →
+                </a>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- TAB: MAIN -->
+            <div id="tab-main" class="tab-content active">
+                <div id="tab-main-content">
+
+                    <div class="reg-admin-card admin-only" id="regAdminCard">
+                        <div class="reg-admin-title">📋 ניהול הרשמה למשחק</div>
+                        <div id="regOpenForm">
+                            <div class="reg-field-row">
+                                <div style="flex:1; position:relative;">
+                                    <input type="text" id="regDateDisplay" readonly
+                                        placeholder="בחר תאריך"
+                                        onclick="toggleRegCalendar()"
+                                        style="width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:0.95rem; cursor:pointer; outline:none;">
+                                    <input type="hidden" id="regDateInput">
+                                    <div id="regCalendarDrop" style="display:none; position:absolute; top:calc(100% + 6px); right:0; left:0; background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:14px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                            <button type="button" onclick="regCalendarPrev()" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:1rem;">‹</button>
+                                            <div id="regCalendarTitle" style="font-weight:900; font-size:0.95rem;"></div>
+                                            <button type="button" onclick="regCalendarNext()" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:1rem;">›</button>
+                                        </div>
+                                        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:6px;">
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">א</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ב</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ג</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ד</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ה</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ו</div>
+                                            <div style="text-align:center; font-size:0.72rem; color:var(--text-muted); font-weight:800; padding:4px 0;">ש</div>
+                                        </div>
+                                        <div id="regCalendarDays" style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px;"></div>
+                                    </div>
+                                </div>
+                                <div style="flex:0 0 120px; position:relative;">
+                                    <input type="text" id="regTimeDisplay" readonly
+                                        value="20:00"
+                                        onclick="toggleTimePicker()"
+                                        style="width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-main); font-family:'Heebo',sans-serif; font-size:1rem; font-weight:800; cursor:pointer; outline:none; text-align:center; letter-spacing:1px;">
+                                    <input type="hidden" id="regTimeInput" value="20:00">
+                                    <div id="timePickerDrop" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:12px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,0.5); min-width:200px;">
+                                        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px; direction:ltr;">
+                                            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                                                <button type="button" onclick="changeHour(1)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▲</button>
+                                                <div id="timeHourDisplay" style="font-size:1.6rem; font-weight:900; color:var(--primary-color); width:50px; text-align:center; line-height:1.2;">20</div>
+                                                <button type="button" onclick="changeHour(-1)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▼</button>
+                                            </div>
+                                            <div style="font-size:1.6rem; font-weight:900; color:var(--text-muted); padding-bottom:4px;">:</div>
+                                            <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+                                                <button type="button" onclick="changeMinute(15)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▲</button>
+                                                <div id="timeMinDisplay" style="font-size:1.6rem; font-weight:900; color:var(--primary-color); width:50px; text-align:center; line-height:1.2;">00</div>
+                                                <button type="button" onclick="changeMinute(-15)" style="background:rgba(255,255,255,0.08); border:none; color:var(--text-main); width:34px; height:28px; border-radius:6px; cursor:pointer; font-size:1rem; line-height:1;">▼</button>
+                                            </div>
+                                        </div>
+                                        <div style="font-size:0.72rem; color:var(--text-muted); font-weight:800; margin-bottom:6px; text-align:center;">שעות נפוצות</div>
+                                        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px;">
+                                            <button type="button" onclick="setTime('18:00')" class="time-preset-btn">18:00</button>
+                                            <button type="button" onclick="setTime('19:00')" class="time-preset-btn">19:00</button>
+                                            <button type="button" onclick="setTime('19:30')" class="time-preset-btn">19:30</button>
+                                            <button type="button" onclick="setTime('20:00')" class="time-preset-btn">20:00</button>
+                                            <button type="button" onclick="setTime('20:30')" class="time-preset-btn">20:30</button>
+                                            <button type="button" onclick="setTime('21:00')" class="time-preset-btn">21:00</button>
+                                        </div>
+                                        <button type="button" onclick="confirmTime()" style="width:100%; margin-top:10px; padding:9px; background:var(--primary-color); border:none; border-radius:8px; color:white; font-family:'Heebo',sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer;">אישור ✓</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea class="reg-textarea" id="regNoticeInput" placeholder="הודעה לשחקנים (אופציונלי) — תופיע בטופס ההרשמה"></textarea>
+                            <button class="reg-open-game-btn" onclick="openRegistration()">📢 פתח הרשמה למשחק</button>
+                        </div>
+                        <div id="regActivePanel" style="display:none;">
+                            <div class="reg-live-stats" id="regLiveStats">
+                                <div class="reg-stat-chip" id="regStatConfirmed">0 נרשמו</div>
+                                <div class="reg-stat-chip waiting-chip" id="regStatWaiting" style="display:none;">0 ממתינים</div>
+                            </div>
+                            <div class="reg-share-link-row">
+                                <div class="reg-share-link-text" id="regLinkDisplay">טוען...</div>
+                                <button class="reg-copy-btn" onclick="copyRegLink()">העתק</button>
+                                <button class="reg-wa-btn" onclick="shareRegWhatsApp()">📤 שתף</button>
+                            </div>
+                            <button class="reg-close-btn" onclick="closeRegistration()">🔒 סגור הרשמה</button>
+                        </div>
+                    </div>
+
+                    <div class="card admin-only">
+                        <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
+                        <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display:block; margin-bottom:5px; color:var(--text-muted); font-size:0.9rem;">תמונת שחקן (אופציונלי):</label>
+                            <input type="file" id="pImage" accept="image/*" class="form-input" style="padding: 10px;">
+                            <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
+                        </div>
+
+                        <!-- Player Classification Toggles -->
+                        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+                            <!-- Active toggle -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div style="font-weight:800; color:#10B981; font-size:0.95rem;">✅ שחקן פעיל?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים פעילים מקבלים קדימות בהרשמה</div>
+                                </div>
+                                <button type="button" id="activeToggleBtn" onclick="togglePlayerFlag('isActive','activeToggleBtn','✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא פעיל</button>
+                            </div>
+                            <!-- New toggle -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div style="font-weight:800; color:#60A5FA; font-size:0.95rem;">🆕 שחקן חדש?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים חדשים מקבלים עדיפות נמוכה יותר</div>
+                                </div>
+                                <button type="button" id="newToggleBtn" onclick="togglePlayerFlag('isNew','newToggleBtn','🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא חדש</button>
+                            </div>
+                            <!-- Resident toggle -->
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(252,211,77,0.06); border:1px solid rgba(252,211,77,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div style="font-weight:800; color:#FCD34D; font-size:0.95rem;">🏠 תושב מגדים?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">תושבי מגדים מקבלים קדימות ראשונה תמיד</div>
+                                </div>
+                                <button type="button" id="residentToggleBtn" onclick="togglePlayerFlag('isMoshavResident','residentToggleBtn','🏠 תושב מגדים','לא תושב','rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא תושב</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="pIsActive" value="false">
+                        <input type="hidden" id="pIsNew" value="false">
+                        <input type="hidden" id="pIsMoshavResident" value="false">
+                        <!-- Birthday Field -->
+        <div class="birthday-field-row" id="birthdayFieldRow">
+            <div>
+                <div class="birthday-label">🎂 תאריך לידה</div>
+                <div class="birthday-sub">הגיל יחושב אוטומטית ויוצג בכרטיס השחקן</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <div class="birthday-value" id="bdayDisplayBtn" onclick="toggleBdayCal()">בחר תאריך</div>
+                <button type="button" class="birthday-clear" id="bdayClearBtn" onclick="clearBirthday()" style="display:none;" title="נקה תאריך">✕</button>
+            </div>
+            <input type="hidden" id="pBirthDate" value="">
+            <div class="bday-cal-drop" id="bdayCalDrop">
+                <div class="bday-year-row">
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalPrevYear()">«</button>
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalPrevMonth()">‹</button>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px; flex:1;">
+                        <div id="bdayMonthTitle" class="bday-month-title"></div>
+                        <input type="number" id="bdayYearInput" min="1940" max="2020" value="1990"
+                            onchange="bdayYearChanged()" onclick="event.stopPropagation()"
+                            style="width:80px; text-align:center; padding:4px 8px; border-radius:8px;
+                            border:1px solid var(--border-color); background:var(--bg-color);
+                            color:var(--text-main); font-family:'Heebo',sans-serif; font-size:0.9rem; font-weight:800;">
+                    </div>
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalNextMonth()">›</button>
+                    <button type="button" class="bday-nav-btn" onclick="bdayCalNextYear()">»</button>
+                </div>
+                <div class="bday-day-grid" style="margin-bottom:6px;">
+                    <div class="bday-day-header">א</div><div class="bday-day-header">ב</div>
+                    <div class="bday-day-header">ג</div><div class="bday-day-header">ד</div>
+                    <div class="bday-day-header">ה</div><div class="bday-day-header">ו</div>
+                    <div class="bday-day-header">ש</div>
+                </div>
+                <div class="bday-day-grid" id="bdayDayGrid"></div>
+            </div>
+        </div>
+
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--gk-bg); border:1px solid var(--gk-border); border-radius:12px; padding:12px 16px; margin-bottom:15px;">
+                            <div>
+                                <div style="font-weight:800; color:var(--gk-text); font-size:0.95rem;">🧤 שחקן זה הוא שוער?</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שוערים יקבלו פרמטרי שוער במקום פרמטרי שדה</div>
+                            </div>
+                            <button type="button" id="gkToggleBtn" onclick="toggleGkMode()" class="gk-toggle-btn">לא שוער</button>
+                        </div>
+                        <input type="hidden" id="pIsGk" value="false">
+
+                        <div id="fieldStatsSection">
+                            <div class="stats-section">
+                                <h4>
+                                    <span>⚔️ מדדי התקפה - בסיסיים (1-10)</span>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <button type="button" onclick="lockAllParams()" style="background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.35); color:var(--lock-color); border-radius:6px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif;">🔒 נעל הכול</button>
+                                        <button type="button" onclick="unlockAllParams()" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted); border-radius:6px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif;">🔓 שחרר הכול</button>
+                                        <span class="section-label-tag type-att">התקפה</span>
+                                    </div>
+                                </h4>
+                                <div class="lock-hint" id="lockHintField">🔒 לחץ על מנעול ליד כל פרמטר כדי לנעול אותו — הצבעות הציבור לא ישנו ערך נעול</div>
+                                <div class="param-row" id="row_fin"><span>סיומת מול שער</span> <input type="number" id="pFin" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_fin" onclick="toggleParamLock('fin')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_dri"><span>דריבל ושליטה בכדור</span> <input type="number" id="pDri" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_dri" onclick="toggleParamLock('dri')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_pac"><span>מהירות וזריזות</span> <input type="number" id="pPac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pac" onclick="toggleParamLock('pac')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_vis"><span>ראיית משחק ובישולים</span> <input type="number" id="pVis" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_vis" onclick="toggleParamLock('vis')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_pos"><span>תנועה ללא כדור</span> <input type="number" id="pPos" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pos" onclick="toggleParamLock('pos')" title="נעל פרמטר">🔓</button></div>
+                            </div>
+                            <div class="stats-section">
+                                <h4>
+                                    <span>🛡️ מדדי הגנה ופיזיות - בסיסיים (1-10)</span>
+                                    <span class="section-label-tag type-def">הגנה</span>
+                                </h4>
+                                <div class="param-row" id="row_tac"><span>חילוצי כדור ותיקולים</span> <input type="number" id="pTac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_tac" onclick="toggleParamLock('tac')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_awa"><span>קריאת משחק ומיקום</span> <input type="number" id="pAwa" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_awa" onclick="toggleParamLock('awa')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_str"><span>פיזיות ועוצמה</span> <input type="number" id="pStr" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_str" onclick="toggleParamLock('str')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_sta"><span>כושר גופני וסיבולת</span> <input type="number" id="pSta" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_sta" onclick="toggleParamLock('sta')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_com"><span>יציאה מלחץ ומסירה</span> <input type="number" id="pCom" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_com" onclick="toggleParamLock('com')" title="נעל פרמטר">🔓</button></div>
+                            </div>
+                            <div id="customParamsFormSection" style="display:none;">
+                                <div class="stats-section" style="border-color: rgba(252,211,77,0.2); background: rgba(252,211,77,0.03);">
+                                    <h4>
+                                        <span>⭐ מדדים מותאמים אישית (1-10)</span>
+                                        <span class="section-label-tag" style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.3);">מותאם</span>
+                                    </h4>
+                                    <div id="customParamsInputs"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="gkStatsSection" style="display:none;">
+                            <div class="stats-section gk-stats-section">
+                                <h4>
+                                    <span>🧤 מדדי שוער (1-10)</span>
+                                    <span class="section-label-tag" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">שוער</span>
+                                </h4>
+                                <div class="param-row" id="row_gkDiv"><span>זינוק</span> <input type="number" id="pGkDiv" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkDiv" onclick="toggleParamLock('gkDiv')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkHan"><span>אחיזה בכדור</span> <input type="number" id="pGkHan" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkHan" onclick="toggleParamLock('gkHan')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkKic"><span>בעיטה והוצאה</span> <input type="number" id="pGkKic" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkKic" onclick="toggleParamLock('gkKic')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkPos"><span>מיקום בשער</span> <input type="number" id="pGkPos" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkPos" onclick="toggleParamLock('gkPos')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_gkRef"><span>רפלקסים</span> <input type="number" id="pGkRef" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_gkRef" onclick="toggleParamLock('gkRef')" title="נעל פרמטר">🔓</button></div>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" id="saveBtn" onclick="savePlayer()">שמור שחקן</button>
+                            <button class="btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; background:var(--danger);">בטל עריכה</button>
+                        </div>
+
+                        <h3 style="margin-top: 30px; font-size: 1.05rem; color:var(--text-main); font-weight:800;">כל הסגל <span style="font-size:0.85rem; font-weight:400; color:var(--text-muted);">(לחץ + להוספה, ✓ להסרה)</span></h3>
+                        <div class="squad-list" id="squadList"></div>
+                        
+                        <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
+                        <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
+                        <button class="btn" onclick="publishToMarket()" style="margin-top:10px; background: #3B82F6;">📢 פרסם גיוס שחקנים לשוק</button>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">
+                            הרכב למשחק
+                            <span id="counterBadge" class="counter">0 / 0</span>
+                        </h2>
+                        <div id="lineupGrid" class="player-grid">
+                            <div style="grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;">טוען נתונים...</div>
+                        </div>
+                    </div>
+
+                    <div id="results" class="card"></div>
+
+                    <div class="bottom-bar-wrapper">
+                        <div class="bottom-bar" id="adminBottomBar">
+                            <div style="display:flex; gap:10px;">
+                                <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+                                <button id="finishGameBtn" class="btn" style="background: var(--danger); flex: 0.6; font-size: 0.95rem; display: none;" onclick="finishGame()">סיום משחק 🏁</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: LEADERBOARDS -->
+            <div id="tab-leaderboards" class="tab-content">
+                <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
+                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 20px;">🏆 דירוג שחקנים מפורט</h2>
+                    <select id="statSelector" class="form-input" onchange="renderLeaderboards()" style="font-weight: 800; font-size: 1.1rem; color: var(--primary-color);">
+                        <option value="attScore">🎯 ציון התקפה כללי</option>
+                        <option value="defScore">🛡️ ציון הגנה כללי</option>
+                        <optgroup label="מדדי התקפה">
+                            <option value="fin">⚽ סיומת מול שער</option>
+                            <option value="dri">🤹 דריבל ושליטה</option>
+                            <option value="pac">⚡ מהירות וזריזות</option>
+                            <option value="vis">👁️ ראיית משחק ובישולים</option>
+                            <option value="pos">🏃 תנועה ללא כדור</option>
+                        </optgroup>
+                        <optgroup label="מדדי הגנה ופיזיות">
+                            <option value="tac">🦵 חילוצי כדור ותיקולים</option>
+                            <option value="awa">🧠 קריאת משחק ומיקום</option>
+                            <option value="str">💪 פיזיות ועוצמה</option>
+                            <option value="sta">🫁 כושר גופני וסיבולת</option>
+                            <option value="com">🧘 יציאה מלחץ ומסירה</option>
+                        </optgroup>
+                        <optgroup label="🧤 מדדי שוער">
+                            <option value="gkScore">🧤 ציון שוער כללי</option>
+                            <option value="gkDiv">🤸 זינוק</option>
+                            <option value="gkHan">🖐️ אחיזה בכדור</option>
+                            <option value="gkKic">👟 בעיטה והוצאה</option>
+                            <option value="gkPos">📍 מיקום בשער</option>
+                            <option value="gkRef">⚡ רפלקסים</option>
+                        </optgroup>
+                        <optgroup id="customStatOptgroup" label="מדדים מותאמים אישית" style="display:none;"></optgroup>
+                        <optgroup label="📊 סטטיסטיקות נוספות">
+    <option value="attendance">📅 מתמידים</option>
+    <option value="age">🎂 גיל </option>
+</optgroup>
+                    </select>
+                    <div id="dynamicLeaderboardList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- TAB: SCORERS -->
+            <div id="tab-scorers" class="tab-content">
+                <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
+                    <h2 class="card-title" style="font-size: 1.4rem; justify-content: center; margin-bottom: 25px;">🏆 טבלת מלכי השערים</h2>
+                    <div id="topScorersList" style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="text-align:center; color:var(--text-muted); padding:10px;">טוען נתונים...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: HISTORY -->
+            <div id="tab-history" class="tab-content">
+                <div class="card" style="border-top-width: 4px; border-top-color: #8B5CF6;">
+                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">📅 היסטוריית משחקים</h2>
+                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">כל ערב משחק שנסכם נשמר כאן עם כל הפרטים</p>
+                    <div id="historyList">
+                        <div class="history-empty">טוען היסטוריה... ⏳</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: MARKET -->
+        <div id="tab-market" class="tab-content">
+            <div class="container">
+                <div class="card" style="border-top: 4px solid #3B82F6;">
+                    <h2 class="card-title" style="justify-content: center; margin-bottom: 20px;">🏃‍♂️ קבוצות מחפשות שחקנים</h2>
+                    <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                        כאן מופיעות קבוצות שחסר להן שחקן למשחק הקרוב. <br>לחיצה על המודעה תפתח שיחת וואטסאפ עם המנהל.
+                    </p>
+                    <div id="marketList" style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="text-align:center; color:var(--text-muted); padding:20px;">טוען מודעות...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: LAUNDRY -->
+        <div id="tab-laundry" class="tab-content">
+            <div class="container">
+                <div class="card" style="border-top: 4px solid #A78BFA;">
+                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">👕 תורנות כביסת גופיות</h2>
+                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">רק מהשחקנים שמשחקים הערב — סבב מלא לפני חזרה</p>
+                    <div id="laundryCurrentCard" style="background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.35); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 20px; display:none;">
+                        <div style="font-size: 0.85rem; color: #A78BFA; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;">תורן הכביסה של הערב 👕</div>
+                        <div id="laundryCurrentName" style="font-size: 2rem; font-weight: 900; color: var(--text-main); margin-bottom: 4px;"></div>
+                        <div id="laundryCurrentRound" style="font-size: 0.8rem; color: var(--text-muted);"></div>
+                        <div style="margin-top:12px; font-size:0.82rem; color:var(--text-muted);">התורן יסומן כבוצע אוטומטית עם לחיצה על "סיום משחק"</div>
+                    </div>
+                    <div id="laundryHistorySection" style="display:none; margin-top:20px;">
+                        <h3 style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:12px;">📜 היסטוריית כביסות</h3>
+                        <div id="laundryHistoryList" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+                    <div id="laundryEmpty" style="text-align:center; color:var(--text-muted); padding:30px 10px; display:none;">
+                        <div style="font-size:2.5rem; margin-bottom:10px;">👕</div>
+                        <div style="font-weight:800; margin-bottom:6px;">אין משחק פעיל</div>
+                        <div style="font-size:0.85rem;">התורן ייקבע אוטומטית עם לחיצה על "צור קבוצות מאוזנות"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Player Card -->
+    <div id="playerModalOverlay" class="modal-overlay" onclick="closePlayerCard()">
+        <div class="player-card-modal" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closePlayerCard()">✕</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Settings -->
+    <div id="settingsModalOverlay" class="modal-overlay" onclick="closeSettingsModal()">
+        <div class="player-card-modal" onclick="event.stopPropagation()" style="max-width: 480px;">
+            <button class="close-btn" onclick="closeSettingsModal()">✕</button>
+            <h2 class="modal-name" style="margin-bottom:20px;">⚙️ הגדרות קבוצה</h2>
+            <div class="param-row" style="margin-bottom:15px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
+                <span style="color:var(--text-main); font-weight:bold;">כמות קבוצות בחלוקה</span>
+                <input type="number" id="setNumTeams" min="2" max="5" value="3">
+            </div>
+            <div class="param-row" style="margin-bottom:20px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
+                <span style="color:var(--text-main); font-weight:bold;">שחקנים בכל קבוצה</span>
+                <input type="number" id="setPlayersPerTeam" min="3" max="11" value="6">
+            </div>
+            <div style="text-align: right;">
+                <h3 style="font-size: 1rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    ⭐ מדדים מותאמים אישית
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">(נוסף על 10 הבסיסיים)</span>
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 12px 0;">הוסף פרמטרים ייחודיים לקבוצה שלך.</p>
+                <div id="customParamsManagerList"></div>
+                <div class="add-param-row">
+                    <input type="text" id="newParamName" placeholder="שם הפרמטר" maxlength="30">
+                    <select id="newParamType">
+                        <option value="att">⚔️ התקפה</option>
+                        <option value="def">🛡️ הגנה</option>
+                    </select>
+                    <button class="add-param-btn" onclick="addCustomParam()">+ הוסף</button>
+                </div>
+            </div>
+            <button class="btn" onclick="saveGroupSettings()" style="margin-top: 20px;">שמור הגדרות</button>
+        </div>
+    </div>
+
+<script>
+// ========== Firebase Config ==========
+const firebaseConfig = {
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903",
+    measurementId: "G-425XRT1EVL"
+};
+firebase.initializeApp(firebaseConfig);
+firebase.analytics();
+const db = firebase.firestore();
+
+// ========== State ==========
+const urlParams = new URLSearchParams(window.location.search);
+const currentGroupId = urlParams.get('group');
+let groupRef = null, playersRef = null, gameRef = null, groupPassword = null;
+let groupSettings = { numTeams: 3, playersPerTeam: 6 };
+let customParams = [];
+let players = [], activeTeams = null, activeGkIds = [], activeHasFixedGk = [], activeWins = [];
+let historyCache = [];
+let gamesHistoryCache = [];
+let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
+
+// ========== Utilities ==========
+function updateGroupLinkUI() {
+    const url = window.location.origin + window.location.pathname + '?group=' + currentGroupId;
+    const el = document.getElementById('groupLinkDisplay');
+    if (el) el.innerText = url;
+}
+function copyGroupLink() {
+    navigator.clipboard.writeText(document.getElementById('groupLinkDisplay').innerText)
+        .then(() => alert("הקישור הועתק ללוח! 📋"));
+}
+
+// ========== Init ==========
+window.onload = async () => {
+    if (!currentGroupId) {
+        document.getElementById('lobbyContainer').style.display = 'block';
+    } else {
+        document.getElementById('lobbyContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('adminBtnHeader').style.display = 'block';
+       if (sessionStorage.getItem(`admin_${currentGroupId}`) === 'true') {
+    document.body.classList.add('is-admin');
+    const bottomBar = document.getElementById('adminBottomBar');
+    if (bottomBar) bottomBar.style.display = 'block';
+    const btn = document.getElementById('adminBtnHeader');
+    if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
+}
+
+        groupRef = db.collection('groups').doc(currentGroupId);
+        playersRef = groupRef.collection('players');
+        gameRef = groupRef.collection('game').doc('current');
+
+        try {
+            const doc = await groupRef.get();
+            if (doc.exists) {
+                const groupData = doc.data();
+                groupPassword = groupData.password;
+                document.getElementById('headerTitle').innerText = `⚽ ${groupData.name}`;
+                if (groupData.settings) {
+                    groupSettings.numTeams = groupData.settings.numTeams || 3;
+                    groupSettings.playersPerTeam = groupData.settings.playersPerTeam || 6;
+                }
+                customParams = groupData.customParams || [];
+            } else {
+                alert('הקבוצה לא נמצאה! מעביר אותך לדף הראשי.');
+                window.location.href = window.location.pathname;
+                return;
+            }
+        } catch (error) { console.error("Error loading group:", error); }
+        
+        updateGroupLinkUI();
+        startRealtimeListeners();
+        initRegCalendar();
+        initBdayCal();
+    }
+};
+
+// ========== Realtime Listeners ==========
+function startRealtimeListeners() {
+    playersRef.orderBy("name").onSnapshot(snap => {
+        players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        render();
+        if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
+    });
+
+    gameRef.onSnapshot(snap => {
+        const finishBtn = document.getElementById('finishGameBtn');
+        if (snap.exists && snap.data().team1) {
+            const data = snap.data();
+            let loadedTeams = [], idx = 1;
+            while(data[`team${idx}`]) { loadedTeams.push(data[`team${idx}`]); idx++; }
+            activeTeams = loadedTeams;
+            activeGkIds = data.gkIds || activeTeams.map(() => null);
+            activeHasFixedGk = data.hasFixedGk || activeTeams.map(() => false);
+            activeWins = data.teamWins || activeTeams.map(() => 0);
+            displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
+            if(finishBtn) finishBtn.style.display = 'flex';
+        } else {
+            document.getElementById('results').style.display = 'none';
+            activeTeams = null;
+            if(finishBtn) finishBtn.style.display = 'none';
+        }
+    });
+
+    groupRef.collection('history').onSnapshot(snap => {
+        historyCache = snap.docs.map(doc => doc.data());
+        renderTopScorers();
+    });
+
+    groupRef.collection('history_games').orderBy('date', 'desc').onSnapshot(snap => {
+        gamesHistoryCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderHistory();
+    });
+
+    groupRef.onSnapshot(snap => {
+        if (snap.exists) {
+            const data = snap.data();
+            customParams = data.customParams || [];
+            renderCustomParamsManagerList();
+            renderCustomParamsFormInputs();
+            updateLeaderboardCustomOptions();
+
+            if (data.lastRegNotice !== undefined) {
+                const noticeInput = document.getElementById('regNoticeInput');
+                if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
+            }
+        }
+    });
+
+    startLaundryListener();
+    startRegistrationListener();
+}
+
+// ========== Player Flag Toggles ==========
+function togglePlayerFlag(fieldId, btnId, labelOn, labelOff, bgOn, colorOn, borderOn) {
+    const hidden = document.getElementById('p' + fieldId.charAt(0).toUpperCase() + fieldId.slice(1));
+    const btn = document.getElementById(btnId);
+    if (!hidden || !btn) return;
+    const newVal = hidden.value !== 'true';
+    hidden.value = String(newVal);
+    btn.textContent = newVal ? labelOn : labelOff;
+    btn.style.background = newVal ? bgOn : 'transparent';
+    btn.style.color = newVal ? colorOn : 'var(--text-muted)';
+    btn.style.borderColor = newVal ? borderOn : 'var(--border-color)';
+}
+
+function setPlayerFlagUI(fieldId, btnId, val, labelOn, labelOff, bgOn, colorOn, borderOn) {
+    const hidden = document.getElementById('p' + fieldId.charAt(0).toUpperCase() + fieldId.slice(1));
+    const btn = document.getElementById(btnId);
+    if (!hidden || !btn) return;
+    hidden.value = String(val);
+    btn.textContent = val ? labelOn : labelOff;
+    btn.style.background = val ? bgOn : 'transparent';
+    btn.style.color = val ? colorOn : 'var(--text-muted)';
+    btn.style.borderColor = val ? borderOn : 'var(--border-color)';
+}
+
+function resetAllFlagButtons() {
+    setPlayerFlagUI('isActive','activeToggleBtn',false,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
+    setPlayerFlagUI('isNew','newToggleBtn',false,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
+    setPlayerFlagUI('isMoshavResident','residentToggleBtn',false,'🏠 תושב מגדים','לא תושב','rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)');
+}
+
+// ========== Custom Params Logic ==========
+function genParamId() { return 'cp_' + Math.random().toString(36).substr(2, 8) + '_' + Date.now(); }
+
+function renderCustomParamsManagerList() {
+    const container = document.getElementById('customParamsManagerList');
+    if (!container) return;
+    if (customParams.length === 0) { container.innerHTML = `<div class="custom-params-empty">אין מדדים מותאמים אישית עדיין.</div>`; return; }
+    container.innerHTML = customParams.map(p => `
+        <div class="custom-param-item">
+            <div class="custom-param-name">${p.name}</div>
+            <span class="custom-param-type ${p.type === 'att' ? 'type-att' : 'type-def'}">${p.type === 'att' ? '⚔️ התקפה' : '🛡️ הגנה'}</span>
+            <button class="param-delete-btn" onclick="deleteCustomParam('${p.id}')">🗑️</button>
+        </div>
+    `).join('');
+}
+
+function renderCustomParamsFormInputs() {
+    const section = document.getElementById('customParamsFormSection');
+    const container = document.getElementById('customParamsInputs');
+    if (!section || !container) return;
+    if (customParams.length === 0) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    const attParams = customParams.filter(p => p.type === 'att');
+    const defParams = customParams.filter(p => p.type === 'def');
+    let html = '';
+    if (attParams.length > 0) {
+        html += `<div style="font-size:0.8rem; color:var(--att-text); font-weight:800; margin-bottom:8px;">⚔️ התקפה</div>`;
+        attParams.forEach(p => { html += `<div class="param-row" id="row_cp_${p.id}"><span>${p.name}</span><input type="number" id="cp_${p.id}" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_cp_${p.id}" onclick="lockCustomParam('${p.id}')" title="נעל פרמטר">🔓</button></div>`; });
+    }
+    if (defParams.length > 0) {
+        html += `<div style="font-size:0.8rem; color:var(--def-text); font-weight:800; margin-bottom:8px; margin-top:${attParams.length>0?'14px':'0'};">🛡️ הגנה</div>`;
+        defParams.forEach(p => { html += `<div class="param-row" id="row_cp_${p.id}"><span>${p.name}</span><input type="number" id="cp_${p.id}" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_cp_${p.id}" onclick="lockCustomParam('${p.id}')" title="נעל פרמטר">🔓</button></div>`; });
+    }
+    container.innerHTML = html;
+    Object.keys(currentLockedParams).forEach(key => {
+        if (!key.startsWith('cp_')) return;
+        const cpId = key.replace('cp_', '');
+        const btn = document.getElementById(`lock_cp_${cpId}`);
+        const row = document.getElementById(`row_cp_${cpId}`);
+        if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+        if (row) row.classList.add('is-locked');
+    });
+}
+
+function fillCustomParamInputs(playerData) {
+    customParams.forEach(p => {
+        const input = document.getElementById(`cp_${p.id}`);
+        if (input) input.value = (playerData.customStats && playerData.customStats[p.id] !== undefined) ? playerData.customStats[p.id] : 5;
+    });
+}
+
+function readCustomParamInputs() {
+    const result = {};
+    customParams.forEach(p => {
+        const input = document.getElementById(`cp_${p.id}`);
+        result[p.id] = input ? (parseFloat(input.value) || 5) : 5;
+    });
+    return result;
+}
+
+async function addCustomParam() {
+    const nameInput = document.getElementById('newParamName');
+    const typeSelect = document.getElementById('newParamType');
+    const name = nameInput.value.trim();
+    if (!name) return alert('נא להזין שם לפרמטר.');
+    if (customParams.find(p => p.name === name)) return alert('פרמטר בשם זה כבר קיים.');
+    if (customParams.length >= 15) return alert('ניתן להוסיף עד 15 פרמטרים מותאמים אישית.');
+    const newParam = { id: genParamId(), name, type: typeSelect.value };
+    try {
+        await groupRef.update({ customParams: [...customParams, newParam] });
+        nameInput.value = '';
+    } catch(e) { console.error(e); alert('שגיאה בהוספת הפרמטר.'); }
+}
+
+async function deleteCustomParam(paramId) {
+    if (!confirm('למחוק פרמטר זה?')) return;
+    try { await groupRef.update({ customParams: customParams.filter(p => p.id !== paramId) }); }
+    catch(e) { console.error(e); alert('שגיאה במחיקת הפרמטר.'); }
+}
+
+function updateLeaderboardCustomOptions() {
+    const optgroup = document.getElementById('customStatOptgroup');
+    if (!optgroup) return;
+    if (customParams.length === 0) { optgroup.style.display = 'none'; optgroup.innerHTML = ''; return; }
+    optgroup.style.display = '';
+    optgroup.innerHTML = customParams.map(p => `<option value="customStats.${p.id}">⭐ ${p.name} (${p.type==='att'?'התקפה':'הגנה'})</option>`).join('');
+}
+
+// ========== Score Calculation ==========
+function calcScores(vals, customStatsObj) {
+    let attVals = vals.slice(0, 5);
+    let defVals = vals.slice(5, 10);
+    customParams.forEach(p => {
+        const v = (customStatsObj && customStatsObj[p.id] !== undefined) ? customStatsObj[p.id] : 5;
+        if (p.type === 'att') attVals.push(v); else defVals.push(v);
+    });
+    return {
+        attScore: parseFloat((attVals.reduce((a,b)=>a+b,0)/attVals.length).toFixed(1)),
+        defScore: parseFloat((defVals.reduce((a,b)=>a+b,0)/defVals.length).toFixed(1))
+    };
+}
+
+// ========== GK Mode Toggle ==========
+function toggleGkMode() {
+    const isGk = document.getElementById('pIsGk').value === 'true';
+    const newVal = !isGk;
+    document.getElementById('pIsGk').value = String(newVal);
+    document.getElementById('gkToggleBtn').textContent = newVal ? '🧤 שוער' : 'לא שוער';
+    document.getElementById('gkToggleBtn').style.background = newVal ? 'rgba(167,139,250,0.3)' : '';
+    document.getElementById('fieldStatsSection').style.display = newVal ? 'none' : 'block';
+    document.getElementById('gkStatsSection').style.display = newVal ? 'block' : 'none';
+}
+
+function getColoredGkBadge(gkScore) {
+    return `<span class="stat-badge" style="background:var(--gk-bg); color:var(--gk-text); border:1px solid var(--gk-border);">🧤 ${gkScore||5}</span>`;
+}
+
+// ========== Per-Param Lock ==========
+let currentLockedParams = {};
+const FIELD_PARAMS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+const GK_PARAMS = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
+
+function toggleParamLock(key) {
+    const btn = document.getElementById(`lock_${key}`);
+    const row = document.getElementById(`row_${key}`);
+    const inputEl = document.getElementById('p' + key.charAt(0).toUpperCase() + key.slice(1));
+    if (!btn) return;
+    if (currentLockedParams.hasOwnProperty(key)) {
+        delete currentLockedParams[key];
+        btn.classList.remove('locked'); btn.textContent = '🔓';
+        if (row) row.classList.remove('is-locked');
+    } else {
+        const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
+        currentLockedParams[key] = val;
+        btn.classList.add('locked'); btn.textContent = '🔒';
+        if (row) row.classList.add('is-locked');
+    }
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
+}
+
+function lockCustomParam(cpId) {
+    const btn = document.getElementById(`lock_cp_${cpId}`);
+    const row = document.getElementById(`row_cp_${cpId}`);
+    const inputEl = document.getElementById(`cp_${cpId}`);
+    const lockKey = `cp_${cpId}`;
+    if (!btn) return;
+    if (currentLockedParams.hasOwnProperty(lockKey)) {
+        delete currentLockedParams[lockKey];
+        btn.classList.remove('locked'); btn.textContent = '🔓';
+        if (row) row.classList.remove('is-locked');
+    } else {
+        const val = inputEl ? (parseFloat(inputEl.value) || 5) : 5;
+        currentLockedParams[lockKey] = val;
+        btn.classList.add('locked'); btn.textContent = '🔒';
+        if (row) row.classList.add('is-locked');
+    }
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
+}
+
+function fillLockedParamsUI(lockedParams) {
+    currentLockedParams = lockedParams ? { ...lockedParams } : {};
+    [...FIELD_PARAMS, ...GK_PARAMS].forEach(key => {
+        const btn = document.getElementById(`lock_${key}`);
+        const row = document.getElementById(`row_${key}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    customParams.forEach(cp => {
+        const btn = document.getElementById(`lock_cp_${cp.id}`);
+        const row = document.getElementById(`row_cp_${cp.id}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    Object.keys(currentLockedParams).forEach(key => {
+        let btnId, rowId;
+        if (key.startsWith('cp_')) { const cpId = key.replace('cp_', ''); btnId = `lock_cp_${cpId}`; rowId = `row_cp_${cpId}`; }
+        else { btnId = `lock_${key}`; rowId = `row_${key}`; }
+        const btn = document.getElementById(btnId);
+        const row = document.getElementById(rowId);
+        if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+        if (row) row.classList.add('is-locked');
+    });
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.toggle('visible', Object.keys(currentLockedParams).length > 0);
+}
+
+function resetLockedParamsUI() {
+    currentLockedParams = {};
+    [...FIELD_PARAMS, ...GK_PARAMS].forEach(key => {
+        const btn = document.getElementById(`lock_${key}`);
+        const row = document.getElementById(`row_${key}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    customParams.forEach(cp => {
+        const btn = document.getElementById(`lock_cp_${cp.id}`);
+        const row = document.getElementById(`row_cp_${cp.id}`);
+        if (btn) { btn.classList.remove('locked'); btn.textContent = '🔓'; }
+        if (row) row.classList.remove('is-locked');
+    });
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.remove('visible');
+}
+
+function getEffectiveParamValue(key, computedVal) {
+    return currentLockedParams.hasOwnProperty(key) ? currentLockedParams[key] : computedVal;
+}
+
+function lockAllParams() {
+    const isGk = document.getElementById('pIsGk').value === 'true';
+    const keys = isGk ? GK_PARAMS : FIELD_PARAMS;
+    keys.forEach(key => {
+        const inputId = 'p' + key.charAt(0).toUpperCase() + key.slice(1);
+        const val = parseFloat(document.getElementById(inputId)?.value) || 5;
+        currentLockedParams[key] = val;
+        const btn = document.getElementById(`lock_${key}`);
+        const row = document.getElementById(`row_${key}`);
+        if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+        if (row) row.classList.add('is-locked');
+    });
+    if (!isGk) {
+        customParams.forEach(cp => {
+            const lockKey = `cp_${cp.id}`;
+            const val = parseFloat(document.getElementById(`cp_${cp.id}`)?.value) || 5;
+            currentLockedParams[lockKey] = val;
+            const btn = document.getElementById(`lock_cp_${cp.id}`);
+            const row = document.getElementById(`row_cp_${cp.id}`);
+            if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; }
+            if (row) row.classList.add('is-locked');
+        });
+    }
+    const hint = document.getElementById('lockHintField');
+    if (hint) hint.classList.add('visible');
+}
+
+function unlockAllParams() { resetLockedParamsUI(); }
+
+function calcScoresWithLocks(vals, customStatsObj) {
+    const keys = FIELD_PARAMS;
+    const effVals = vals.map((v, i) => getEffectiveParamValue(keys[i], v));
+    let attVals = effVals.slice(0, 5);
+    let defVals = effVals.slice(5, 10);
+    customParams.forEach(p => {
+        const raw = (customStatsObj && customStatsObj[p.id] !== undefined) ? customStatsObj[p.id] : 5;
+        const eff = getEffectiveParamValue(`cp_${p.id}`, raw);
+        if (p.type === 'att') attVals.push(eff); else defVals.push(eff);
+    });
+    return {
+        attScore: parseFloat((attVals.reduce((a,b)=>a+b,0)/attVals.length).toFixed(1)),
+        defScore: parseFloat((defVals.reduce((a,b)=>a+b,0)/defVals.length).toFixed(1))
+    };
+}
+
+function calcGkScoreWithLocks(vals) {
+    const effVals = vals.map((v, i) => getEffectiveParamValue(GK_PARAMS[i], v));
+    return parseFloat((effVals.reduce((a,b)=>a+b,0)/effVals.length).toFixed(1));
+}
+
+// ========== Player Management ==========
+async function savePlayer() {
+    const name = document.getElementById('pName').value.trim();
+    if(!name) return;
+
+    const isGk = document.getElementById('pIsGk').value === 'true';
+    const isActive = document.getElementById('pIsActive').value === 'true';
+    const isNew = document.getElementById('pIsNew').value === 'true';
+    const isMoshavResident = document.getElementById('pIsMoshavResident').value === 'true';
+
+    const hasLocked = Object.keys(currentLockedParams).length > 0;
+    const lockedParams = hasLocked ? { ...currentLockedParams } : {};
+
+    const birthDate = document.getElementById('pBirthDate').value || null;
+    let playerData = { name, isGk, isActive, isNew, isMoshavResident, lockedParams, birthDate };
+    if (isGk) {
+        const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
+        const gkHan = parseFloat(document.getElementById('pGkHan').value) || 5;
+        const gkKic = parseFloat(document.getElementById('pGkKic').value) || 5;
+        const gkPosV = parseFloat(document.getElementById('pGkPos').value) || 5;
+        const gkRef = parseFloat(document.getElementById('pGkRef').value) || 5;
+        const gkScore = calcGkScoreWithLocks([gkDiv, gkHan, gkKic, gkPosV, gkRef]);
+        Object.assign(playerData, {
+            gkDiv: getEffectiveParamValue('gkDiv', gkDiv), gkHan: getEffectiveParamValue('gkHan', gkHan),
+            gkKic: getEffectiveParamValue('gkKic', gkKic), gkPos: getEffectiveParamValue('gkPos', gkPosV),
+            gkRef: getEffectiveParamValue('gkRef', gkRef), gkScore,
+            fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5,
+            attScore: gkScore, defScore: gkScore, customStats: {}
+        });
+    } else {
+        const rawVals = ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom']
+            .map(id => parseFloat(document.getElementById(id).value) || 5);
+        const customStatsObj = readCustomParamInputs();
+        const { attScore, defScore } = calcScoresWithLocks(rawVals, customStatsObj);
+        const effVals = rawVals.map((v, i) => getEffectiveParamValue(FIELD_PARAMS[i], v));
+        const effCustom = {};
+        customParams.forEach(cp => {
+            const raw = customStatsObj[cp.id] || 5;
+            effCustom[cp.id] = getEffectiveParamValue(`cp_${cp.id}`, raw);
+        });
+        Object.assign(playerData, {
+            fin:effVals[0], dri:effVals[1], pac:effVals[2], vis:effVals[3], pos:effVals[4],
+            tac:effVals[5], awa:effVals[6], str:effVals[7], sta:effVals[8], com:effVals[9],
+            customStats: effCustom, attScore, defScore, gkScore: 5, gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5
+        });
+    }
+
+    let finalImgUrl = currentEditingImg;
+    const fileInput = document.getElementById('pImage');
+    if (fileInput.files.length > 0) {
+        document.getElementById('saveBtn').innerText = "מעלה תמונה... ⏳";
+        finalImgUrl = await resizeImage(fileInput.files[0]);
+    }
+    playerData.imgUrl = finalImgUrl;
+
+    if(editingId) {
+        const updateData = { ...playerData };
+        if (!hasLocked) {
+            updateData.lockedParams = firebase.firestore.FieldValue.delete();
+        }
+        await playersRef.doc(editingId).update(updateData);
+        cancelEdit();
+    } else {
+        playerData.inLineup = false;
+        playerData.goals = 0;
+        await playersRef.add(playerData);
+        document.getElementById('pName').value = '';
+        document.getElementById('pImage').value = '';
+        customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
+        document.getElementById('saveBtn').innerText = "שמור שחקן";
+        resetAllFlagButtons();
+        resetLockedParamsUI();
+        resetBirthdayField();
+    }
+}
+
+// ========== FIX: startEditById — safe wrapper that avoids JSON-in-onclick ==========
+function startEditById(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    startEdit(id, p);
+}
+
+function startEdit(id, p) {
+    editingId = id;
+    currentEditingImg = p.imgUrl || null;
+    document.getElementById('formTitle').innerText = "עריכת שחקן: " + p.name;
+    document.getElementById('pName').value = p.name;
+    document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
+    document.getElementById('pImage').value = '';
+
+    const isActive = !!p.isActive;
+    const isNew = !!p.isNew;
+    const isMoshavResident = !!p.isMoshavResident;
+    setPlayerFlagUI('isActive','activeToggleBtn',isActive,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
+    setPlayerFlagUI('isNew','newToggleBtn',isNew,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
+    setPlayerFlagUI('isMoshavResident','residentToggleBtn',isMoshavResident,'🏠 תושב מגדים','לא תושב','rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)');
+
+    const isGk = !!p.isGk;
+    document.getElementById('pIsGk').value = String(isGk);
+    document.getElementById('gkToggleBtn').textContent = isGk ? '🧤 שוער' : 'לא שוער';
+    document.getElementById('gkToggleBtn').style.background = isGk ? 'rgba(167,139,250,0.3)' : '';
+    document.getElementById('fieldStatsSection').style.display = isGk ? 'none' : 'block';
+    document.getElementById('gkStatsSection').style.display = isGk ? 'block' : 'none';
+
+    if (isGk) {
+        document.getElementById('pGkDiv').value = p.gkDiv || 5;
+        document.getElementById('pGkHan').value = p.gkHan || 5;
+        document.getElementById('pGkKic').value = p.gkKic || 5;
+        document.getElementById('pGkPos').value = p.gkPos || 5;
+        document.getElementById('pGkRef').value = p.gkRef || 5;
+    } else {
+        ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(inputId => {
+            const key = inputId.toLowerCase().replace('p','');
+            document.getElementById(inputId).value = p[key] || 5;
+        });
+        fillCustomParamInputs(p);
+    }
+    fillBirthdayField(p.birthDate || null);
+    fillLockedParamsUI(p.lockedParams || null);
+    document.getElementById('saveBtn').innerText = "עדכן נתונים";
+    document.getElementById('cancelBtn').style.display = "block";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    editingId = null; currentEditingImg = null;
+    document.getElementById('formTitle').innerText = "הוספת שחקן חדש";
+    document.getElementById('pName').value = '';
+    document.getElementById('pImage').value = '';
+    document.getElementById('imgPreviewText').style.display = 'none';
+    document.getElementById('pIsGk').value = 'false';
+    document.getElementById('gkToggleBtn').textContent = 'לא שוער';
+    document.getElementById('gkToggleBtn').style.background = '';
+    document.getElementById('fieldStatsSection').style.display = 'block';
+    document.getElementById('gkStatsSection').style.display = 'none';
+    resetAllFlagButtons();
+    ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
+    ['pGkDiv','pGkHan','pGkKic','pGkPos','pGkRef'].forEach(id => document.getElementById(id).value = 5);
+    customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
+    document.getElementById('saveBtn').innerText = "שמור שחקן";
+    document.getElementById('cancelBtn').style.display = "none";
+    resetLockedParamsUI();
+    resetBirthdayField();
+}
+async function deletePlayer(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    if (!confirm(`למחוק את ${p.name} מהקבוצה לצמיתות?\nפעולה זו לא ניתנת לביטול.`)) return;
+    try {
+        await playersRef.doc(id).delete();
+    } catch(e) { 
+        console.error(e); 
+        alert("שגיאה במחיקת השחקן."); 
+    }
+}
+async function toggleLineup(id, currentState) { await playersRef.doc(id).update({ inLineup: !currentState }); }
+async function clearLineup() {
+    if(!confirm("להסיר את כולם מההרכב הנוכחי?")) return;
+    const batch = db.batch();
+    players.filter(p => p.inLineup).forEach(p => batch.update(playersRef.doc(p.id), { inLineup: false }));
+    await batch.commit();
+    await gameRef.delete();
+}
+
+// ========== Goals & Wins ==========
+async function updatePlayerGoal(id, delta) {
+    try {
+        const pRef = playersRef.doc(id);
+        const pDoc = await pRef.get();
+        if(pDoc.exists) {
+            let newGoals = Math.max(0, (pDoc.data().goals || 0) + delta);
+            await pRef.update({ goals: newGoals });
+            if (delta > 0) await groupRef.collection('history').add({ playerId: id, type: 'goal', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+    } catch(e) { console.error("שגיאה בעדכון גול:", e); }
+}
+
+async function updateTeamWin(index, delta) {
+    if(!activeTeams) return;
+    let currentWins = activeWins ? [...activeWins] : Array(groupSettings.numTeams).fill(0);
+    currentWins[index] = Math.max(0, currentWins[index] + delta);
+    await gameRef.update({ teamWins: currentWins });
+}
+
+async function finishGame() {
+    if (!activeTeams) return alert("אין משחק פעיל לסיום.");
+    if (!confirm("לסיים את הערב? הגולים יאופסו והתוצאות יישמרו בקריירה ובהיסטוריה.")) return;
+    const finishBtn = document.getElementById('finishGameBtn');
+    if (finishBtn) { finishBtn.disabled = true; finishBtn.innerText = "שומר... ⏳"; }
+    try {
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const nowDate = new Date();
+        const historyRef = groupRef.collection('history');
+        const historyGamesRef = groupRef.collection('history_games');
+        const teamNames = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+        const teamsSnapshot = activeTeams.map((team, i) => ({
+            name: teamNames[i] || `קבוצה ${i+1}`,
+            wins: activeWins[i] || 0,
+            players: team.map(p => {
+                const liveP = players.find(x => x.id === p.id) || p;
+                return { id: p.id, name: p.name, goals: liveP.goals || 0, attScore: p.attScore || 5, defScore: p.defScore || 5, gkScore: p.gkScore || null, isGk: !!p.isGk, imgUrl: p.imgUrl || null };
+            })
+        }));
+        const allPlayersFlat = teamsSnapshot.flatMap(t => t.players);
+        const topScorer = allPlayersFlat.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals)[0] || null;
+        const currentGameDoc = await gameRef.get();
+        const currentGameData = currentGameDoc.exists ? currentGameDoc.data() : {};
+        const existingMvpVotes = currentGameData.mvpVotes || {};
+        const totalMvpVotes = Object.values(existingMvpVotes).reduce((a, b) => a + b, 0);
+        let mvpWinner = null;
+        if (totalMvpVotes > 0) {
+            const mvpLeaderId = Object.entries(existingMvpVotes).sort((a, b) => b[1] - a[1])[0]?.[0];
+            const mvpLeaderPlayer = players.find(p => p.id === mvpLeaderId);
+            if (mvpLeaderPlayer) mvpWinner = { id: mvpLeaderId, name: mvpLeaderPlayer.name, votes: existingMvpVotes[mvpLeaderId], totalVotes: totalMvpVotes };
+        }
+        const gameDoc = {
+            date: now, dateISO: nowDate.toISOString(), numPlayers: allPlayersFlat.length,
+            numTeams: activeTeams.length, teams: teamsSnapshot,
+            topScorer: topScorer ? { id: topScorer.id, name: topScorer.name, goals: topScorer.goals } : null,
+            totalGoals: allPlayersFlat.reduce((s,p) => s + (p.goals||0), 0),
+            mvpWinner, mvpVoteCount: totalMvpVotes, mvpVotes: existingMvpVotes, votingOpen: true
+        };
+        const savedGameRef = await historyGamesRef.add(gameDoc);
+        await savedGameRef.update({ id: savedGameRef.id });
+        const batch = db.batch();
+        activeWins.forEach((wins, index) => {
+            if (wins > 0) activeTeams[index].forEach(player => {
+                for(let i=0; i<wins; i++) batch.set(historyRef.doc(), { playerId: player.id, type: 'win', timestamp: now });
+            });
+        });
+        const playedIds = new Set(allPlayersFlat.map(fp => fp.id));
+        players.forEach(p => {
+            const wasInGame = playedIds.has(p.id);
+            const updateData = { attendanceHistory: firebase.firestore.FieldValue.arrayUnion(wasInGame) };
+            if (p.goals > 0 || p.inLineup) updateData.goals = 0;
+            batch.update(playersRef.doc(p.id), updateData);
+        });
+        batch.delete(gameRef);
+        await batch.commit();
+        await completeLaundryForGame();
+        if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
+        alert("הערב סוכם בהצלחה! הנתונים נשמרו בהיסטוריה 📅");
+    } catch(e) {
+        console.error("❌ שגיאה בסיום משחק:", e);
+        if (finishBtn) { finishBtn.disabled = false; finishBtn.innerText = "סיום משחק 🏁"; }
+        alert("שגיאה בסיום המשחק: " + e.message);
+    }
+}
+
+async function adjustCareerGoal(playerId, delta) {
+    try {
+        await groupRef.collection('history').add({ playerId, type: 'goal_adjustment', count: delta, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    } catch(e) { console.error(e); alert("שגיאה בעדכון."); }
+}
+
+async function editCareerGoals(playerId) {
+    const currentGoals = historyCache.filter(h => h.playerId === playerId && h.type === 'goal').length +
+        historyCache.filter(h => h.playerId === playerId && h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
+    const newValStr = prompt(`עריכת גולי קריירה:\nהזן את הכמות הכוללת הרצויה (נוכחי: ${currentGoals})`, currentGoals);
+    if (newValStr === null) return;
+    const newVal = parseInt(newValStr);
+    if (isNaN(newVal) || newVal < 0) return alert("נא להזין מספר חוקי.");
+    const diff = newVal - currentGoals;
+    if (diff === 0) return;
+    try {
+        await groupRef.collection('history').add({ playerId, type: 'goal_adjustment', count: diff, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        setTimeout(() => showPlayerCard(playerId), 500);
+    } catch(e) { console.error(e); alert("שגיאה בעדכון."); }
+}
+
+// ========== Player Card Modal ==========
+function showPlayerCard(id) {
+    const p = players.find(x => x.id === id); if(!p) return;
+    const pHistory = historyCache.filter(h => h.playerId === id);
+    const totalWins = pHistory.filter(h => h.type === 'win').length;
+    const totalGoals = pHistory.filter(h => h.type === 'goal').length +
+        pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
+    const formaHTML = pHistory.filter(h => h.type === 'win').slice(0,5).map(() => `<span style="color:#10B981; font-weight:900;">W</span>`).join(' ') || '<span style="color:var(--text-muted);">אין נתונים</span>';
+    const isAdmin = document.body.classList.contains('is-admin');
+    const editBtn = isAdmin ? `<button onclick="editCareerGoals('${p.id}')" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px;" title="ערוך גולי קריירה">✏️</button>` : '';
+    const isGk = !!p.isGk;
+    const mainScore = isGk ? (p.gkScore || 5) : (p.attScore + p.defScore) / 2;
+    const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(mainScore).hex;
+    const avatar = p.imgUrl ? `<img src="${p.imgUrl}" class="modal-avatar" style="border-color:${borderColor}">` : `<div class="modal-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
+    const lockedParams = p.lockedParams || {};
+    const lockedCount = Object.keys(lockedParams).length;
+    const lockedBadge = lockedCount > 0 ? `<span style="display:inline-flex; align-items:center; gap:4px; background:var(--lock-bg); color:var(--lock-color); border:1px solid var(--lock-border); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:800; margin-right:6px;">🔒 ${lockedCount} פרמטרים נעולים</span>` : '';
+    const playerModalBadges = getPlayerBadgesHTML(p);
+    const age = calcAge(p.birthDate);
+    const ageBadge = age !== null ? `<span class="age-badge-modal">🎂 גיל ${age}</span>` : '';
+    const attendancePct = (() => {
+    const h = p.attendanceHistory || [];
+    if (h.length === 0) return null;
+    return Math.round((h.filter(x => x).length / h.length) * 100);
+})();
+const attendanceBadge = attendancePct !== null
+    ? `<span class="age-badge-modal">${attendancePct >= 70 ? '🔥' : '📊'} נוכחות ${attendancePct}% (${(p.attendanceHistory||[]).length} משחקים)</span>`
+    : '';
+    const getBar = (label, val, color) => {
+        const c = color || getColorStyles(val||5).hex;
+        return `<div class="stat-bar-row"><div class="stat-bar-label">${label}</div><div class="stat-bar-bg"><div class="stat-bar-fill" style="width:${(val||5)*10}%; background-color:${c};"></div></div><div class="stat-bar-val" style="color:${c};">${val||5}</div></div>`;
+    };
+    let scoreBoxes = '';
+    if (isGk) {
+        const gkC = getColorStyles(p.gkScore || 5);
+        scoreBoxes = `<div class="modal-score-box" style="border-color:${gkC.border}; background:${gkC.bg}; width:60%; margin:0 auto;"><div class="modal-score-val" style="color:${gkC.text};">${p.gkScore||5}</div><div class="modal-score-label" style="color:${gkC.text};">🧤 ציון שוער</div></div>`;
+    } else {
+        scoreBoxes = `
+            <div class="modal-score-box" style="border-color:${getColorStyles(p.attScore).border}; background:${getColorStyles(p.attScore).bg};">
+                <div class="modal-score-val" style="color:${getColorStyles(p.attScore).text};">${p.attScore||5}</div>
+                <div class="modal-score-label" style="color:${getColorStyles(p.attScore).text};">התקפה</div>
+            </div>
+            <div class="modal-score-box" style="border-color:${getColorStyles(p.defScore).border}; background:${getColorStyles(p.defScore).bg};">
+                <div class="modal-score-val" style="color:${getColorStyles(p.defScore).text};">${p.defScore||5}</div>
+                <div class="modal-score-label" style="color:${getColorStyles(p.defScore).text};">הגנה</div>
+            </div>`;
+    }
+    let statsSection = '';
+    if (isGk) {
+        statsSection = `<div class="modal-section-title" style="color:var(--gk-text);">🧤 מדדי שוער</div>${getBar('זינוק', p.gkDiv, 'var(--gk-text)')}${getBar('אחיזה בכדור', p.gkHan, 'var(--gk-text)')}${getBar('בעיטה והוצאה', p.gkKic, 'var(--gk-text)')}${getBar('מיקום בשער', p.gkPos, 'var(--gk-text)')}${getBar('רפלקסים', p.gkRef, 'var(--gk-text)')}`;
+    } else {
+        const attCustomParams = customParams.filter(cp => cp.type === 'att');
+        const defCustomParams = customParams.filter(cp => cp.type === 'def');
+        statsSection = `
+            <div class="modal-section-title">מדדי התקפה בסיסיים</div>
+            ${getBar('סיומת מול שער', p.fin)}${getBar('דריבל ושליטה', p.dri)}${getBar('מהירות וזריזות', p.pac)}${getBar('ראיית משחק', p.vis)}${getBar('תנועה ללא כדור', p.pos)}
+            ${attCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--att-text);">⚔️ מדדי התקפה מותאמים</div>${attCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}
+            <div class="modal-section-title">מדדי הגנה ופיזיות בסיסיים</div>
+            ${getBar('חילוצי כדור', p.tac)}${getBar('קריאת משחק', p.awa)}${getBar('פיזיות ועוצמה', p.str)}${getBar('כושר גופני', p.sta)}${getBar('יציאה מלחץ', p.com)}
+            ${defCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${defCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}`;
+    }
+    const content = `
+        ${avatar}
+        <h2 class="modal-name">${p.name} ${isGk ? '<span class="gk-badge" style="font-size:0.8rem; vertical-align:middle;">🧤 שוער</span>' : ''} ${playerModalBadges}</h2>
+        <div style="margin-bottom:8px; display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap;">${lockedBadge}${ageBadge}${attendanceBadge}</div>
+        <div class="modal-votes" style="margin-bottom:20px;">${p.votesCount ? `מבוסס על ${p.votesCount} דירוגים` : `טרם דורג`}</div>
+        <div style="margin-bottom:15px; font-size:0.9rem; color:var(--text-muted);">פורמה אחרונה: ${formaHTML}</div>
+        <div style="display:flex; justify-content:center; gap:10px; margin-bottom:25px;">
+            <div class="modal-score-box" style="position:relative; background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.3); width:45%;">
+                ${editBtn}
+                <div class="modal-score-val" style="color:#FCD34D;">${totalGoals}</div>
+                <div class="modal-score-label" style="color:#FCD34D;">⚽ גולי קריירה</div>
+            </div>
+           <div class="modal-score-box" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); width:30%;">
+    <div class="modal-score-val" style="color:#10B981;">${totalWins}</div>
+    <div class="modal-score-label" style="color:#10B981;">🏆 ניצחונות</div>
+</div>
+<div class="modal-score-box" style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); width:30%;">
+    <div class="modal-score-val" style="color:var(--primary-color);">${gamesHistoryCache.filter(g => (g.teams||[]).flatMap(t=>t.players||[]).some(pl=>pl.id===p.id)).length}</div>
+    <div class="modal-score-label" style="color:var(--primary-color);">📅 מפגשים</div>
+</div>
+        </div>
+        <div class="modal-scores">${scoreBoxes}</div>
+        ${statsSection}`;
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('playerModalOverlay').style.display = 'flex';
+}
+function closePlayerCard() { document.getElementById('playerModalOverlay').style.display = 'none'; }
+
+// ========== Scorers ==========
+function renderTopScorers() {
+    const container = document.getElementById('topScorersList'); if (!container) return;
+    const goalsMap = {};
+    historyCache.forEach(h => {
+        if (h.type === 'goal') goalsMap[h.playerId] = (goalsMap[h.playerId] || 0) + 1;
+        else if (h.type === 'goal_adjustment') goalsMap[h.playerId] = (goalsMap[h.playerId] || 0) + (h.count || 0);
+    });
+    const scorers = players.map(p => ({ ...p, careerGoals: goalsMap[p.id] || 0 }))
+        .filter(p => p.careerGoals > 0).sort((a,b) => b.careerGoals - a.careerGoals);
+    if (scorers.length === 0) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">עוד לא נכבשו שערים העונה ⚽</div>`; return; }
+    container.innerHTML = scorers.map((p, i) => {
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+        return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:12px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:900; width:20px; color:${i<3 ? 'var(--primary-color)':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div style="font-weight:800; font-size:1.1rem;">${p.name} ${medal} ${getPlayerBadgesHTML(p)}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div style="background:${i===0?'var(--primary-color)':'rgba(255,255,255,0.1)'}; color:#fff; padding:6px 14px; border-radius:20px; font-weight:900; font-size:1.05rem;">${p.careerGoals} שערים</div>
+                <div class="admin-goal-btns admin-only">
+                    <button onclick="adjustCareerGoal('${p.id}', -1)" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#F87171; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">−</button>
+                    <button onclick="adjustCareerGoal('${p.id}', 1)" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10B981; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:18px; font-weight:900; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ========== Leaderboards ==========
+function renderLeaderboards() {
+    const listContainer = document.getElementById('dynamicLeaderboardList');
+    const selector = document.getElementById('statSelector');
+    if (!listContainer || !selector) return;
+    const statKey = selector.value;
+    // ========== ערבי הגעה וגיל ==========
+if (statKey === 'attendance') {
+    const calcAttendance = (history) => {
+        if (!history || history.length === 0) return 0;
+        const attended = history.filter(x => x).length;
+        return Math.round((attended / history.length) * 100);
+    };
+    const sorted = [...players].sort((a, b) =>
+        calcAttendance(b.attendanceHistory) - calcAttendance(a.attendanceHistory)
+    );
+    listContainer.innerHTML = sorted.map((p, i) => {
+        const pct = calcAttendance(p.attendanceHistory);
+        const fire = pct >= 70 ? '🔥' : '';
+        const games = (p.attendanceHistory || []).length;
+        return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:900; width:20px; color:${i<3?'var(--primary-color)':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk?'<span class="gk-badge" style="font-size:0.7rem;">🧤</span>':''} ${getPlayerBadgesHTML(p,true)} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">(${games} משחקים)</span>
+                <div style="background:rgba(255,255,255,0.1); color:var(--primary-color); padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid var(--primary-color);">${fire}${pct}%</div>
+            </div>
+        </div>`;
+    }).join('');
+    return;
+}
+
+if (statKey === 'age') {
+    const withAge = players.filter(p => p.birthDate).map(p => ({ ...p, _age: calcAge(p.birthDate) }))
+        .sort((a, b) => a._age - b._age);
+    const noAge = players.filter(p => !p.birthDate);
+    const sorted = [...withAge, ...noAge];
+    listContainer.innerHTML = sorted.map((p, i) => {
+        const age = calcAge(p.birthDate);
+        return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:900; width:20px; color:${i<3?'#A5B4FC':'var(--text-muted)'}; text-align:center;">${i+1}.</span>
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk?'<span class="gk-badge" style="font-size:0.7rem;">🧤</span>':''} ${getPlayerBadgesHTML(p,true)}</div>
+            </div>
+            <div style="background:rgba(99,102,241,0.15); color:#A5B4FC; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid rgba(99,102,241,0.3);">${age !== null ? `גיל ${age}` : '—'}</div>
+        </div>`;
+    }).join('');
+    return;
+}
+    let colorClass = 'var(--primary-color)';
+    if (['attScore','fin','dri','pac','vis','pos'].includes(statKey)) colorClass = 'var(--att-text)';
+    else if (['defScore','tac','awa','str','sta','com'].includes(statKey)) colorClass = 'var(--def-text)';
+    else if (['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey)) colorClass = 'var(--gk-text)';
+    const isGkStat = ['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey);
+    const getStatValue = (player, key) => {
+        if (key.startsWith('customStats.')) { const paramId = key.replace('customStats.', ''); return (player.customStats && player.customStats[paramId] !== undefined) ? player.customStats[paramId] : 5; }
+        return player[key] || 5;
+    };
+    const filteredPlayers = isGkStat ? players.filter(p => p.isGk) : players.filter(p => !p.isGk);
+    const sortedPlayers = [...filteredPlayers].sort((a, b) => getStatValue(b, statKey) - getStatValue(a, statKey));
+    if (sortedPlayers.length === 0) { listContainer.innerHTML = `<div style="text-align:center; color:var(--text-muted);">אין שחקנים</div>`; return; }
+    listContainer.innerHTML = sortedPlayers.map((p, i) => {
+        const val = getStatValue(p, statKey);
+        const lockIcon = (p.lockedParams && Object.keys(p.lockedParams).length > 0) ? `<span class="lock-badge" style="margin-right:4px;">🔒${Object.keys(p.lockedParams).length}</span>` : '';
+        return `<div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:900; width:20px; color:${i<3 ? colorClass : 'var(--text-muted)'}; text-align:center;">${i+1}.</span>
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div style="font-weight:800; font-size:1.05rem;">${p.name} ${p.isGk ? '<span class="gk-badge" style="font-size:0.7rem;">🧤</span>' : ''} ${getPlayerBadgesHTML(p, true)} ${lockIcon} ${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); color:${colorClass}; padding:4px 12px; border-radius:20px; font-weight:900; font-size:1rem; border:1px solid ${colorClass};">${Number.isInteger(val) ? val : val.toFixed(1)}</div>
+        </div>`;
+    }).join('');
+}
+
+// ========== Main Render ==========
+function render() {
+    const currentScrollPos = window.scrollY;
+    const numTeams = parseInt(groupSettings.numTeams) || 3;
+    const playersPerTeam = parseInt(groupSettings.playersPerTeam) || 6;
+    const totalNeeded = numTeams * playersPerTeam;
+    const isAdmin = document.body.classList.contains('is-admin');
+
+    const squadList = document.getElementById('squadList');
+    if (squadList) {
+        squadList.innerHTML = players.map(p => {
+            const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
+            const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
+            const playerBadges = getPlayerBadgesHTML(p);
+            return `<div class="squad-item">
+                ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
+                <div class="squad-info">
+                    <div class="squad-name">
+                        ${p.name}
+                        ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''}
+                        ${playerBadges}
+                        ${lockTag}
+                        <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals || 0})</span>
+                    </div>
+                    <div class="chip-stats-container" style="justify-content:flex-start;">
+                        ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
+                    </div>
+                </div>
+                <div class="squad-actions">
+                    <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button>
+                    <button class="action-btn btn-edit" onclick="startEditById('${p.id}')">✏️</button>
+                    <button class="action-btn admin-only" onclick="deletePlayer('${p.id}')" style="background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4); color:var(--danger);">🗑️</button>
+                </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    const lineupPlayers = players.filter(p => p.inLineup);
+    const lineupGrid = document.getElementById('lineupGrid');
+    if (lineupGrid) {
+        if (lineupPlayers.length === 0) {
+            lineupGrid.innerHTML = "<div style='grid-column:1/-1; color:var(--text-muted); text-align:center; padding:20px;'>עדיין לא נבחר הרכב להערב.</div>";
+        } else {
+            lineupGrid.innerHTML = lineupPlayers.map(p => {
+                const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
+                const lockIcon = lockedCount > 0 ? `<span class="admin-only lock-badge" style="font-size:0.65rem;">🔒${lockedCount}</span>` : '';
+                const playerBadgesSmall = getPlayerBadgesHTML(p, true);
+                return `<div class="player-chip" ${p.isGk ? 'style="border-color:var(--gk-border); background:rgba(167,139,250,0.07);"' : ''}>
+                    ${getAvatarHTML(p.imgUrl, 'avatar-chip', p.id)}
+                    <div class="chip-name">${p.name} ${p.isGk ? '🧤' : ''} ${playerBadgesSmall} ${lockIcon}</div>
+                    <div class="chip-stats-container">
+                        ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
+                    </div>
+                    ${isAdmin ? `<div class="delete-btn" onclick="event.stopPropagation(); toggleLineup('${p.id}', true)">✕</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+    }
+
+    const badge = document.getElementById('counterBadge');
+    if (badge) {
+        badge.innerText = `${lineupPlayers.length} / ${totalNeeded}`;
+        const ready = lineupPlayers.length === totalNeeded;
+        badge.classList.toggle('ready', ready);
+        const calcBtn = document.getElementById('calcBtn');
+        if (calcBtn) calcBtn.disabled = !ready;
+    }
+
+    renderTopScorers();
+    renderLeaderboards();
+    renderCustomParamsFormInputs();
+    updateLeaderboardCustomOptions();
+    requestAnimationFrame(() => window.scrollTo(0, currentScrollPos));
+}
+
+// ========== Color Helpers ==========
+function getColorStyles(val) {
+    const v = val || 5; let r, g, b, hex;
+    if (v < 5) { r=239; g=68; b=68; hex='#EF4444'; }
+    else if (v < 7.5) { r=245; g=158; b=11; hex='#F59E0B'; }
+    else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; }
+    else { r=6; g=182; b=212; hex='#06B6D4'; }
+    return { hex, bg: `rgba(${r},${g},${b},0.15)`, text: hex, border: `rgba(${r},${g},${b},0.3)` };
+}
+function getColoredBadge(icon, val) {
+    const v = val || 5; const c = getColorStyles(v);
+    return `<span class="stat-badge" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};">${icon} ${v}</span>`;
+}
+function getPlayerBadgesHTML(p, small = false) {
+    const sz = small ? 'font-size:0.65rem;' : '';
+    let badges = '';
+    if (p.isActive) badges += `<span class="badge-active" style="${sz}">✅ פעיל</span>`;
+    if (p.isNew) badges += `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
+    if (p.isMoshavResident) badges += `<span class="badge-resident" style="${sz}">🏠 תושב</span>`;
+    return badges;
+}
+function getAvatarHTML(url, className, id) {
+    return url
+        ? `<img src="${url}" class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">`
+        : `<div class="${className}" onclick="showPlayerCard('${id}')" title="צפה בכרטיס שחקן">👤</div>`;
+}
+
+// ========== Image Resize ==========
+async function resizeImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas'); const MAX_SIZE = 150;
+                let w = img.width, h = img.height;
+                if (w > h && w > MAX_SIZE) { h *= MAX_SIZE/w; w = MAX_SIZE; } else if (h > MAX_SIZE) { w *= MAX_SIZE/h; h = MAX_SIZE; }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// ========== Settings Modal ==========
+function openSettingsModal() {
+    document.getElementById('setNumTeams').value = groupSettings.numTeams;
+    document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
+    renderCustomParamsManagerList();
+    document.getElementById('settingsModalOverlay').style.display = 'flex';
+}
+function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
+
+async function saveGroupSettings() {
+    const numTeams = parseInt(document.getElementById('setNumTeams').value) || 3;
+    const playersPerTeam = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
+    try {
+        await groupRef.set({ settings: { numTeams, playersPerTeam } }, { merge: true });
+        groupSettings = { numTeams, playersPerTeam };
+        await gameRef.delete();
+        closeSettingsModal();
+        render();
+        alert('ההגדרות נשמרו בהצלחה!');
+    } catch (error) { alert('שגיאה בשמירת ההגדרות.'); }
+}
+
+// ========== Create / Join Group ==========
+function joinByLink() {
+    const input = document.getElementById('existingGroupLink').value.trim();
+    if (!input) return alert('נא להדביק קישור לקבוצה.');
+    let groupId = null;
+    try { const url = new URL(input); groupId = url.searchParams.get('group'); }
+    catch(e) { if (/^[a-zA-Z0-9_-]{10,}$/.test(input)) groupId = input; }
+    if (!groupId) return alert('הקישור לא נראה תקין.');
+    window.location.href = `${window.location.pathname}?group=${groupId}`;
+}
+
+async function createNewGroup() {
+    const nameInput = document.getElementById('newGroupName').value.trim();
+    const passInput = document.getElementById('newGroupPassword').value.trim();
+    const btn = document.getElementById('createGroupBtn');
+    if (!nameInput || !passInput) return alert('נא להזין שם קבוצה וסיסמה.');
+    btn.innerText = 'יוצר קבוצה... ⏳'; btn.disabled = true;
+    try {
+        const newGroupRef = await db.collection('groups').add({
+            name: nameInput, password: passInput,
+            settings: { numTeams: 3, playersPerTeam: 6 },
+            customParams: [], createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        alert('הקבוצה נוצרה בהצלחה!');
+        window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
+    } catch (error) { alert('שגיאה ביצירת הקבוצה.'); btn.innerText = 'צור קבוצה ✨'; btn.disabled = false; }
+}
+
+// ========== Admin ==========
+function promptAdmin() {
+    const sessionKey = `admin_${currentGroupId}`;
+    if (document.body.classList.contains('is-admin')) {
+        showToast('כבר מחובר כמנהל ✅', 'success');
+        return;
+    }
+    if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) {
+        document.body.classList.add('is-admin');
+        sessionStorage.setItem(sessionKey, 'true');
+        const btn = document.getElementById('adminBtnHeader');
+        if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
+        const bottomBar = document.getElementById('adminBottomBar');
+        if (bottomBar && document.getElementById('tab-main').classList.contains('active')) bottomBar.style.display = 'block';
+        render();
+    } else alert("סיסמה שגויה.");
+}
+
+// ========== Tab Switching ==========
+function switchTab(tabId, btnElement) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active')); document.getElementById(tabId).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const bottomBar = document.getElementById('adminBottomBar');
+    if (bottomBar) bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
+    if (tabId === 'tab-market') renderMarket();
+    if (tabId === 'tab-leaderboards') renderLeaderboards();
+    if (tabId === 'tab-history') renderHistory();
+}
+
+// ========== Team Generation ==========
+async function run() {
+    const lineup = players.filter(p => p.inLineup);
+    const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
+    if(lineup.length !== totalNeeded) return alert(`צריך בדיוק ${totalNeeded} שחקנים.`);
+    scrollToTeamsFlag = true;
+    const gkPlayers = lineup.filter(p => p.isGk);
+    const fieldPlayers = lineup.filter(p => !p.isGk);
+    const numTeams = groupSettings.numTeams;
+    const playersPerTeam = groupSettings.playersPerTeam;
+    if (gkPlayers.length > numTeams) return alert(`יש ${gkPlayers.length} שוערים אבל רק ${numTeams} קבוצות.`);
+    let best = null, min = Infinity;
+    for(let i = 0; i < 5000; i++) {
+        const teams = Array.from({length: numTeams}, () => []);
+        const tempGks = [...gkPlayers].sort(() => 0.5 - Math.random());
+        const tempField = [...fieldPlayers].sort(() => 0.5 - Math.random());
+        const teamOrder = Array.from({length: numTeams}, (_, i) => i).sort(() => 0.5 - Math.random());
+        tempGks.forEach((gk, i) => teams[teamOrder[i]].push(gk));
+        let fieldIdx = 0;
+        for (let t = 0; t < numTeams; t++) {
+            const slotsLeft = playersPerTeam - teams[t].length;
+            for (let s = 0; s < slotsLeft; s++) { if (fieldIdx < tempField.length) teams[t].push(tempField[fieldIdx++]); }
+        }
+        const attScores = teams.map(t => { const fixedGk = t.find(p => p.isGk); const fp = fixedGk ? t.filter(p => !p.isGk) : t; return fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5; });
+        const defScores = teams.map(t => { const fixedGk = t.find(p => p.isGk); const fp = fixedGk ? t.filter(p => !p.isGk) : t; const fieldDef = fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5; if (fixedGk) { const total = fp.length + 1; return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total; } return fieldDef; });
+        const diff = (Math.max(...attScores) - Math.min(...attScores)) + (Math.max(...defScores) - Math.min(...defScores));
+        if(diff < min) { min = diff; best = teams; }
+    }
+    const hasFixedGk = best.map(t => t.some(p => p.isGk));
+    const gkIds = best.map((t, i) => {
+        if (hasFixedGk[i]) return t.find(p => p.isGk).id;
+        const sorted = [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
+        return sorted[0]?.id || null;
+    });
+    let gameData = { gkIds, hasFixedGk, teamWins: Array(groupSettings.numTeams).fill(0), timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+    best.forEach((teamArr, idx) => { gameData[`team${idx+1}`] = teamArr; });
+    await gameRef.set(gameData);
+    await assignLaundryForGame(best.flat());
+}
+
+async function rotateGk(teamIndex) {
+    if(!activeTeams || !activeGkIds) return;
+    if (activeHasFixedGk && activeHasFixedGk[teamIndex]) return;
+    let team = activeTeams[teamIndex], currentGkId = activeGkIds[teamIndex];
+    let nextIndex = (team.findIndex(p => p.id === currentGkId) + 1) % team.length;
+    let newGkIds = [...activeGkIds]; newGkIds[teamIndex] = team[nextIndex].id;
+    await gameRef.update({ gkIds: newGkIds });
+}
+
+function assignFieldRoles(pool) {
+    const roles = {}; const n = pool.length; if (n === 0) return roles;
+    const numDef = Math.max(1, Math.floor(n / 2));
+    const byDef = [...pool].sort((a,b) => (b.defScore||5) - (a.defScore||5));
+    const defenders = byDef.slice(0, numDef); const forwards = byDef.slice(numDef);
+    defenders.sort((a,b) => (a.sta||5) - (b.sta||5));
+    const sweeper = defenders.shift(); roles['בלם'] = sweeper;
+    defenders.sort((a,b) => (b.sta||5) - (a.sta||5));
+    defenders.forEach((p, i) => { roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p; });
+    forwards.sort((a,b) => (b.attScore||5) - (a.attScore||5));
+    forwards.forEach((p, i) => { roles[forwards.length === 1 ? 'חלוץ' : (i === 0 ? 'חלוץ ימין' : i === 1 ? 'חלוץ שמאל' : `חלוץ ${i+1}`)] = p; });
+    return roles;
+}
+
+function assignRoles(team, forcedGkId) {
+    let pool = [...team].filter(p => !p.isGk); const roles = {};
+    const fixedGk = team.find(p => p.isGk);
+    if (fixedGk) { roles['שוער'] = fixedGk; }
+    else if (forcedGkId) { const idx = pool.findIndex(p => p.id === forcedGkId); if (idx !== -1) roles['שוער'] = pool.splice(idx, 1)[0]; }
+    else { pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
+    Object.assign(roles, assignFieldRoles(pool)); return roles;
+}
+
+function assignRolesNoGk(team, currentGkId) {
+    const allPlayers = [...team].filter(p => !p.isGk); const roles = {};
+    let gkPlayer = allPlayers.find(p => p.id === currentGkId);
+    if (!gkPlayer) { const sorted = [...allPlayers].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); gkPlayer = sorted[0]; }
+    roles['שוער'] = gkPlayer;
+    Object.assign(roles, assignFieldRoles(allPlayers.filter(p => p.id !== gkPlayer.id)));
+    return roles;
+}
+
+// ========== Swap State ==========
+let swapSelection = null; // { playerId, teamIndex }
+
+function calcTeamScores(team) {
+    const fieldPlayers = team.filter(p => p && !p.isGk);
+    const def = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.defScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    const att = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.attScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    return { def: parseFloat(def), att: parseFloat(att) };
+}
+
+function updateTeamScoreBadges(teamIndex) {
+    if (!activeTeams) return;
+    const scores = calcTeamScores(activeTeams[teamIndex]);
+    const statsRow = document.getElementById(`team-stats-row-${teamIndex}`);
+    if (statsRow) {
+        const defC = getColorStyles(scores.def);
+        const attC = getColorStyles(scores.att);
+        statsRow.innerHTML = `
+            <span class="stat-badge stat-def" id="def-badge-${teamIndex}">🛡️ הגנה: ${scores.def}</span>
+            <span class="stat-badge stat-att" id="att-badge-${teamIndex}">🎯 התקפה: ${scores.att}</span>`;
+    }
+    const headerEl = document.getElementById(`team-power-${teamIndex}`);
+    if (headerEl) headerEl.textContent = `(כוח: ${(scores.def + scores.att).toFixed(1)})`;
+}
+
+function handleSwapClick(playerId, teamIndex, cardEl) {
+    if (!document.body.classList.contains('is-admin')) return;
+
+    // Same player clicked again → deselect
+    if (swapSelection && swapSelection.playerId === playerId) {
+        clearSwapSelection();
+        return;
+    }
+
+    // No selection yet → select this player
+    if (!swapSelection) {
+        swapSelection = { playerId, teamIndex };
+        cardEl.classList.add('swap-selected');
+        // Mark all OTHER team players as candidates
+        document.querySelectorAll('.pitch-player[data-player-id]').forEach(el => {
+            const elTeam = parseInt(el.dataset.teamIndex);
+            if (elTeam !== teamIndex) el.classList.add('swap-candidate');
+        });
+        const hint = document.getElementById('swapHintBar');
+        if (hint) { hint.classList.add('visible'); hint.textContent = `✏️ ${getPlayerName(playerId)} נבחר — לחץ על שחקן בקבוצה אחרת לחילוף`; }
+        return;
+    }
+
+    // Second click on same team → switch selection to new player
+    if (swapSelection.teamIndex === teamIndex) {
+        const prev = document.querySelector('.pitch-player.swap-selected');
+        if (prev) prev.classList.remove('swap-selected');
+        swapSelection = { playerId, teamIndex };
+        cardEl.classList.add('swap-selected');
+        const hint = document.getElementById('swapHintBar');
+        if (hint) hint.textContent = `✏️ ${getPlayerName(playerId)} נבחר — לחץ על שחקן בקבוצה אחרת לחילוף`;
+        return;
+    }
+
+    // Different team → perform swap
+    performSwap(swapSelection.playerId, swapSelection.teamIndex, playerId, teamIndex);
+}
+
+function getPlayerName(id) {
+    const p = activeTeams?.flat().find(x => x.id === id);
+    return p ? p.name : id;
+}
+
+function clearSwapSelection() {
+    swapSelection = null;
+    document.querySelectorAll('.pitch-player.swap-selected, .pitch-player.swap-candidate').forEach(el => {
+        el.classList.remove('swap-selected', 'swap-candidate');
+    });
+    const hint = document.getElementById('swapHintBar');
+    if (hint) hint.classList.remove('visible');
+}
+
+async function performSwap(idA, teamA, idB, teamB) {
+    if (!activeTeams) return;
+
+    // Find and swap in activeTeams arrays
+    const iA = activeTeams[teamA].findIndex(p => p.id === idA);
+    const iB = activeTeams[teamB].findIndex(p => p.id === idB);
+    if (iA === -1 || iB === -1) { clearSwapSelection(); return; }
+
+    const pA = activeTeams[teamA][iA];
+    const pB = activeTeams[teamB][iB];
+    activeTeams[teamA][iA] = pB;
+    activeTeams[teamB][iB] = pA;
+
+    // Save to Firestore
+    const gameData = {};
+    activeTeams.forEach((team, idx) => { gameData[`team${idx+1}`] = team; });
+    try { await gameRef.update(gameData); } catch(e) { console.error('swap save error', e); }
+
+    clearSwapSelection();
+
+    // Re-render both affected team cards
+    reRenderTeamCard(teamA);
+    reRenderTeamCard(teamB);
+
+    // Flash the two swapped cards
+    setTimeout(() => {
+        [idA, idB].forEach(id => {
+            const el = document.querySelector(`.pitch-player[data-player-id="${id}"]`);
+            if (el) { el.classList.add('swap-flash'); setTimeout(() => el.classList.remove('swap-flash'), 500); }
+        });
+    }, 50);
+}
+
+function reRenderTeamCard(teamIndex) {
+    const container = document.getElementById(`team-card-${teamIndex}`);
+    if (!container || !activeTeams) return;
+    const isFixed = activeHasFixedGk ? activeHasFixedGk[teamIndex] : false;
+    const currentGkId = activeGkIds ? activeGkIds[teamIndex] : null;
+    container.innerHTML = renderTeamCardContent(activeTeams[teamIndex], teamIndex, isFixed, currentGkId, activeWins[teamIndex] || 0);
+}
+
+function renderPitchCard(p, icon, roleName) {
+    if (!p) return `<div class="pitch-player" style="opacity:0.5;"><div style="font-size:0.7rem;">שחקן חסר</div></div>`;
+    const latestData = players.find(x => x.id === p.id) || p;
+    const goals = latestData.goals || 0;
+    return `<div class="pitch-player" data-player-id="${p.id}"
+        onclick="pitchCardTap('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"
+        onmousedown="pitchPressStart('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"
+        onmouseup="pitchPressEnd()"
+        onmouseleave="pitchPressEnd()"
+        ontouchstart="pitchPressStart('${p.id}', parseInt(this.closest('[data-team-index]').dataset.teamIndex), this)"
+        ontouchend="pitchPressEnd()"
+        style="cursor:pointer; transition: transform 0.15s, border 0.15s, box-shadow 0.15s;">
+        ${getAvatarHTML(p.imgUrl, 'avatar-pitch', p.id)}
+        <div style="margin-top:4px; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;">${p.name}</div>
+        <div class="pitch-player-stats"><span style="color:${getColorStyles(p.defScore).text};">🛡️${p.defScore||5}</span><span style="color:${getColorStyles(p.attScore).text};">🎯${p.attScore||5}</span></div>
+        <div class="stat-ticker">
+            <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updatePlayerGoal('${p.id}', -1)">-</button>
+            <span class="ticker-val">⚽ ${goals}</span>
+            <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updatePlayerGoal('${p.id}', 1)">+</button>
+        </div>
+        <span class="pitch-role">${icon} ${roleName}</span>
+    </div>`;
+}
+
+// ---- Tap vs long-press logic ----
+let _pressTimer = null;
+let _pressTriggered = false;
+
+function pitchPressStart(playerId, teamIndex, cardEl) {
+    if (!document.body.classList.contains('is-admin')) return;
+    _pressTriggered = false;
+    _pressTimer = setTimeout(() => {
+        _pressTriggered = true;
+        handleSwapClick(playerId, teamIndex, cardEl);
+    }, 400);
+}
+
+function pitchPressEnd() {
+    clearTimeout(_pressTimer);
+    _pressTimer = null;
+}
+
+function pitchCardTap(playerId, teamIndex, cardEl) {
+    if (_pressTriggered) { _pressTriggered = false; return; }
+    if (document.body.classList.contains('is-admin') && swapSelection) {
+        handleSwapClick(playerId, teamIndex, cardEl);
+        return;
+    }
+    showPlayerCard(playerId);
+}
+
+function renderTeamCardContent(t, i, isFixed, currentGkId, wins) {
+    const teamNames = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+    const roles = isFixed ? assignRoles(t, currentGkId) : assignRolesNoGk(t, currentGkId);
+    const currentGkPlayer = roles['שוער'];
+    const fieldPlayers = t.filter(p => p && (!currentGkPlayer || p.id !== currentGkPlayer.id) && !p.isGk);
+    const defTotal = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.defScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    const attTotal = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.attScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
+    const keys = Object.keys(roles).filter(k => k !== 'שוער');
+    const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם'));
+    const attKeys = keys.filter(k => !defKeys.includes(k));
+    const gkCard = currentGkPlayer
+        ? renderPitchCard(currentGkPlayer, '🧤', isFixed ? 'שוער' : 'שוער (מתחלף)')
+        : `<div class="pitch-player is-rotating-gk"><div style="font-size:0.8rem; color:var(--gk-text);">אין שוער</div></div>`;
+    const rotateBtn = isFixed ? '' : `<button class="gk-btn" onclick="event.stopPropagation(); rotateGk(${i})">🔄 שוער</button>`;
+    return `
+        <div class="team-header t-${i}">
+            <div class="team-header-name">${teamNames[i]||`קבוצה ${i+1}`} <span id="team-power-${i}" style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">(כוח: ${(parseFloat(defTotal)+parseFloat(attTotal)).toFixed(1)})</span></div>
+            <div class="team-header-right">
+                <div class="stat-ticker team-ticker">
+                    <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updateTeamWin(${i}, -1)">-</button>
+                    <span class="ticker-val" style="font-size:0.9rem;">🏆 ${wins}</span>
+                    <button class="admin-only ticker-btn" onclick="event.stopPropagation(); updateTeamWin(${i}, 1)">+</button>
+                </div>
+                ${rotateBtn}
+                ${isFixed ? '<span class="gk-badge" style="font-size:0.8rem;">🧤 שוער קבוע</span>' : '<span style="font-size:0.8rem; color:var(--gk-text); font-weight:700;">🔄 שוער מתחלף</span>'}
+            </div>
+        </div>
+        <div class="team-stats-row" id="team-stats-row-${i}">
+            <span class="stat-badge stat-def">🛡️ הגנה: ${defTotal}</span>
+            <span class="stat-badge stat-att">🎯 התקפה: ${attTotal}</span>
+        </div>
+        <div class="pitch">
+            <div class="pitch-row">${gkCard}</div>
+            ${defKeys.length>0 ? `<div class="pitch-row">${defKeys.map(k => renderPitchCard(roles[k],'🛡️',k)).join('')}</div>` : ''}
+            ${attKeys.length>0 ? `<div class="pitch-row">${attKeys.map(k => renderPitchCard(roles[k],'⚽',k)).join('')}</div>` : ''}
+        </div>`;
+}
+
+function displayTeams(teams, gkIds, hasFixedGk, wins) {
+    const r = document.getElementById('results');
+
+    let content = `
+        <h2 class='card-title' style='justify-content:space-between;'>
+            החלוקה שנקבעה
+            <span class="admin-only" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;">לחיצה = כרטיס | לחיצה ארוכה = חילוף 🔄</span>
+        </h2>
+        <div id="swapHintBar" class="swap-hint-bar admin-only"></div>
+        <div id='teamsContainer'>`;
+
+    content += teams.map((t, i) => {
+        const isFixed = hasFixedGk ? hasFixedGk[i] : false;
+        const currentGkId = gkIds ? gkIds[i] : null;
+        return `<div class="team-row" id="team-card-${i}" data-team-index="${i}">${renderTeamCardContent(t, i, isFixed, currentGkId, wins[i]||0)}</div>`;
+    }).join('');
+
+    content += `</div>
+        <div id='shareButtonsBox' style='margin-top:20px;'>
+            <button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'>שתף תמונה 📸</button>
+        </div>`;
+
+    r.innerHTML = content;
+    r.style.display = 'block';
+
+    // Click outside → cancel swap
+    r.addEventListener('click', e => {
+        if (swapSelection && !e.target.closest('.pitch-player[data-player-id]')) {
+            clearSwapSelection();
+        }
+    }, { capture: false });
+
+    if (scrollToTeamsFlag) { setTimeout(() => r.scrollIntoView({behavior:'smooth', block:'end'}), 100); scrollToTeamsFlag = false; }
+}
+
+// ========== Share ==========
+async function shareImageToWhatsApp() {
+    const r = document.getElementById('results'), b = document.getElementById('shareButtonsBox');
+    b.style.display = 'none'; const wasAdmin = document.body.classList.contains('is-admin'); document.body.classList.remove('is-admin');
+    const bg = r.style.backgroundColor; r.style.backgroundColor = '#1E293B'; r.style.padding = '20px'; r.style.borderRadius = '16px';
+    try {
+        const canvas = await html2canvas(r, {scale:2, useCORS:true, backgroundColor:'#1E293B'});
+        b.style.display = 'block'; if(wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor = bg; r.style.padding = '0';
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], "lineups.png", {type:"image/png"});
+            if (navigator.canShare && navigator.canShare({files:[file]})) { try { await navigator.share({files:[file], title:'תוצאות הערב'}); } catch(err){} }
+            else { const link = document.createElement('a'); link.download='הרכבים.png'; link.href=canvas.toDataURL('image/png'); link.click(); }
+        });
+    } catch(e) { b.style.display='block'; if(wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor=bg; r.style.padding='0'; }
+}
+
+function shareGlobalVoteLink() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html','')}vote.html?group=${currentGroupId}`)}`, '_blank');
+}
+
+// ========== History ==========
+function renderHistory() {
+    const container = document.getElementById('historyList'); if (!container) return;
+    if (gamesHistoryCache.length === 0) { container.innerHTML = `<div class="history-empty"><div style="font-size: 2rem; margin-bottom: 10px;">📭</div>עוד לא נסכם אף משחק.</div>`; return; }
+    const teamColors = ['#3B82F6','#6B7280','#EAB308','#EF4444','#10B981'];
+    container.innerHTML = gamesHistoryCache.map((game, gameIndex) => {
+        let dateStr = 'תאריך לא ידוע', timeStr = '';
+        if (game.date && game.date.toDate) { const d = game.date.toDate(); dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
+        const allPlayers = (game.teams || []).flatMap(t => t.players || []);
+        const scorers = allPlayers.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals);
+        const scorersHTML = scorers.length > 0 ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${p.name} × ${p.goals}</div>`).join('') : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
+        const teamsHTML = (game.teams || []).map((team, ti) => { const color = teamColors[ti] || '#10B981'; const playersTagsHTML = (team.players || []).map(p => `<div class="history-player-tag ${p.goals > 0 ? 'scorer' : ''}">${p.goals > 0 ? `⚽×${p.goals} ` : ''}${p.name}</div>`).join(''); return `<div class="history-team-block"><div class="history-team-header"><span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>${team.name}</span><span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span></div><div class="history-players-list">${playersTagsHTML}</div></div>`; }).join('');
+        const topScorerLine = game.topScorer ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${game.topScorer.name} ${game.topScorer.goals} שערים</span>` : '';
+        let mvpSection = '';
+        if (game.mvpWinner) { mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין</div><div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;"><span style="font-size:1.4rem;">🌟</span><div><div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div></div></div>`; }
+        else { const voteCount = game.mvpVoteCount || 0; mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין של הערב</div><div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;"><div style="font-size:0.85rem; color:var(--text-muted);">${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}</div><button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap;">📤 שתף להצבעה</button></div>`; }
+        const uid = `hist_${gameIndex}`;
+        return `<div class="history-card"><div class="history-header" onclick="toggleHistoryCard('${uid}')"><div class="history-date"><span>📅 ${dateStr}</span></div><div class="history-meta">${topScorerLine}<span class="history-players-count">👥 ${game.numPlayers || allPlayers.length}</span><span class="history-chevron" id="chev_${uid}">▼</span></div></div><div class="history-body" id="body_${uid}"><div style="font-size:0.8rem; color:var(--text-muted); margin: 10px 0;">${timeStr ? `שעת סיום: ${timeStr} •` : ''} ${game.numTeams || (game.teams||[]).length} קבוצות • ${game.totalGoals || 0} שערים</div>${mvpSection}<div class="history-section-label">מלך השערים של הערב</div><div class="history-scorers-row">${scorersHTML}</div><div class="history-section-label">קבוצות והרכבים</div>${teamsHTML}</div></div>`;
+    }).join('');
+}
+
+function shareMvpLink(gameId, event) {
+    if (event) event.stopPropagation();
+    const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+    const url = `${base}mvp.html?group=${currentGroupId}&game=${gameId}`;
+    const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ','');
+    window.open(`https://wa.me/?text=${encodeURIComponent(`🌟 *בחרו את שחקן המצטיין של הערב!* 🌟\n\nקבוצת ${groupName}\nלחצו להצביע:\n${url}`)}`, '_blank');
+}
+
+function toggleHistoryCard(uid) {
+    const body = document.getElementById(`body_${uid}`);
+    const chev = document.getElementById(`chev_${uid}`);
+    if (!body) return;
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+// ========== Laundry ==========
+let laundryRef = null, laundryUnsubscribe = null;
+function getLaundryRef() { if (!laundryRef && groupRef) laundryRef = groupRef.collection('game').doc('laundry'); return laundryRef; }
+
+function pickFairestLaundryman(laundryData, playerList) {
+    if (playerList.length === 0) return null;
+    const counts = laundryData.counts || {}, lastDates = laundryData.lastDates || {}, lastPickedId = laundryData.lastPickedId || null;
+    let candidates = playerList.filter(p => p.id !== lastPickedId);
+    if (candidates.length === 0) candidates = playerList;
+    const minCount = Math.min(...candidates.map(p => counts[p.id] || 0));
+    const least = candidates.filter(p => (counts[p.id] || 0) === minCount);
+    least.sort((a, b) => { const da = lastDates[a.id] ? new Date(lastDates[a.id]) : new Date(0); const db = lastDates[b.id] ? new Date(lastDates[b.id]) : new Date(0); return da - db; });
+    return least[0];
+}
+
+async function assignLaundryForGame(lineup) {
+    const ref = getLaundryRef(); if (!ref || lineup.length === 0) return;
+    const doc = await ref.get(); const existing = doc.exists ? doc.data() : {};
+    if (existing.locked && existing.current) { const stillHere = lineup.some(p => p.id === existing.current.id); if (stillHere) return; }
+    const picked = pickFairestLaundryman(existing, lineup); if (!picked) return;
+    await ref.set({ current: { id: picked.id, name: picked.name }, locked: true, counts: existing.counts || {}, lastDates: existing.lastDates || {}, lastPickedId: existing.lastPickedId || null, history: existing.history || [], lastUpdated: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+}
+
+async function completeLaundryForGame() {
+    const ref = getLaundryRef(); if (!ref) return;
+    const doc = await ref.get(); if (!doc.exists || !doc.data().current) return;
+    const data = doc.data(); const doneId = data.current.id, doneName = data.current.name;
+    const today = new Date().toLocaleDateString('he-IL');
+    const counts = { ...(data.counts || {}) }; const lastDates = { ...(data.lastDates || {}) };
+    counts[doneId] = (counts[doneId] || 0) + 1; lastDates[doneId] = today;
+    await ref.update({ current: null, locked: false, lastPickedId: doneId, counts, lastDates, history: firebase.firestore.FieldValue.arrayUnion({ id: doneId, name: doneName, date: today, totalCount: counts[doneId] }), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+}
+
+function renderLaundryTab(data) {
+    const currentCard = document.getElementById('laundryCurrentCard'), currentName = document.getElementById('laundryCurrentName'), currentRound = document.getElementById('laundryCurrentRound'), histSection = document.getElementById('laundryHistorySection'), histList = document.getElementById('laundryHistoryList'), emptyEl = document.getElementById('laundryEmpty');
+    if (!data || !data.current) {
+        currentCard.style.display = 'none'; emptyEl.style.display = 'block';
+        const hist = data ? (data.history || []).slice().reverse() : [];
+        histSection.style.display = hist.length > 0 ? 'block' : 'none';
+        if (hist.length > 0) histList.innerHTML = renderHistoryItems(hist);
+        return;
+    }
+    emptyEl.style.display = 'none'; currentCard.style.display = 'block';
+    const counts = data.counts || {}; const totalDone = counts[data.current.id] || 0;
+    currentName.textContent = data.current.name;
+    currentRound.textContent = totalDone === 0 ? 'תורו הראשון 🎉' : `כיבס ${totalDone} פעמים עד כה`;
+    const hist = (data.history || []).slice().reverse();
+    histSection.style.display = hist.length > 0 ? 'block' : 'none';
+    if (hist.length > 0) histList.innerHTML = renderHistoryItems(hist);
+}
+
+function renderHistoryItems(hist) {
+    return hist.map(h => `<div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; padding:10px 14px;"><div style="display:flex; align-items:center; gap:10px;"><span style="font-weight:800;">${h.name}</span><span style="font-size:0.78rem; color:var(--text-muted);">${h.date || ''}</span></div><span style="background:rgba(167,139,250,0.15); color:#A78BFA; border:1px solid rgba(167,139,250,0.35); padding:2px 10px; border-radius:6px; font-size:0.82rem; font-weight:900;">כביסה #${h.totalCount}</span></div>`).join('');
+}
+
+function startLaundryListener() {
+    const ref = getLaundryRef(); if (!ref) return;
+    if (laundryUnsubscribe) laundryUnsubscribe();
+    laundryUnsubscribe = ref.onSnapshot(snap => { renderLaundryTab(snap.exists ? snap.data() : null); });
+}
+
+// ========== Market ==========
+async function publishToMarket() {
+    const lineupCount = players.filter(p => p.inLineup).length;
+    const missing = (groupSettings.numTeams * groupSettings.playersPerTeam) - lineupCount;
+    if (missing <= 0) return alert("הסגל שלך מלא!");
+    const phone = prompt("מספר טלפון ליצירת קשר:");
+    if (!phone || phone.length < 10) return alert("חובה להזין מספר טלפון תקין.");
+    const location = prompt("איפה המשחק מתקיים?");
+    if (!location) return alert("חובה להזין מיקום.");
+    const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ','');
+    try {
+        await db.collection('market_posts').doc(currentGroupId).set({ groupName, groupId: currentGroupId, location, phone, missing, timestamp: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: Date.now()+(24*60*60*1000) });
+        alert("המודעה פורסמה בהצלחה! 🎉");
+    } catch(e) { console.error(e); alert("שגיאה בפרסום המודעה."); }
+}
+
+function renderMarket() {
+    const container = document.getElementById('marketList'); if(!container) return;
+    db.collection('market_posts').orderBy('timestamp','desc').onSnapshot(snap => {
+        if (snap.empty) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`; return; }
+        container.innerHTML = snap.docs.map(doc => {
+            const data = doc.data();
+            const timeStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'עכשיו';
+            const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
+            const waLink = `https://wa.me/972${data.phone.substring(1)}?text=${waMsg}`;
+            return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${data.location}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${data.groupName}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${timeStr}</div></div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${data.missing}</div></div><a href="${waLink}" target="_blank" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
+        }).join('');
+    });
+}
+
+// ========== REGISTRATION SYSTEM ==========
+let currentRegId = null;
+let regEntriesUnsubscribe = null;
+
+function startRegistrationListener() {
+    groupRef.onSnapshot(snap => {
+        if (!snap.exists) return;
+        const data = snap.data();
+        const activeRegId = data.activeRegistrationId || null;
+
+        if (activeRegId !== currentRegId) {
+            currentRegId = activeRegId;
+            if (regEntriesUnsubscribe) { regEntriesUnsubscribe(); regEntriesUnsubscribe = null; }
+            if (activeRegId) {
+                listenToRegistration(activeRegId);
+            } else {
+                hideRegBanner();
+                showRegOpenForm();
+            }
+        }
+
+        if (data.lastRegNotice !== undefined) {
+            const noticeInput = document.getElementById('regNoticeInput');
+            if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
+        }
+    });
+}
+
+function listenToRegistration(regId) {
+    const regRef = groupRef.collection('registrations').doc(regId);
+    regEntriesUnsubscribe = regRef.collection('entries')
+        .orderBy('registeredAt', 'asc')
+        .onSnapshot(snap => {
+            const entries = snap.docs.map(d => d.data());
+            const confirmed = entries.filter(e => !e.isWaiting).length;
+            const waiting = entries.filter(e => e.isWaiting).length;
+            updateRegCounts(confirmed, waiting);
+        });
+
+    regRef.get().then(doc => {
+        if (!doc.exists || !doc.data().open) {
+            hideRegBanner(); showRegOpenForm(); return;
+        }
+        showRegBanner(regId, doc.data());
+        showRegActivePanel(regId);
+    });
+}
+
+function updateRegCounts(confirmed, waiting) {
+    const maxP = (groupSettings.numTeams || 3) * (groupSettings.playersPerTeam || 6);
+    const bc = document.getElementById('regBannerConfirmed');
+    const bw = document.getElementById('regBannerWaiting');
+    const sc = document.getElementById('regStatConfirmed');
+    const sw = document.getElementById('regStatWaiting');
+    if (bc) bc.textContent = `${confirmed} / ${maxP} נרשמו`;
+    if (bw) { bw.style.display = waiting > 0 ? 'block' : 'none'; bw.textContent = `${waiting} ממתינים`; }
+    if (sc) sc.textContent = `${confirmed} / ${maxP} נרשמו`;
+    if (sw) { sw.style.display = waiting > 0 ? 'block' : 'none'; sw.textContent = `${waiting} ממתינים`; }
+}
+
+function showRegBanner(regId, regData) {
+    const banner = document.getElementById('regBanner'); if (!banner) return;
+    banner.classList.add('visible');
+    const dateEl = document.getElementById('regBannerDate');
+    if (dateEl && regData.gameDate) dateEl.textContent = `${regData.gameDate}${regData.gameTime ? ' • ' + regData.gameTime : ''}`;
+    const link = document.getElementById('regBannerLink');
+    if (link) link.href = buildRegUrl(regId);
+}
+
+function hideRegBanner() {
+    const banner = document.getElementById('regBanner'); if (banner) banner.classList.remove('visible');
+}
+
+function showRegOpenForm() {
+    const form = document.getElementById('regOpenForm'); const panel = document.getElementById('regActivePanel');
+    if (form) form.style.display = 'block';
+    if (panel) panel.style.display = 'none';
+}
+
+function showRegActivePanel(regId) {
+    const form = document.getElementById('regOpenForm'); const panel = document.getElementById('regActivePanel');
+    if (form) form.style.display = 'none';
+    if (panel) panel.style.display = 'block';
+    const linkDisplay = document.getElementById('regLinkDisplay');
+    if (linkDisplay) linkDisplay.textContent = buildRegUrl(regId);
+}
+
+function buildRegUrl(regId) {
+    return `${window.location.origin}${window.location.pathname.replace('index.html', '')}registration.html?group=${currentGroupId}&reg=${regId}`;
+}
+
+async function openRegistration() {
+    const dateInput = document.getElementById('regDateInput');
+    const timeInput = document.getElementById('regTimeInput');
+    const noticeInput = document.getElementById('regNoticeInput');
+    if (!dateInput.value) return alert('נא לבחור תאריך למשחק.');
+    const gameDateRaw = dateInput.value;
+    const [y, m, d] = gameDateRaw.split('-');
+    const gameDateDisplay = `${d}-${m}-${y}`;
+    const gameTime = timeInput.value || '20:00';
+    const noticeText = noticeInput.value.trim();
+    try {
+        await groupRef.update({ lastRegNotice: noticeText });
+        const newRegRef = await groupRef.collection('registrations').add({
+            gameDate: gameDateDisplay, gameDateRaw, gameTime, noticeText, open: true,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            groupId: currentGroupId
+        });
+        await groupRef.update({ activeRegistrationId: newRegRef.id });
+        alert('ההרשמה נפתחה בהצלחה! ✅');
+    } catch (e) { console.error(e); alert('שגיאה בפתיחת ההרשמה: ' + e.message); }
+}
+
+async function closeRegistration() {
+    if (!currentRegId) return;
+    if (!confirm('לסגור את ההרשמה? שחקנים לא יוכלו להירשם יותר.')) return;
+    try {
+        await groupRef.collection('registrations').doc(currentRegId).update({ open: false });
+        await groupRef.update({ activeRegistrationId: firebase.firestore.FieldValue.delete() });
+    } catch (e) { console.error(e); alert('שגיאה בסגירת ההרשמה.'); }
+}
+
+function copyRegLink() {
+    const el = document.getElementById('regLinkDisplay'); if (!el) return;
+    navigator.clipboard.writeText(el.textContent).then(() => alert('הקישור הועתק! 📋'));
+}
+
+function shareRegWhatsApp() {
+    if (!currentRegId) return;
+    const link = buildRegUrl(currentRegId);
+    groupRef.collection('registrations').doc(currentRegId).get().then(doc => {
+        const d = doc.data() || {};
+        const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ', '');
+        const dateStr = d.gameDate ? ` — ${d.gameDate}` : '';
+        const timeStr = d.gameTime ? ` בשעה ${d.gameTime}` : '';
+        const msg = `⚽ *${groupName} — הרשמה למשחק${dateStr}${timeStr}*\n\nלחצו להירשם:\n${link}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    });
+}
+
+// ========== REG CALENDAR ==========
+let regCalYear, regCalMonth;
+
+function initRegCalendar() {
+    const now = new Date();
+    regCalYear = now.getFullYear();
+    regCalMonth = now.getMonth();
+    setRegCalendarDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+function renderRegCalendar() {
+    const title = document.getElementById('regCalendarTitle');
+    const daysEl = document.getElementById('regCalendarDays');
+    if (!title || !daysEl) return;
+
+    title.textContent = `${HE_MONTHS[regCalMonth]} ${regCalYear}`;
+
+    const firstDay = new Date(regCalYear, regCalMonth, 1).getDay();
+    const daysInMonth = new Date(regCalYear, regCalMonth + 1, 0).getDate();
+    const selectedVal = document.getElementById('regDateInput').value;
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const ymd = `${regCalYear}-${String(regCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isSelected = ymd === selectedVal;
+        const isToday = ymd === new Date().toISOString().split('T')[0];
+        html += `<div onclick="setRegCalendarDate(${regCalYear},${regCalMonth},${d})" style="
+            text-align:center; padding:6px 2px; border-radius:8px; cursor:pointer; font-size:0.88rem; font-weight:700;
+            background:${isSelected ? 'var(--primary-color)' : isToday ? 'rgba(16,185,129,0.15)' : 'transparent'};
+            color:${isSelected ? '#fff' : isToday ? 'var(--primary-color)' : 'var(--text-main)'};
+            border:${isToday && !isSelected ? '1px solid rgba(16,185,129,0.4)' : '1px solid transparent'};
+            transition:background 0.15s;
+        " onmouseover="if(!${isSelected}) this.style.background='rgba(255,255,255,0.08)'" onmouseout="if(!${isSelected}) this.style.background='${isToday ? 'rgba(16,185,129,0.15)' : 'transparent'}'">
+            ${d}
+        </div>`;
+    }
+    daysEl.innerHTML = html;
+}
+
+function setRegCalendarDate(y, m, d) {
+    const ymd = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    document.getElementById('regDateInput').value = ymd;
+    const display = `${String(d).padStart(2,'0')}-${String(m+1).padStart(2,'0')}-${y}`;
+    document.getElementById('regDateDisplay').value = display;
+    regCalYear = y; regCalMonth = m;
+    renderRegCalendar();
+    document.getElementById('regCalendarDrop').style.display = 'none';
+}
+
+function toggleRegCalendar() {
+    const drop = document.getElementById('regCalendarDrop');
+    if (!drop) return;
+    const isOpen = drop.style.display !== 'none';
+    drop.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderRegCalendar();
+}
+
+function regCalendarPrev() {
+    regCalMonth--;
+    if (regCalMonth < 0) { regCalMonth = 11; regCalYear--; }
+    renderRegCalendar();
+}
+
+function regCalendarNext() {
+    regCalMonth++;
+    if (regCalMonth > 11) { regCalMonth = 0; regCalYear++; }
+    renderRegCalendar();
+}
+
+document.addEventListener('click', e => {
+    const drop = document.getElementById('regCalendarDrop');
+    const display = document.getElementById('regDateDisplay');
+    if (drop && display && !drop.contains(e.target) && e.target !== display) {
+        drop.style.display = 'none';
+    }
+});
+
+// ========== TIME PICKER ==========
+let tpHour = 20, tpMin = 0;
+
+function toggleTimePicker() {
+    const drop = document.getElementById('timePickerDrop');
+    if (!drop) return;
+    const isOpen = drop.style.display !== 'none';
+    const cal = document.getElementById('regCalendarDrop');
+    if (cal) cal.style.display = 'none';
+    drop.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderTimePicker();
+}
+
+function renderTimePicker() {
+    const hEl = document.getElementById('timeHourDisplay');
+    const mEl = document.getElementById('timeMinDisplay');
+    if (hEl) hEl.textContent = String(tpHour).padStart(2, '0');
+    if (mEl) mEl.textContent = String(tpMin).padStart(2, '0');
+}
+
+function changeHour(delta) {
+    tpHour = (tpHour + delta + 24) % 24;
+    renderTimePicker();
+    applyTime();
+}
+
+function changeMinute(delta) {
+    tpMin = (tpMin + delta + 60) % 60;
+    renderTimePicker();
+    applyTime();
+}
+
+function setTime(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    tpHour = h; tpMin = m;
+    renderTimePicker();
+    applyTime();
+    document.getElementById('timePickerDrop').style.display = 'none';
+}
+
+function applyTime() {
+    const val = `${String(tpHour).padStart(2,'0')}:${String(tpMin).padStart(2,'0')}`;
+    document.getElementById('regTimeInput').value = val;
+    document.getElementById('regTimeDisplay').value = val;
+}
+
+function confirmTime() {
+    applyTime();
+    document.getElementById('timePickerDrop').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+    const drop = document.getElementById('timePickerDrop');
+    const display = document.getElementById('regTimeDisplay');
+    if (drop && display && !drop.contains(e.target) && e.target !== display) {
+        drop.style.display = 'none';
+    }
+});
+
+// ========== BIRTHDAY CALENDAR ==========
+let bdayCalYear = 1990, bdayCalMonth = 0;
+
+function initBdayCal() {
+    bdayCalYear = 1990; bdayCalMonth = 0;
+    renderBdayCal();
+}
+
+function renderBdayCal() {
+    const titleEl = document.getElementById('bdayMonthTitle');
+    const gridEl  = document.getElementById('bdayDayGrid');
+    const yearEl  = document.getElementById('bdayYearInput');
+    if (!titleEl || !gridEl) return;
+
+    titleEl.textContent = HE_MONTHS[bdayCalMonth];
+    if (yearEl) yearEl.value = bdayCalYear;
+
+    const firstDay    = new Date(bdayCalYear, bdayCalMonth, 1).getDay();
+    const daysInMonth = new Date(bdayCalYear, bdayCalMonth + 1, 0).getDate();
+    const selectedVal = document.getElementById('pBirthDate').value;
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) html += '<div class="bday-day-cell empty"></div>';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const ymd = `${bdayCalYear}-${String(bdayCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isSel = ymd === selectedVal;
+        html += `<div class="bday-day-cell ${isSel ? 'selected' : ''}" onclick="selectBdayDate('${ymd}')">${d}</div>`;
+    }
+    gridEl.innerHTML = html;
+}
+
+function toggleBdayCal() {
+    const drop = document.getElementById('bdayCalDrop');
+    if (!drop) return;
+    const isOpen = drop.classList.contains('open');
+    document.getElementById('regCalendarDrop') && (document.getElementById('regCalendarDrop').style.display = 'none');
+    document.getElementById('timePickerDrop')  && (document.getElementById('timePickerDrop').style.display  = 'none');
+    drop.classList.toggle('open', !isOpen);
+    if (!isOpen) {
+        const curVal = document.getElementById('pBirthDate').value;
+        if (curVal) {
+            const [y, m] = curVal.split('-').map(Number);
+            bdayCalYear = y; bdayCalMonth = m - 1;
+        }
+        renderBdayCal();
+    }
+}
+
+function selectBdayDate(ymd) {
+    document.getElementById('pBirthDate').value = ymd;
+    const [y, m, d] = ymd.split('-');
+    document.getElementById('bdayDisplayBtn').textContent = `${d}-${m}-${y}`;
+    document.getElementById('bdayClearBtn').style.display = 'block';
+    renderBdayCal();
+    setTimeout(() => document.getElementById('bdayCalDrop').classList.remove('open'), 180);
+}
+
+function clearBirthday() {
+    document.getElementById('pBirthDate').value = '';
+    document.getElementById('bdayDisplayBtn').textContent = 'בחר תאריך';
+    document.getElementById('bdayClearBtn').style.display = 'none';
+}
+
+function bdayCalPrevMonth() { bdayCalMonth--; if (bdayCalMonth < 0)  { bdayCalMonth = 11; bdayCalYear--; } renderBdayCal(); }
+function bdayCalNextMonth() { bdayCalMonth++; if (bdayCalMonth > 11) { bdayCalMonth = 0;  bdayCalYear++; } renderBdayCal(); }
+function bdayCalPrevYear()  { bdayCalYear--; renderBdayCal(); }
+function bdayCalNextYear()  { bdayCalYear++; renderBdayCal(); }
+function bdayYearChanged()  { const y = parseInt(document.getElementById('bdayYearInput').value); if (!isNaN(y) && y >= 1900 && y <= 2020) { bdayCalYear = y; renderBdayCal(); } }
+
+document.addEventListener('click', e => {
+    const drop    = document.getElementById('bdayCalDrop');
+    const trigger = document.getElementById('bdayDisplayBtn');
+    if (drop && drop.classList.contains('open') && !drop.contains(e.target) && e.target !== trigger) {
+        drop.classList.remove('open');
+    }
+});
+
+// ========== BIRTHDAY UTILITIES ==========
+function calcAge(birthDateStr) {
+    if (!birthDateStr) return null;
+    const [y, m, d] = birthDateStr.split('-').map(Number);
+    const today = new Date();
+    let age = today.getFullYear() - y;
+    const monthDiff = today.getMonth() + 1 - m;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) age--;
+    return age;
+}
+
+function fillBirthdayField(birthDate) {
+    const hidden  = document.getElementById('pBirthDate');
+    const display = document.getElementById('bdayDisplayBtn');
+    const clearBtn= document.getElementById('bdayClearBtn');
+    if (!hidden || !display) return;
+    if (birthDate) {
+        hidden.value = birthDate;
+        const [y, m, d] = birthDate.split('-');
+        display.textContent = `${d}-${m}-${y}`;
+        if (clearBtn) clearBtn.style.display = 'block';
+        bdayCalYear  = parseInt(y);
+        bdayCalMonth = parseInt(m) - 1;
+    } else {
+        hidden.value = '';
+        display.textContent = 'בחר תאריך';
+        if (clearBtn) clearBtn.style.display = 'none';
+    }
+}
+
+function resetBirthdayField() {
+    fillBirthdayField(null);
+}
+
+    function showToast(msg, type='success') {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:#1E293B; border:1px solid #334155; border-radius:12px; padding:12px 20px; font-weight:800; font-size:0.95rem; z-index:9999; transition:transform 0.3s ease; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.5);`;
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    if (type === 'success') { toast.style.borderColor = 'rgba(16,185,129,0.35)'; toast.style.color = '#10B981'; }
+    else if (type === 'error') { toast.style.borderColor = 'rgba(239,68,68,0.4)'; toast.style.color = '#F87171'; }
+    else { toast.style.borderColor = 'rgba(99,102,241,0.4)'; toast.style.color = '#818CF8'; }
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(() => { toast.style.transform = 'translateX(-50%) translateY(80px)'; }, 3000);
+}
+</script>
+</body>
+</html>
