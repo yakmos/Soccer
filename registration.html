@@ -294,7 +294,6 @@
         .cancelled-card { display:none; }
         body.is-admin .cancelled-card { display:block; }
 
-        /* ===== GENERATE TEAMS BTN ===== */
         .generate-teams-btn {
             display: none;
             width: 100%; padding: 16px;
@@ -310,7 +309,6 @@
         .generate-teams-btn:active { transform: scale(0.97); }
         .generate-teams-btn:disabled { background: var(--border); color: var(--muted); box-shadow: none; cursor: not-allowed; }
 
-        /* ===== GENERATING OVERLAY ===== */
         .generating-overlay {
             display: none; position: fixed; inset: 0;
             background: rgba(15,23,42,0.92); backdrop-filter: blur(6px);
@@ -332,7 +330,6 @@
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        /* ===== MINI CARD MODAL ===== */
         #miniCardOverlay {
             display: none; position: fixed; inset: 0;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
@@ -342,7 +339,6 @@
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="game-header" id="gameHeader" style="display:none;">
     <div class="header-top">
         <div>
@@ -370,7 +366,6 @@
     </div>
 </div>
 
-<!-- MAIN -->
 <div class="container">
     <div id="loadingView" class="loading-wrap">
         <div class="spinner"></div>
@@ -387,7 +382,6 @@
 
     <div id="mainView" style="display:none;">
 
-        <!-- Notice box -->
         <div id="noticeBoxWrap" style="display:none; margin-top:16px;">
             <div class="notice-box-outer">
                 <div class="notice-box" id="noticeBoxText"></div>
@@ -400,7 +394,6 @@
             </div>
         </div>
 
-        <!-- Register Form -->
         <div class="card" style="margin-top:16px;">
             <div class="card-title">✍️ הרשמה למשחק</div>
             <div class="search-wrap">
@@ -414,7 +407,6 @@
             </button>
         </div>
 
-        <!-- Players List -->
         <div class="card" id="playersCard">
             <div class="card-title">👥 רשימת שחקנים</div>
             <div id="playersList">
@@ -429,7 +421,6 @@
             </div>
         </div>
 
-        <!-- Generate Teams Button (admin only) -->
         <button class="generate-teams-btn" id="generateTeamsBtn" onclick="generateTeamsFromReg()">
             🔒 סגור הרשמה וצור קבוצות מאוזנות 🔥
         </button>
@@ -437,16 +428,13 @@
     </div>
 </div>
 
-<!-- Generating Overlay -->
 <div class="generating-overlay" id="generatingOverlay">
     <div class="generating-spinner"></div>
     <div class="generating-title">⚽ יוצר קבוצות מאוזנות...</div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- Mini Card Modal -->
 <div id="miniCardOverlay" onclick="closeMiniCard()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:1000; align-items:center; justify-content:center; padding:20px;">
     <div onclick="event.stopPropagation()"
         style="background:var(--surface); border:1px solid var(--border); border-radius:20px;
@@ -461,7 +449,6 @@
 </div>
 
 <script>
-// ========== Firebase ==========
 const firebaseConfig = {
     apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
     authDomain: "soccer-b30a6.firebaseapp.com",
@@ -473,23 +460,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ========== State ==========
 const urlParams      = new URLSearchParams(window.location.search);
 const groupId        = urlParams.get('group');
 const registrationId = urlParams.get('reg');
 
-let groupData     = null;
-let allPlayers    = [];
-let registrations = [];
+let groupData      = null;
+let allPlayers     = [];
+let registrations  = [];
 let selectedPlayer = null;
-let gameData      = null;
-let maxPlayers    = 10;
-let isAdmin       = false;
-let cancelled     = [];
-let historyCache  = [];
-let customParams  = [];
+let gameData       = null;
+let maxPlayers     = 10;
+let isAdmin        = false;
+let cancelled      = [];
+let historyCache   = [];
+let customParams   = [];
 
-// ========== Init ==========
 window.onload = async () => {
     if (!groupId || !registrationId) { showClosed(); return; }
 
@@ -499,7 +484,7 @@ window.onload = async () => {
         groupData = groupDoc.data();
 
         const settings = groupData.settings || {};
-        maxPlayers = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
+        maxPlayers  = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
         customParams = groupData.customParams || [];
 
         const regRef = db.collection('groups').doc(groupId)
@@ -509,13 +494,10 @@ window.onload = async () => {
         gameData = regDoc.data();
         if (!gameData.open) { showClosed(); return; }
 
-        // Check admin
         const sessionKey = `admin_${groupId}`;
         if (sessionStorage.getItem(sessionKey) === 'true') {
             isAdmin = true;
             document.body.classList.add("is-admin");
-            const btn = document.getElementById('adminLoginBtn');
-            if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
         } else if (urlParams.get("admin") === "1") {
             const pwd = prompt("סיסמת מנהל:");
             if (pwd === groupData.password) {
@@ -525,17 +507,14 @@ window.onload = async () => {
             }
         }
 
-        // Load players
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Load history
         const historySnap = await db.collection('groups').doc(groupId).collection('history').get();
         historyCache = historySnap.docs.map(d => d.data());
 
-        // Show UI
         document.getElementById('gameHeader').style.display = 'block';
-        document.getElementById('groupNameEl').textContent = '⚽ ' + (groupData.name || 'קבוצה');
+        document.getElementById('groupNameEl').textContent  = '⚽ ' + (groupData.name || 'קבוצה');
         updateDateBadge(gameData);
 
         if (isAdmin) {
@@ -548,7 +527,6 @@ window.onload = async () => {
         document.getElementById('loadingView').style.display = 'none';
         document.getElementById('mainView').style.display    = 'block';
 
-        // Realtime: entries
         db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
             .collection('entries')
@@ -559,7 +537,6 @@ window.onload = async () => {
                 updateCapacityBar();
             });
 
-        // Realtime: cancelled
         db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
             .collection('cancelled')
@@ -588,7 +565,6 @@ function showNoticeBox(text) {
     box.textContent    = text;
 }
 
-// ========== Priority ==========
 function getPriorityScore(entry) {
     if (entry.isMoshavResident || (entry.isActive && !entry.isNew)) return 1;
     if (entry.isActive && entry.isNew)   return 2;
@@ -604,7 +580,6 @@ function getEntryBadgesHTML(entry) {
     return b;
 }
 
-// ========== Date Badge ==========
 function updateDateBadge(data) {
     const badge = document.getElementById('gameDateBadge');
     if (data.gameDate && data.gameTime) badge.textContent = `📅 ${data.gameDate} • ${data.gameTime}`;
@@ -613,7 +588,6 @@ function updateDateBadge(data) {
     if (isAdmin) badge.title = '✏️ לחץ לעריכה';
 }
 
-// ========== Inline Date Edit ==========
 function startDateEdit() {
     if (!isAdmin) return;
     const dateInput = document.getElementById('dateEditInput');
@@ -657,7 +631,6 @@ async function saveDateEdit() {
     } catch(e) { console.error(e); showToast('שגיאה בשמירה', 'error'); }
 }
 
-// ========== Inline Notice Edit ==========
 function startNoticeEdit() {
     const area    = document.getElementById('noticeEditArea');
     const actions = document.getElementById('noticeEditActions');
@@ -696,7 +669,6 @@ async function saveNoticeEdit() {
     } catch(e) { console.error(e); showToast('שגיאה בשמירה', 'error'); }
 }
 
-// ========== Capacity ==========
 function updateCapacityBar() {
     const confirmed = registrations.filter(r => !r.isWaiting).length;
     const total     = registrations.length;
@@ -715,7 +687,6 @@ function updateCapacityBar() {
     }
 }
 
-// ========== Autocomplete ==========
 function onSearchInput() {
     selectedPlayer = null;
     document.getElementById('registerBtn').disabled = true;
@@ -772,10 +743,6 @@ document.addEventListener('click', e => {
     if (!e.target.closest('.search-wrap') && !e.target.closest('.autocomplete-list')) hideAutocomplete();
 });
 
-// ========== Register ==========
-// FIX: Using selectedPlayer.id as the document ID prevents duplicate registrations.
-// If the same player is registered twice (race condition or manual duplicate),
-// the second set() will simply overwrite the first — no duplicate entries possible.
 async function registerPlayer() {
     if (!selectedPlayer) return;
     const btn = document.getElementById('registerBtn');
@@ -808,7 +775,7 @@ async function registerPlayer() {
             } catch(e) { return false; }
         })();
 
-        // FIX: store worst.playerId instead of worst.id (document ID)
+        // bumpedPlayerDocId = ה-document ID (= r.id) של השחקן שנדחק להמתנה
         let bumpedPlayerDocId = null;
         if (isFullBeforeAdd && !isWithin4Hours) {
             const newPriority = getPriorityScore(selectedPlayer);
@@ -820,8 +787,8 @@ async function registerPlayer() {
                     const tb=b.registeredAt?.toMillis?b.registeredAt.toMillis():0;
                     return tb-ta;
                 })[0];
-            // FIX: use worst.playerId as the document ID
-            if (worst && getPriorityScore(worst) > newPriority) bumpedPlayerDocId = worst.playerId;
+            // שמור את r.id (document ID האמיתי) ולא את playerId
+            if (worst && getPriorityScore(worst) > newPriority) bumpedPlayerDocId = worst.id;
         }
 
         const isWaiting = isFullBeforeAdd && !bumpedPlayerDocId;
@@ -829,7 +796,7 @@ async function registerPlayer() {
         const entriesRef = db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId).collection('entries');
 
-        // FIX: use selectedPlayer.id as document ID — prevents duplicates
+        // שימוש ב-selectedPlayer.id כ-document ID — מונע כפילויות
         batch.set(entriesRef.doc(selectedPlayer.id), {
             playerId: selectedPlayer.id,
             name: selectedPlayer.name,
@@ -845,7 +812,7 @@ async function registerPlayer() {
             registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // FIX: use playerId as document ID for bump update
+        // עדכון לפי document ID האמיתי
         if (bumpedPlayerDocId) batch.update(entriesRef.doc(bumpedPlayerDocId), { isWaiting: true });
         await batch.commit();
 
@@ -871,7 +838,6 @@ async function registerPlayer() {
     }
 }
 
-// ========== Render Players ==========
 function renderPlayersList() {
     const container = document.getElementById('playersList');
     if (registrations.length === 0) {
@@ -908,7 +874,7 @@ function renderPlayerRow(r, pos, isWaiting) {
     const timeStr = r.registeredAt?.toDate ? r.registeredAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
     const waitTag = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
 
-    // FIX: remove button now uses r.playerId (= document ID) instead of r.id
+    // מעביר r.id — document ID האמיתי של ה-entry
     return `<div class="player-row ${isWaiting?'waiting':''}">
         <div class="player-pos ${isWaiting?'waiting-pos':'confirmed'}">${isWaiting?'⏳':pos}</div>
         ${avatar}
@@ -917,13 +883,11 @@ function renderPlayerRow(r, pos, isWaiting) {
             ${badges}${gkBadge}${waitTag}
         </div>
         ${timeStr?`<span class="player-time">${timeStr}</span>`:''}
-        <button class="remove-btn" onclick="removePlayer('${r.playerId}')" title="הסר שחקן">✕</button>
+        <button class="remove-btn" onclick="removePlayer('${r.id}')" title="הסר שחקן">✕</button>
     </div>`;
 }
 
-// ========== Remove Player ==========
-// FIX: entryId is now the playerId (= document ID in entries collection)
-async function removePlayer(entryId) {
+async function removePlayer(entryDocId) {
     if (!isAdmin) return;
     if (!confirm('להסיר שחקן זה מהרשימה?')) return;
 
@@ -931,29 +895,34 @@ async function removePlayer(entryId) {
     const cancelledRef = db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('cancelled');
 
     try {
-        // FIX: find by playerId since that's now the document ID
-        const removedEntry = registrations.find(r => r.playerId === entryId);
+        // מחפש לפי r.id — document ID האמיתי, עובד גם לentries ישנים וגם חדשים
+        const removedEntry = registrations.find(r => r.id === entryDocId);
         if (!removedEntry) return;
+
         const wasConfirmed = !removedEntry.isWaiting;
         const batch = db.batch();
 
         batch.set(cancelledRef.doc(), {
-            playerId: removedEntry.playerId, name: removedEntry.name,
+            playerId: removedEntry.playerId,
+            name: removedEntry.name,
             imgUrl: removedEntry.imgUrl || null,
-            isActive: !!removedEntry.isActive, isNew: !!removedEntry.isNew,
+            isActive: !!removedEntry.isActive,
+            isNew: !!removedEntry.isNew,
             isMoshavResident: !!removedEntry.isMoshavResident,
-            wasConfirmed, registeredAt: removedEntry.registeredAt,
+            wasConfirmed,
+            registeredAt: removedEntry.registeredAt,
             cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // FIX: delete by playerId (document ID)
-        batch.delete(entriesRef.doc(entryId));
+        // מוחק לפי document ID האמיתי — תמיד עובד
+        batch.delete(entriesRef.doc(removedEntry.id));
 
         if (wasConfirmed) {
-            const wl = registrations.filter(r=>r.isWaiting&&r.playerId!==entryId)
+            const wl = registrations
+                .filter(r => r.isWaiting && r.id !== entryDocId)
                 .sort((a,b)=>{ const pa=getPriorityScore(a),pb=getPriorityScore(b); if(pa!==pb)return pa-pb; return (a.registeredAt?.toMillis?a.registeredAt.toMillis():0)-(b.registeredAt?.toMillis?b.registeredAt.toMillis():0); });
-            // FIX: promote by playerId (document ID)
-            if (wl.length>0) batch.update(entriesRef.doc(wl[0].playerId), {isWaiting:false});
+            // מקדם לפי document ID האמיתי
+            if (wl.length > 0) batch.update(entriesRef.doc(wl[0].id), { isWaiting: false });
         }
 
         await batch.commit();
@@ -971,7 +940,6 @@ async function removePlayer(entryId) {
     }
 }
 
-// ========== Render Cancelled ==========
 function renderCancelledList() {
     const section   = document.getElementById('cancelledSection');
     const container = document.getElementById('cancelledList');
@@ -995,7 +963,6 @@ function renderCancelledList() {
     }).join('');
 }
 
-// ========== Admin Login ==========
 function promptAdminLogin() {
     if (isAdmin) { showToast('כבר מחובר כמנהל ✅','success'); return; }
     if (!groupData) return;
@@ -1013,7 +980,6 @@ function promptAdminLogin() {
     }
 }
 
-// ========== Toast ==========
 function showToast(msg, type='success') {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1021,7 +987,6 @@ function showToast(msg, type='success') {
     setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ========== Generate Teams ==========
 async function generateTeamsFromReg() {
     const confirmed = registrations.filter(r => !r.isWaiting);
     if (confirmed.length !== maxPlayers) {
@@ -1040,10 +1005,9 @@ async function generateTeamsFromReg() {
             return full || { id: r.playerId, name: r.name, attScore: r.attScore||5, defScore: r.defScore||5, gkScore: r.gkScore||5, isGk: !!r.isGk };
         });
 
-        const numTeams      = groupData.settings?.numTeams      || 3;
+        const numTeams       = groupData.settings?.numTeams       || 3;
         const playersPerTeam = groupData.settings?.playersPerTeam || 6;
 
-        // Mark lineup in Firestore
         const playersRef = db.collection('groups').doc(groupId).collection('players');
         const batch1 = db.batch();
         allPlayers.forEach(p => batch1.update(playersRef.doc(p.id), { inLineup: false, goals: 0 }));
@@ -1093,7 +1057,7 @@ async function generateTeamsFromReg() {
             return [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)))[0]?.id || null;
         });
 
-        const gameRef  = db.collection('groups').doc(groupId).collection('game').doc('current');
+        const gameRef   = db.collection('groups').doc(groupId).collection('game').doc('current');
         const gameData2 = {
             gkIds, hasFixedGk,
             teamWins: Array(numTeams).fill(0),
@@ -1102,29 +1066,24 @@ async function generateTeamsFromReg() {
         best.forEach((teamArr, idx) => { gameData2[`team${idx+1}`] = teamArr; });
         await gameRef.set(gameData2);
 
-        // ====== עדכון היסטוריית נוכחות ======
         const allGroupPlayers = await db.collection('groups').doc(groupId).collection('players').get();
-        const registeredIds = new Set(registrations.map(r => r.playerId));
+        const registeredIds   = new Set(registrations.map(r => r.playerId));
         const attendanceBatch = db.batch();
         allGroupPlayers.docs.forEach(doc => {
-            const wasPresent = registeredIds.has(doc.id) && !cancelled.some(c => c.playerId === doc.id);
+            const wasPresent   = registeredIds.has(doc.id) && !cancelled.some(c => c.playerId === doc.id);
             const currentHistory = doc.data().attendanceHistory || [];
-            const newHistory = [...currentHistory, wasPresent].slice(-8);
+            const newHistory   = [...currentHistory, wasPresent].slice(-8);
             attendanceBatch.update(doc.ref, { attendanceHistory: newHistory });
         });
         await attendanceBatch.commit();
-        // =====================================
 
-        // Close registration
         await db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
             .update({ open: false });
         await db.collection('groups').doc(groupId)
             .update({ activeRegistrationId: firebase.firestore.FieldValue.delete() });
 
-        // Redirect to index
-        const indexUrl = window.location.pathname.replace('registration.html', 'index.html')
-            + `?group=${groupId}`;
+        const indexUrl = window.location.pathname.replace('registration.html', 'index.html') + `?group=${groupId}`;
         window.location.href = indexUrl;
 
     } catch (e) {
@@ -1135,7 +1094,6 @@ async function generateTeamsFromReg() {
     }
 }
 
-// ========== Mini Card ==========
 function calcAge(birthDateStr) {
     if (!birthDateStr) return null;
     const [y, m, d] = birthDateStr.split('-').map(Number);
@@ -1148,10 +1106,10 @@ function calcAge(birthDateStr) {
 
 function getColorStyles(val) {
     const v = val || 5;
-    if (v < 5)   return { hex:'#EF4444', bg:'rgba(239,68,68,0.15)',   text:'#EF4444', border:'rgba(239,68,68,0.3)' };
-    if (v < 7.5) return { hex:'#F59E0B', bg:'rgba(245,158,11,0.15)',  text:'#F59E0B', border:'rgba(245,158,11,0.3)' };
-    if (v < 8.5) return { hex:'#10B981', bg:'rgba(16,185,129,0.15)',  text:'#10B981', border:'rgba(16,185,129,0.3)' };
-    return           { hex:'#06B6D4', bg:'rgba(6,182,212,0.15)',   text:'#06B6D4', border:'rgba(6,182,212,0.3)' };
+    if (v < 5)   return { hex:'#EF4444', bg:'rgba(239,68,68,0.15)',  text:'#EF4444', border:'rgba(239,68,68,0.3)' };
+    if (v < 7.5) return { hex:'#F59E0B', bg:'rgba(245,158,11,0.15)', text:'#F59E0B', border:'rgba(245,158,11,0.3)' };
+    if (v < 8.5) return { hex:'#10B981', bg:'rgba(16,185,129,0.15)', text:'#10B981', border:'rgba(16,185,129,0.3)' };
+    return           { hex:'#06B6D4', bg:'rgba(6,182,212,0.15)',  text:'#06B6D4', border:'rgba(6,182,212,0.3)' };
 }
 
 function showMiniCard(playerId) {
