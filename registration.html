@@ -959,8 +959,23 @@ function renderCancelledList() {
                 ${badges}<span class="cancelled-tag">בוטל</span>
             </div>
             ${timeStr?`<span class="cancel-time">${timeStr}</span>`:''}
+            <button class="remove-btn" onclick="removeCancelledEntry('${r.id}')" title="מחק מביטולים">🗑️</button>
         </div>`;
     }).join('');
+}
+
+async function removeCancelledEntry(cancelledDocId) {
+    if (!isAdmin) return;
+    if (!confirm('למחוק רשומה זו מרשימת הביטולים?')) return;
+    try {
+        await db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .collection('cancelled').doc(cancelledDocId).delete();
+        showToast('הרשומה נמחקה ✅', 'success');
+    } catch(e) {
+        console.error(e);
+        showToast('שגיאה במחיקה', 'error');
+    }
 }
 
 function promptAdminLogin() {
