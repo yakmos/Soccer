@@ -512,11 +512,11 @@ window.onload = async () => {
         // Check admin
         const sessionKey = `admin_${groupId}`;
         if (sessionStorage.getItem(sessionKey) === 'true') {
-    isAdmin = true;
-    document.body.classList.add("is-admin");
-    const btn = document.getElementById('adminLoginBtn');
-    if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
-}else if (urlParams.get("admin") === "1") {
+            isAdmin = true;
+            document.body.classList.add("is-admin");
+            const btn = document.getElementById('adminLoginBtn');
+            if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
+        } else if (urlParams.get("admin") === "1") {
             const pwd = prompt("סיסמת מנהל:");
             if (pwd === groupData.password) {
                 isAdmin = true;
@@ -537,11 +537,11 @@ window.onload = async () => {
         document.getElementById('gameHeader').style.display = 'block';
         document.getElementById('groupNameEl').textContent = '⚽ ' + (groupData.name || 'קבוצה');
         updateDateBadge(gameData);
-        // עדכון כפתור מנהל אם מחובר
-if (isAdmin) {
-    const btn = document.getElementById('adminLoginBtn');
-    if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
-}
+
+        if (isAdmin) {
+            const btn = document.getElementById('adminLoginBtn');
+            if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
+        }
 
         if (gameData.noticeText) showNoticeBox(gameData.noticeText);
 
@@ -773,6 +773,9 @@ document.addEventListener('click', e => {
 });
 
 // ========== Register ==========
+// FIX: Using selectedPlayer.id as the document ID prevents duplicate registrations.
+// If the same player is registered twice (race condition or manual duplicate),
+// the second set() will simply overwrite the first — no duplicate entries possible.
 async function registerPlayer() {
     if (!selectedPlayer) return;
     const btn = document.getElementById('registerBtn');
@@ -805,7 +808,8 @@ async function registerPlayer() {
             } catch(e) { return false; }
         })();
 
-        let bumpedPlayerId = null;
+        // FIX: store worst.playerId instead of worst.id (document ID)
+        let bumpedPlayerDocId = null;
         if (isFullBeforeAdd && !isWithin4Hours) {
             const newPriority = getPriorityScore(selectedPlayer);
             const worst = registrations.filter(r => !r.isWaiting)
@@ -816,15 +820,17 @@ async function registerPlayer() {
                     const tb=b.registeredAt?.toMillis?b.registeredAt.toMillis():0;
                     return tb-ta;
                 })[0];
-            if (worst && getPriorityScore(worst) > newPriority) bumpedPlayerId = worst.id;
+            // FIX: use worst.playerId as the document ID
+            if (worst && getPriorityScore(worst) > newPriority) bumpedPlayerDocId = worst.playerId;
         }
 
-        const isWaiting = isFullBeforeAdd && !bumpedPlayerId;
+        const isWaiting = isFullBeforeAdd && !bumpedPlayerDocId;
         const batch = db.batch();
         const entriesRef = db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId).collection('entries');
 
-        batch.set(entriesRef.doc(), {
+        // FIX: use selectedPlayer.id as document ID — prevents duplicates
+        batch.set(entriesRef.doc(selectedPlayer.id), {
             playerId: selectedPlayer.id,
             name: selectedPlayer.name,
             imgUrl: selectedPlayer.imgUrl || null,
@@ -839,20 +845,23 @@ async function registerPlayer() {
             registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        if (bumpedPlayerId) batch.update(entriesRef.doc(bumpedPlayerId), { isWaiting: true });
+        // FIX: use playerId as document ID for bump update
+        if (bumpedPlayerDocId) batch.update(entriesRef.doc(bumpedPlayerDocId), { isWaiting: true });
         await batch.commit();
-try {
-    await db.collection('groups').doc(groupId)
-        .collection('players').doc(selectedPlayer.id)
-        .update({ registrationCount: firebase.firestore.FieldValue.increment(1) });
-} catch(e) { console.warn('registrationCount update failed:', e); }
+
+        try {
+            await db.collection('groups').doc(groupId)
+                .collection('players').doc(selectedPlayer.id)
+                .update({ registrationCount: firebase.firestore.FieldValue.increment(1) });
+        } catch(e) { console.warn('registrationCount update failed:', e); }
+
         document.getElementById('playerSearchInput').value = '';
         selectedPlayer = null;
         btn.textContent = 'הירשם למשחק ⚽';
 
-        if (isWaiting)           showToast('נרשמת לרשימת המתנה ⏳', 'info');
-        else if (bumpedPlayerId) showToast('נרשמת! שחקן אחר עבר להמתנה ✅', 'success');
-        else                     showToast('נרשמת בהצלחה! ✅', 'success');
+        if (isWaiting)              showToast('נרשמת לרשימת המתנה ⏳', 'info');
+        else if (bumpedPlayerDocId) showToast('נרשמת! שחקן אחר עבר להמתנה ✅', 'success');
+        else                        showToast('נרשמת בהצלחה! ✅', 'success');
 
     } catch(e) {
         console.error(e);
@@ -899,6 +908,7 @@ function renderPlayerRow(r, pos, isWaiting) {
     const timeStr = r.registeredAt?.toDate ? r.registeredAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
     const waitTag = isWaiting ? `<span class="waiting-tag">המתנה</span>` : '';
 
+    // FIX: remove button now uses r.playerId (= document ID) instead of r.id
     return `<div class="player-row ${isWaiting?'waiting':''}">
         <div class="player-pos ${isWaiting?'waiting-pos':'confirmed'}">${isWaiting?'⏳':pos}</div>
         ${avatar}
@@ -907,11 +917,12 @@ function renderPlayerRow(r, pos, isWaiting) {
             ${badges}${gkBadge}${waitTag}
         </div>
         ${timeStr?`<span class="player-time">${timeStr}</span>`:''}
-        <button class="remove-btn" onclick="removePlayer('${r.id}')" title="הסר שחקן">✕</button>
+        <button class="remove-btn" onclick="removePlayer('${r.playerId}')" title="הסר שחקן">✕</button>
     </div>`;
 }
 
 // ========== Remove Player ==========
+// FIX: entryId is now the playerId (= document ID in entries collection)
 async function removePlayer(entryId) {
     if (!isAdmin) return;
     if (!confirm('להסיר שחקן זה מהרשימה?')) return;
@@ -920,7 +931,8 @@ async function removePlayer(entryId) {
     const cancelledRef = db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('cancelled');
 
     try {
-        const removedEntry = registrations.find(r => r.id === entryId);
+        // FIX: find by playerId since that's now the document ID
+        const removedEntry = registrations.find(r => r.playerId === entryId);
         if (!removedEntry) return;
         const wasConfirmed = !removedEntry.isWaiting;
         const batch = db.batch();
@@ -934,20 +946,24 @@ async function removePlayer(entryId) {
             cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        // FIX: delete by playerId (document ID)
         batch.delete(entriesRef.doc(entryId));
 
         if (wasConfirmed) {
-            const wl = registrations.filter(r=>r.isWaiting&&r.id!==entryId)
+            const wl = registrations.filter(r=>r.isWaiting&&r.playerId!==entryId)
                 .sort((a,b)=>{ const pa=getPriorityScore(a),pb=getPriorityScore(b); if(pa!==pb)return pa-pb; return (a.registeredAt?.toMillis?a.registeredAt.toMillis():0)-(b.registeredAt?.toMillis?b.registeredAt.toMillis():0); });
-            if (wl.length>0) batch.update(entriesRef.doc(wl[0].id),{isWaiting:false});
+            // FIX: promote by playerId (document ID)
+            if (wl.length>0) batch.update(entriesRef.doc(wl[0].playerId), {isWaiting:false});
         }
 
         await batch.commit();
+
         try {
-    await db.collection('groups').doc(groupId)
-        .collection('players').doc(removedEntry.playerId)
-        .update({ registrationCount: firebase.firestore.FieldValue.increment(-1) });
-} catch(e) { console.warn('registrationCount decrement failed:', e); }
+            await db.collection('groups').doc(groupId)
+                .collection('players').doc(removedEntry.playerId)
+                .update({ registrationCount: firebase.firestore.FieldValue.increment(-1) });
+        } catch(e) { console.warn('registrationCount decrement failed:', e); }
+
         showToast('השחקן הוסר ✅', 'success');
     } catch(e) {
         console.error(e);
@@ -1085,18 +1101,19 @@ async function generateTeamsFromReg() {
         };
         best.forEach((teamArr, idx) => { gameData2[`team${idx+1}`] = teamArr; });
         await gameRef.set(gameData2);
+
         // ====== עדכון היסטוריית נוכחות ======
-const allGroupPlayers = await db.collection('groups').doc(groupId).collection('players').get();
-const registeredIds = new Set(registrations.map(r => r.playerId));
-const attendanceBatch = db.batch();
-allGroupPlayers.docs.forEach(doc => {
-    const wasPresent = registeredIds.has(doc.id) && !cancelled.some(c => c.playerId === doc.id);
-    const currentHistory = doc.data().attendanceHistory || [];
-    const newHistory = [...currentHistory, wasPresent].slice(-8);
-    attendanceBatch.update(doc.ref, { attendanceHistory: newHistory });
-});
-await attendanceBatch.commit();
-// =====================================
+        const allGroupPlayers = await db.collection('groups').doc(groupId).collection('players').get();
+        const registeredIds = new Set(registrations.map(r => r.playerId));
+        const attendanceBatch = db.batch();
+        allGroupPlayers.docs.forEach(doc => {
+            const wasPresent = registeredIds.has(doc.id) && !cancelled.some(c => c.playerId === doc.id);
+            const currentHistory = doc.data().attendanceHistory || [];
+            const newHistory = [...currentHistory, wasPresent].slice(-8);
+            attendanceBatch.update(doc.ref, { attendanceHistory: newHistory });
+        });
+        await attendanceBatch.commit();
+        // =====================================
 
         // Close registration
         await db.collection('groups').doc(groupId)
