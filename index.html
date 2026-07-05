@@ -998,8 +998,12 @@ const firebaseConfig = {
     measurementId: "G-425XRT1EVL"
 };
 firebase.initializeApp(firebaseConfig);
-firebase.analytics();
+try { firebase.analytics(); } catch (e) { console.warn("Analytics unavailable:", e); }
 const db = firebase.firestore();
+
+// *** מטמון מקומי (Offline Persistence) — חוסך אלפי קריאות Firestore ***
+// בביקור חוזר, הנתונים נטענים מהמטמון והשרת שולח רק את מה שהשתנה.
+db.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn("Persistence unavailable:", err.code));
 
 // ========== State ==========
 const urlParams = new URLSearchParams(window.location.search);
@@ -1100,7 +1104,7 @@ function startRealtimeListeners() {
         renderTopScorers();
     });
 
-    groupRef.collection('history_games').orderBy('date', 'desc').onSnapshot(snap => {
+    groupRef.collection('history_games').orderBy('date', 'desc').limit(30).onSnapshot(snap => {
         gamesHistoryCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderHistory();
     });
@@ -2544,8 +2548,11 @@ async function publishToMarket() {
     } catch(e) { console.error(e); alert("שגיאה בפרסום המודעה."); }
 }
 
+let marketListenerStarted = false;
 function renderMarket() {
     const container = document.getElementById('marketList'); if(!container) return;
+    if (marketListenerStarted) return; // מאזין אחד בלבד — לא נרשמים מחדש בכל לחיצה על הטאב
+    marketListenerStarted = true;
     db.collection('market_posts').orderBy('timestamp','desc').onSnapshot(snap => {
         if (snap.empty) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`; return; }
         container.innerHTML = snap.docs.map(doc => {
