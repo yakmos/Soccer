@@ -190,7 +190,14 @@
         measurementId: "G-425XRT1EVL"
     };
     firebase.initializeApp(firebaseConfig);
-    firebase.analytics();
+
+    // *** Analytics בטוח — לא מפיל את שליחת ההצבעה אם הוא חסום ***
+    let analytics = null;
+    try { analytics = firebase.analytics(); } catch (e) { console.warn("Analytics unavailable:", e); }
+    function logEvt(name, params) {
+        try { if (analytics) analytics.logEvent(name, params); } catch (e) { console.warn("Analytics logEvent failed:", e); }
+    }
+
     const db = firebase.firestore();
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -232,7 +239,10 @@
             document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupName} ⚽`;
             playersRef = db.collection('groups').doc(groupId).collection('players');
             await fetchPlayers();
-        } catch (error) { showError("שגיאה בהתחברות לשרת."); }
+        } catch (error) {
+            console.error(error);
+            showError("שגיאה בהתחברות לשרת: " + (error && error.message ? error.message : error));
+        }
     };
 
     function showError(msg) {
@@ -248,7 +258,10 @@
             renderPortal();
             document.getElementById('loading').style.display = 'none';
             document.getElementById('portalScreen').style.display = 'block';
-        } catch(e) { document.getElementById('loading').innerText = "שגיאה בטעינת נתונים ❌"; }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('loading').innerText = "שגיאה בטעינת נתונים ❌ " + (e && e.message ? e.message : e);
+        }
     }
 
     function getStorageKey(playerId) { return `voted_${groupId}_${playerId}`; }
@@ -327,7 +340,7 @@
         const lockedParams = p.lockedParams || {};
         const lockedCount = Object.keys(lockedParams).length;
 
-        firebase.analytics().logEvent('select_player_to_vote', {
+        logEvt('select_player_to_vote', {
             player_name: p.name, group_name: groupName,
             is_edit: !!localStorage.getItem(getStorageKey(id))
         });
@@ -449,7 +462,7 @@
 
                 await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(playerRef);
-                    if (!doc.exists) throw "Player does not exist!";
+                    if (!doc.exists) throw new Error("השחקן לא נמצא במסד הנתונים");
                     const data = doc.data();
                     const locked = data.lockedParams || {};
 
@@ -500,7 +513,7 @@
 
                 await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(playerRef);
-                    if (!doc.exists) throw "Player does not exist!";
+                    if (!doc.exists) throw new Error("השחקן לא נמצא במסד הנתונים");
                     const data = doc.data();
                     const locked = data.lockedParams || {};
 
@@ -570,7 +583,7 @@
                 localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify({ ...newVotes, customStats: newCustomVotes }));
             }
 
-            firebase.analytics().logEvent('submit_player_vote', {
+            logEvt('submit_player_vote', {
                 player_name: p.name, group_name: groupName, is_gk: currentPlayerIsGk
             });
 
@@ -585,7 +598,7 @@
 
         } catch(e) {
             console.error(e);
-            alert("שגיאה בשליחה.");
+            alert("שגיאה בשליחה: " + (e && e.message ? e.message : e));
             btn.disabled = false;
             btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
         }
