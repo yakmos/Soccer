@@ -565,11 +565,28 @@ function showNoticeBox(text) {
     box.textContent    = text;
 }
 
+function getEntryBirthDate(entry) {
+    if (entry.birthDate) return entry.birthDate;
+    const p = allPlayers.find(x => x.id === (entry.playerId || entry.id));
+    return p ? (p.birthDate || null) : null;
+}
+
+// סדר עדיפות חדש (1 = הכי חזק):
+// 1-2:  פעיל ותיק (מעל 30 / מתחת)
+// 3-4:  תושב מגדים חדש פעיל (מעל 30 / מתחת)
+// 5-6:  פעיל חדש (מעל 30 / מתחת)
+// 7-8:  לא פעיל ותיק (מעל 30 / מתחת)
+// 9-10: לא פעיל חדש (מעל 30 / מתחת)
+// שחקן ללא תאריך לידה נחשב "מתחת ל-30"
 function getPriorityScore(entry) {
-    if (entry.isMoshavResident || (entry.isActive && !entry.isNew)) return 1;
-    if (entry.isActive && entry.isNew)   return 2;
-    if (!entry.isActive && !entry.isNew) return 3;
-    return 4;
+    const age    = calcAge(getEntryBirthDate(entry));
+    const over30 = age !== null && age >= 30;
+
+    if (entry.isActive && !entry.isNew)                          return over30 ? 1 : 2;
+    if (entry.isActive && entry.isNew && entry.isMoshavResident) return over30 ? 3 : 4;
+    if (entry.isActive && entry.isNew)                           return over30 ? 5 : 6;
+    if (!entry.isActive && !entry.isNew)                         return over30 ? 7 : 8;
+    return over30 ? 9 : 10;
 }
 
 function getEntryBadgesHTML(entry) {
@@ -805,6 +822,7 @@ async function registerPlayer() {
             isNew: !!selectedPlayer.isNew,
             isMoshavResident: !!selectedPlayer.isMoshavResident,
             isGk: !!selectedPlayer.isGk,
+            birthDate: selectedPlayer.birthDate || null,
             attScore: selectedPlayer.attScore || 5,
             defScore: selectedPlayer.defScore || 5,
             gkScore: selectedPlayer.gkScore || 5,
