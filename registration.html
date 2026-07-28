@@ -507,8 +507,16 @@ window.onload = async () => {
             }
         }
 
-        const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
+        const playersCol  = db.collection('groups').doc(groupId).collection('players');
+        const playersSnap = await playersCol.get();
         allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // האזנה חיה לכרטיסי השחקנים - שינוי גיל/סטטוס בכרטיס מעדכן את הרשימה מיד, בלי רענון
+        playersCol.onSnapshot(snap => {
+            allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderPlayersList();
+            updateCapacityBar();
+        });
 
         const historySnap = await db.collection('groups').doc(groupId).collection('history').get();
         historyCache = historySnap.docs.map(d => d.data());
@@ -565,10 +573,16 @@ function showNoticeBox(text) {
     box.textContent    = text;
 }
 
+function getLivePlayer(entry) {
+    return allPlayers.find(x => x.id === (entry.playerId || entry.id)) || null;
+}
+
+// תמיד מעדיפים את הנתונים העדכניים מכרטיס השחקן;
+// הסנפשוט שנשמר ב-entry משמש רק כגיבוי (למשל שחקן שנמחק מהמערכת)
 function getEntryBirthDate(entry) {
-    if (entry.birthDate) return entry.birthDate;
-    const p = allPlayers.find(x => x.id === (entry.playerId || entry.id));
-    return p ? (p.birthDate || null) : null;
+    const p = getLivePlayer(entry);
+    if (p && p.birthDate) return p.birthDate;
+    return entry.birthDate || null;
 }
 
 // סדר עדיפות חדש (1 = הכי חזק):
@@ -579,13 +593,14 @@ function getEntryBirthDate(entry) {
 // 9-10: לא פעיל חדש (מעל 30 / מתחת)
 // שחקן ללא תאריך לידה נחשב "מתחת ל-30"
 function getPriorityScore(entry) {
+    const live   = getLivePlayer(entry) || entry;   // דגלים עדכניים מכרטיס השחקן
     const age    = calcAge(getEntryBirthDate(entry));
     const over30 = age !== null && age >= 30;
 
-    if (entry.isActive && !entry.isNew)                          return over30 ? 1 : 2;
-    if (entry.isActive && entry.isNew && entry.isMoshavResident) return over30 ? 3 : 4;
-    if (entry.isActive && entry.isNew)                           return over30 ? 5 : 6;
-    if (!entry.isActive && !entry.isNew)                         return over30 ? 7 : 8;
+    if (live.isActive && !live.isNew)                        return over30 ? 1 : 2;
+    if (live.isActive && live.isNew && live.isMoshavResident) return over30 ? 3 : 4;
+    if (live.isActive && live.isNew)                         return over30 ? 5 : 6;
+    if (!live.isActive && !live.isNew)                       return over30 ? 7 : 8;
     return over30 ? 9 : 10;
 }
 
