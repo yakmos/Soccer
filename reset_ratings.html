@@ -228,9 +228,10 @@ function renderList() {
         const isSel = selected.has(p.id);
         const initials = (p.name || '?').trim().charAt(0);
         const hasLocks = p.lockedParams && Object.keys(p.lockedParams).length > 0;
-        const scores = p.isGk
+        const scores = (p.isGk
             ? `<span class="sc-gk">🧤 שוער ${p.gkScore ?? 5}</span>`
-            : `<span class="sc-att">התקפה ${p.attScore ?? 5}</span><span class="sc-def">הגנה ${p.defScore ?? 5}</span>`;
+            : `<span class="sc-att">התקפה ${p.attScore ?? 5}</span><span class="sc-def">הגנה ${p.defScore ?? 5}</span>`)
+            + `<span style="color:var(--text-muted)">📊 ${p.votesCount || 1} דירוגים</span>`;
         return `
         <div class="player-row ${isSel ? 'selected' : ''}" onclick="toggleSel('${p.id}')">
             <div class="avatar">${p.imgUrl ? `<img src="${p.imgUrl}" alt="">` : initials}</div>
@@ -256,32 +257,43 @@ function updateBar() {
 
 function buildResetData(p, val, keepLocks) {
     const locks = (keepLocks && p.lockedParams) ? p.lockedParams : {};
-    const eff = (key, fallback) => (locks[key] !== undefined ? locks[key] : fallback !== undefined ? fallback : val);
 
     const data = { lockedParams: keepLocks ? (p.lockedParams || {}) : {} };
 
-    // field params
+    // --- voting accumulators (vote.html): full restart like a brand-new player ---
+    data.votesCount = 1;
+    // קידום "דור הדירוג": הצבעות ששמורות בטלפונים של המצביעים ייחשבו ישנות
+    data.voteEpoch = (p.voteEpoch || 1) + 1;
+
+    // field params + their running sums (sumFin, sumDri, ...)
     const fieldVals = FIELD_PARAMS.map(k => {
         const v = locks[k] !== undefined ? locks[k] : val;
         data[k] = v;
+        data['sum' + k.charAt(0).toUpperCase() + k.slice(1)] = v;
         return v;
     });
-    // custom stats
-    const custom = {};
+    // custom stats + customSums/customAvgs (vote.html reads all three)
+    const custom = {}, customSums = {};
     let attExtra = [], defExtra = [];
     customParams.forEach(cp => {
         const v = locks[`cp_${cp.id}`] !== undefined ? locks[`cp_${cp.id}`] : val;
         custom[cp.id] = v;
+        customSums[cp.id] = v;
         (cp.type === 'att' ? attExtra : defExtra).push(v);
     });
     data.customStats = custom;
+    data.customAvgs = custom;
+    data.customSums = customSums;
 
-    // gk params
+    // gk params + gkSums map
+    const gkSums = {};
     const gkVals = GK_PARAMS.map(k => {
         const v = locks[k] !== undefined ? locks[k] : val;
         data[k] = v;
+        gkSums[k] = v;
         return v;
     });
+    data.gkSums = gkSums;
     const gkScore = parseFloat((gkVals.reduce((a,b)=>a+b,0) / gkVals.length).toFixed(1));
 
     if (p.isGk) {
@@ -304,7 +316,7 @@ async function doReset() {
     const keepLocks = document.getElementById('keepLocks').checked;
     const names = players.filter(p => selected.has(p.id)).map(p => p.name).slice(0, 6).join(', ');
     const extra = selected.size > 6 ? ` ועוד ${selected.size - 6}` : '';
-    if (!confirm(`לאפס דירוגים ל-${val} עבור ${selected.size} שחקנים?\n${names}${extra}\n\nהפעולה תדרוס את כל הפרמטרים${keepLocks ? ' (מלבד נעולים)' : ', כולל נעולים'}.`)) return;
+    if (!confirm(`לאפס דירוגים ל-${val} עבור ${selected.size} שחקנים?\n${names}${extra}\n\nהפעולה תדרוס את כל הפרמטרים${keepLocks ? ' (מלבד נעולים)' : ', כולל נעולים'} ותאפס גם את היסטוריית ההצבעות (מונה הדירוגים יחזור ל-1).`)) return;
 
     const btn = document.getElementById('resetBtn');
     btn.disabled = true; btn.textContent = 'מאפס... ⏳';
