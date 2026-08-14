@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>פעילות שחקנים ⚽</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --bg-color: #0F172A;
+            --surface-color: #1E293B;
+            --primary-color: #10B981;
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --border-color: #334155;
+            --danger: #EF4444;
+            --edit-color: #3B82F6;
+            --gold: #FCD34D;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Heebo', sans-serif; background: var(--bg-color);
+            color: var(--text-main); margin: 0; padding: 16px; padding-bottom: 60px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
+        .subtitle { color: var(--text-muted); font-size: .9rem; margin-bottom: 16px; }
+
+        .range-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .range-btn {
+            background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted);
+            padding: 8px 16px; border-radius: 20px; font-family: 'Heebo'; font-weight: 700; font-size: .85rem; cursor: pointer;
+            transition: all .15s;
+        }
+        .range-btn.active { background: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+        .range-btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .stat-card {
+            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px;
+            padding: 14px; text-align: center;
+        }
+        .stat-card .num { font-size: 1.7rem; font-weight: 900; color: var(--primary-color); line-height: 1.1; }
+        .stat-card .lbl { font-size: .78rem; color: var(--text-muted); margin-top: 4px; }
+
+        .section-title { font-size: 1.05rem; font-weight: 900; margin: 22px 0 10px; display: flex; align-items: center; gap: 6px; }
+
+        /* weekly chart */
+        .week-chart { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px 14px 8px; }
+        .bars { display: flex; align-items: flex-end; gap: 6px; height: 110px; }
+        .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+        .bar { width: 100%; max-width: 34px; background: linear-gradient(180deg, var(--primary-color), #059669); border-radius: 6px 6px 2px 2px; position: relative; transition: height .4s ease; }
+        .bar .val { position: absolute; top: -18px; width: 100%; text-align: center; font-size: .72rem; font-weight: 700; color: var(--text-main); }
+        .bar-lbl { font-size: .62rem; color: var(--text-muted); margin-top: 6px; white-space: nowrap; }
+
+        /* controls */
+        .controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+        .search-input {
+            flex: 1; min-width: 160px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: var(--surface-color); color: var(--text-main); font-family: 'Heebo'; font-size: .95rem;
+        }
+        .search-input:focus { outline: none; border-color: var(--primary-color); }
+        select.sort-select {
+            padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: var(--surface-color); color: var(--text-main); font-family: 'Heebo'; font-weight: 700; font-size: .85rem;
+        }
+
+        /* player rows */
+        .player-card {
+            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px;
+            padding: 12px 14px; margin-bottom: 10px;
+        }
+        .p-head { display: flex; align-items: center; gap: 10px; }
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%; background: var(--bg-color); border: 2px solid var(--border-color);
+            display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary-color);
+            overflow: hidden; flex-shrink: 0;
+        }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .p-name { font-weight: 900; font-size: 1rem; }
+        .p-sub { font-size: .74rem; color: var(--text-muted); }
+        .p-pct { margin-inline-start: auto; text-align: center; }
+        .p-pct .big { font-size: 1.2rem; font-weight: 900; }
+        .p-pct .sml { font-size: .68rem; color: var(--text-muted); }
+        .pct-hi { color: var(--primary-color); } .pct-mid { color: var(--gold); } .pct-lo { color: var(--danger); }
+
+        /* signature: game-by-game heat strip */
+        .heat-strip { display: flex; gap: 3px; margin-top: 10px; direction: ltr; }
+        .heat-cell {
+            flex: 1; max-width: 22px; height: 22px; border-radius: 5px; background: var(--bg-color);
+            border: 1px solid var(--border-color); position: relative;
+        }
+        .heat-cell.played { background: var(--primary-color); border-color: var(--primary-color); }
+        .heat-cell.played.scored { background: var(--gold); border-color: var(--gold); }
+        .heat-cell.mvp::after { content: '★'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .7rem; color: #0F172A; }
+
+        .p-stats { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+        .p-stat { font-size: .78rem; color: var(--text-muted); }
+        .p-stat b { color: var(--text-main); font-weight: 700; }
+
+        .legend { display: flex; gap: 14px; font-size: .72rem; color: var(--text-muted); margin: 6px 2px 14px; flex-wrap: wrap; }
+        .legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+
+        .inactive-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .inactive-chip {
+            background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #F87171;
+            padding: 6px 14px; border-radius: 20px; font-size: .82rem; font-weight: 700;
+        }
+        .inactive-chip small { color: var(--text-muted); font-weight: 400; }
+
+        .loading, .empty-state { text-align: center; color: var(--text-muted); padding: 50px 20px; }
+        .spinner {
+            width: 36px; height: 36px; border: 4px solid var(--border-color); border-top-color: var(--primary-color);
+            border-radius: 50%; margin: 0 auto 14px; animation: spin .8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } .bar { transition: none; } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 פעילות שחקנים</h1>
+    <div class="subtitle" id="groupName">טוען...</div>
+
+    <div class="range-bar" role="group" aria-label="טווח תאריכים">
+        <button class="range-btn" data-days="30">חודש</button>
+        <button class="range-btn active" data-days="60">חודשיים</button>
+        <button class="range-btn" data-days="90">3 חודשים</button>
+        <button class="range-btn" data-days="180">חצי שנה</button>
+    </div>
+
+    <div id="loading" class="loading"><div class="spinner"></div>טוען נתונים מהמערכת...</div>
+
+    <div id="content" class="hidden">
+        <div class="summary-grid" id="summaryGrid"></div>
+
+        <div class="section-title">🗓️ משחקים לפי שבוע</div>
+        <div class="week-chart"><div class="bars" id="weekBars"></div></div>
+
+        <div class="section-title">⚽ פעילות לפי שחקן</div>
+        <div class="legend">
+            <span><span class="dot" style="background:var(--primary-color)"></span> שיחק</span>
+            <span><span class="dot" style="background:var(--gold)"></span> שיחק וכבש</span>
+            <span><span class="dot" style="background:var(--gold);position:relative;text-align:center;color:#0F172A;font-size:.6rem;line-height:12px;">★</span> MVP</span>
+            <span><span class="dot" style="background:var(--bg-color);border:1px solid var(--border-color)"></span> לא שיחק</span>
+        </div>
+        <div class="controls">
+            <input class="search-input" id="searchInput" placeholder="🔍 חיפוש שחקן...">
+            <select class="sort-select" id="sortSelect">
+                <option value="games">מיון: הכי פעילים</option>
+                <option value="pct">מיון: אחוז נוכחות</option>
+                <option value="goals">מיון: שערים</option>
+                <option value="wins">מיון: ניצחונות</option>
+                <option value="regs">מיון: הרשמות</option>
+            </select>
+        </div>
+        <div id="playerList"></div>
+
+        <div class="section-title">😴 לא נראו בתקופה</div>
+        <div class="inactive-list" id="inactiveList"></div>
+    </div>
+
+    <div id="noGroup" class="empty-state hidden">
+        ⚠️ חסר מזהה קבוצה בכתובת.<br>יש להיכנס עם <b dir="ltr">?group=GROUP_ID</b> כמו בשאר הדפים.
+    </div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const groupId = new URLSearchParams(location.search).get('group');
+let rangeDays = 60;
+let players = [];          // full roster
+let games = [];            // history_games in range (oldest -> newest)
+let regCounts = {};        // playerId -> registrations in range
+let waitCounts = {};       // playerId -> times on waiting list
+let searchTerm = '';
+let sortKey = 'games';
+
+function tsToDate(g) {
+    if (g.date && g.date.toDate) return g.date.toDate();
+    if (g.dateISO) return new Date(g.dateISO);
+    return null;
+}
+
+async function loadData() {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('content').classList.add('hidden');
+
+    const cutoff = new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000);
+    const cutoffTs = firebase.firestore.Timestamp.fromDate(cutoff);
+    const groupRef = db.collection('groups').doc(groupId);
+
+    // 1 read: group doc | 1 query: players | 1 query: games in range | 1 query: regs in range (+entries per reg)
+    const [groupDoc, playersSnap, gamesSnap, regsSnap] = await Promise.all([
+        groupRef.get(),
+        groupRef.collection('players').get(),
+        groupRef.collection('history_games').where('date', '>=', cutoffTs).orderBy('date', 'asc').get(),
+        groupRef.collection('registrations').where('createdAt', '>=', cutoffTs).get()
+    ]);
+
+    document.getElementById('groupName').textContent =
+        (groupDoc.exists && (groupDoc.data().groupName || groupDoc.data().name) || 'הקבוצה שלי') +
+        ` • ${rangeDays} הימים האחרונים`;
+
+    players = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    games = gamesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // registrations activity (bounded: one entries read per registration in range)
+    regCounts = {}; waitCounts = {};
+    await Promise.all(regsSnap.docs.map(async regDoc => {
+        const entriesSnap = await regDoc.ref.collection('entries').get();
+        entriesSnap.forEach(e => {
+            const d = e.data();
+            if (!d.playerId) return;
+            regCounts[d.playerId] = (regCounts[d.playerId] || 0) + 1;
+            if (d.isWaiting) waitCounts[d.playerId] = (waitCounts[d.playerId] || 0) + 1;
+        });
+    }));
+
+    render();
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
+}
+
+function buildPlayerStats() {
+    const map = {};
+    const ensure = (id, name, imgUrl) => {
+        if (!map[id]) map[id] = { id, name, imgUrl, games: 0, goals: 0, wins: 0, mvps: 0, perGame: [], lastPlayed: null };
+        return map[id];
+    };
+
+    games.forEach(g => {
+        const gDate = tsToDate(g);
+        const inGame = new Set();
+        (g.teams || []).forEach(team => {
+            (team.players || []).forEach(p => {
+                const s = ensure(p.id, p.name, p.imgUrl);
+                s.games++; s.goals += (p.goals || 0); s.wins += (team.wins || 0);
+                s.lastPlayed = gDate;
+                inGame.add(p.id);
+                s.perGame.push({ played: true, scored: (p.goals || 0) > 0, mvp: g.mvpWinner && g.mvpWinner.id === p.id, date: gDate });
+                if (g.mvpWinner && g.mvpWinner.id === p.id) s.mvps++;
+            });
+        });
+        // mark "missed" cell for roster players not in this game
+        players.forEach(rp => {
+            if (!inGame.has(rp.id)) {
+                const s = ensure(rp.id, rp.name, rp.imgUrl);
+                s.perGame.push({ played: false, date: gDate });
+            }
+        });
+    });
+
+    // include roster players with zero games (perGame filled above only if games exist)
+    players.forEach(rp => ensure(rp.id, rp.name, rp.imgUrl));
+    Object.values(map).forEach(s => { s.regs = regCounts[s.id] || 0; s.waits = waitCounts[s.id] || 0; });
+    return Object.values(map);
+}
+
+function render() {
+    const stats = buildPlayerStats();
+    const totalGames = games.length;
+    const active = stats.filter(s => s.games > 0 || s.regs > 0);
+    const inactive = stats.filter(s => s.games === 0 && s.regs === 0);
+
+    // summary
+    const totalGoals = games.reduce((sum, g) => sum + (g.totalGoals || 0), 0);
+    const avgPlayers = totalGames ? Math.round(games.reduce((s, g) => s + (g.numPlayers || 0), 0) / totalGames) : 0;
+    document.getElementById('summaryGrid').innerHTML = `
+        <div class="stat-card"><div class="num">${totalGames}</div><div class="lbl">משחקים בתקופה</div></div>
+        <div class="stat-card"><div class="num">${active.filter(s=>s.games>0).length}</div><div class="lbl">שחקנים ששיחקו</div></div>
+        <div class="stat-card"><div class="num">${totalGoals}</div><div class="lbl">שערים סה"כ</div></div>
+        <div class="stat-card"><div class="num">${avgPlayers}</div><div class="lbl">ממוצע שחקנים למשחק</div></div>`;
+
+    // weekly bars
+    const weeks = {};
+    games.forEach(g => {
+        const d = tsToDate(g); if (!d) return;
+        const monday = new Date(d); monday.setDate(d.getDate() - ((d.getDay() + 6) % 7)); monday.setHours(0,0,0,0);
+        const key = monday.getTime();
+        weeks[key] = weeks[key] || { count: 0, label: `${monday.getDate()}/${monday.getMonth()+1}` };
+        weeks[key].count++;
+    });
+    const weekKeys = Object.keys(weeks).sort((a,b)=>a-b);
+    const maxW = Math.max(1, ...weekKeys.map(k => weeks[k].count));
+    document.getElementById('weekBars').innerHTML = weekKeys.length
+        ? weekKeys.map(k => `
+            <div class="bar-col">
+                <div class="bar" style="height:${(weeks[k].count/maxW)*80}%"><div class="val">${weeks[k].count}</div></div>
+                <div class="bar-lbl">${weeks[k].label}</div>
+            </div>`).join('')
+        : `<div class="empty-state" style="padding:20px;width:100%">אין משחקים שנשמרו בתקופה הזו</div>`;
+
+    // players list
+    const sorters = {
+        games: (a,b)=>b.games-a.games || b.goals-a.goals,
+        pct:   (a,b)=>(totalGames?b.games/totalGames:0)-(totalGames?a.games/totalGames:0),
+        goals: (a,b)=>b.goals-a.goals,
+        wins:  (a,b)=>b.wins-a.wins,
+        regs:  (a,b)=>b.regs-a.regs
+    };
+    const shown = active
+        .filter(s => !searchTerm || (s.name||'').includes(searchTerm))
+        .sort(sorters[sortKey]);
+
+    document.getElementById('playerList').innerHTML = shown.map(s => {
+        const pct = totalGames ? Math.round(s.games / totalGames * 100) : 0;
+        const pctCls = pct >= 70 ? 'pct-hi' : pct >= 40 ? 'pct-mid' : 'pct-lo';
+        const last = s.lastPlayed ? `${s.lastPlayed.getDate()}/${s.lastPlayed.getMonth()+1}` : '—';
+        const initials = (s.name||'?').trim().charAt(0);
+        const strip = s.perGame.map(c =>
+            `<div class="heat-cell ${c.played?'played':''} ${c.scored?'scored':''} ${c.mvp?'mvp':''}" title="${c.date?c.date.toLocaleDateString('he-IL'):''}"></div>`).join('');
+        return `
+        <div class="player-card">
+            <div class="p-head">
+                <div class="avatar">${s.imgUrl?`<img src="${s.imgUrl}" alt="">`:initials}</div>
+                <div>
+                    <div class="p-name">${s.name||'ללא שם'} ${s.mvps?` <span style="color:var(--gold)">★${s.mvps}</span>`:''}</div>
+                    <div class="p-sub">משחק אחרון: ${last}</div>
+                </div>
+                <div class="p-pct"><div class="big ${pctCls}">${pct}%</div><div class="sml">${s.games}/${totalGames} משחקים</div></div>
+            </div>
+            <div class="heat-strip">${strip}</div>
+            <div class="p-stats">
+                <div class="p-stat">⚽ שערים: <b>${s.goals}</b></div>
+                <div class="p-stat">🏆 ניצחונות: <b>${s.wins}</b></div>
+                <div class="p-stat">📝 הרשמות: <b>${s.regs}</b></div>
+                ${s.waits?`<div class="p-stat">⏳ המתנה: <b>${s.waits}</b></div>`:''}
+            </div>
+        </div>`;
+    }).join('') || `<div class="empty-state">לא נמצאו שחקנים תואמים</div>`;
+
+    // inactive
+    document.getElementById('inactiveList').innerHTML = inactive.length
+        ? inactive.map(s => `<div class="inactive-chip">${s.name||'ללא שם'}</div>`).join('')
+        : `<span style="color:var(--text-muted);font-size:.85rem">כולם היו פעילים בתקופה 💪</span>`;
+}
+
+// events
+document.querySelectorAll('.range-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    rangeDays = parseInt(btn.dataset.days, 10);
+    loadData().catch(showErr);
+}));
+document.getElementById('searchInput').addEventListener('input', e => { searchTerm = e.target.value.trim(); render(); });
+document.getElementById('sortSelect').addEventListener('change', e => { sortKey = e.target.value; render(); });
+
+function showErr(e) {
+    console.error(e);
+    document.getElementById('loading').innerHTML = `⚠️ שגיאה בטעינת נתונים:<br><small dir="ltr">${e.message}</small>`;
+}
+
+if (!groupId) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('noGroup').classList.remove('hidden');
+} else {
+    loadData().catch(showErr);
+}
+</script>
+</body>
+</html>
