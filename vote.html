@@ -266,6 +266,15 @@
 
     function getStorageKey(playerId) { return `voted_${groupId}_${playerId}`; }
     function getDataStorageKey(playerId) { return `voteData_${groupId}_${playerId}`; }
+    function getEpochStorageKey(playerId) { return `voteEpoch_${groupId}_${playerId}`; }
+
+    // הצבעה תקפה = הצבענו בעבר וגם לא היה איפוס דירוגים מאז.
+    // אם voteEpoch של השחקן גדל (איפוס), ההצבעה השמורה בטלפון נחשבת ישנה ומתעלמים ממנה.
+    function hasValidVote(p) {
+        if (!localStorage.getItem(getStorageKey(p.id))) return false;
+        const storedEpoch = parseInt(localStorage.getItem(getEpochStorageKey(p.id)) || '1', 10);
+        return storedEpoch === (p.voteEpoch || 1);
+    }
 
     // ========== Portal ==========
     function renderPortal() {
@@ -273,7 +282,7 @@
         grid.innerHTML = playersData.map(p => {
             const isGk = !!p.isGk;
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
-            const hasVoted = localStorage.getItem(getStorageKey(p.id));
+            const hasVoted = hasValidVote(p);
             const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
             const avatar = p.imgUrl
                 ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">`
@@ -342,7 +351,7 @@
 
         logEvt('select_player_to_vote', {
             player_name: p.name, group_name: groupName,
-            is_edit: !!localStorage.getItem(getStorageKey(id))
+            is_edit: hasValidVote(p)
         });
 
         document.getElementById('displayPlayerName').innerText = p.name;
@@ -373,8 +382,8 @@
         document.getElementById('fieldSliders').style.display = currentPlayerIsGk ? 'none' : 'block';
         document.getElementById('gkSliders').style.display = currentPlayerIsGk ? 'block' : 'none';
 
-        const isEditing = !!localStorage.getItem(getStorageKey(id));
-        const savedVoteRaw = localStorage.getItem(getDataStorageKey(id));
+        const isEditing = hasValidVote(p);
+        const savedVoteRaw = isEditing ? localStorage.getItem(getDataStorageKey(id)) : null;
         let savedVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
 
         if (currentPlayerIsGk) {
@@ -446,8 +455,8 @@
         btn.innerText = "שומר ציונים... ⏳";
 
         const getVal = (id) => parseInt(document.getElementById(id).value);
-        const isEditing = !!localStorage.getItem(getStorageKey(currentPlayerId));
-        const savedVoteRaw = localStorage.getItem(getDataStorageKey(currentPlayerId));
+        const isEditing = hasValidVote(p);
+        const savedVoteRaw = isEditing ? localStorage.getItem(getDataStorageKey(currentPlayerId)) : null;
         let oldVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
 
         const playerRef = playersRef.doc(currentPlayerId);
@@ -588,6 +597,7 @@
             });
 
             localStorage.setItem(getStorageKey(currentPlayerId), 'true');
+            localStorage.setItem(getEpochStorageKey(currentPlayerId), String(p.voteEpoch || 1));
             btn.disabled = false;
             btn.style.background = currentPlayerIsGk ? "var(--gk-text)" : "var(--primary-color)";
             btn.style.color = "#fff"; btn.style.border = "none";
