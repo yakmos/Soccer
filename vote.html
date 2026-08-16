@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
     <style>
@@ -106,6 +107,16 @@
         }
         .locked-score-val { font-size: 2rem; font-weight: 900; color: var(--lock-color); }
         .locked-score-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 700; margin-top: 4px; letter-spacing: 0.5px; }
+
+        /* Progress bar */
+        .progress-wrap { margin: 0 0 18px 0; }
+        .progress-labels { display:flex; justify-content:space-between; font-size:0.85rem; font-weight:800; color:var(--text-muted); margin-bottom:6px; }
+        .progress-track { height:12px; background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; overflow:hidden; }
+        .progress-fill { height:100%; width:0%; background:linear-gradient(90deg, var(--primary-color), #06B6D4); border-radius:10px; transition: width 0.6s ease; }
+        .all-done-banner { text-align:center; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.35); color:var(--primary-color); font-weight:900; padding:14px; border-radius:12px; margin-bottom:18px; line-height:1.7; }
+        /* Confetti */
+        .confetti-piece { position:fixed; top:-30px; font-size:22px; z-index:9999; pointer-events:none; animation: confettiFall linear forwards; }
+        @keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.9; } }
     </style>
 </head>
 <body>
@@ -118,7 +129,12 @@
 
         <div id="portalScreen">
             <h1 id="groupTitle">פורטל דירוגי שחקנים ⚽</h1>
-            <p class="subtitle">בחר שחקן כדי לדרג את ביצועיו למערכת הכוחות</p>
+            <p class="subtitle" id="voterGreeting">בחר שחקן כדי לדרג את ביצועיו למערכת הכוחות</p>
+            <div class="progress-wrap">
+                <div class="progress-labels"><span id="progressText">דירגת 0 / 0</span><span id="progressPct">0%</span></div>
+                <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+            <div id="allDoneBanner" style="display:none;" class="all-done-banner">🏆 דירגת את כל השחקנים! תודה ענקית 🙌<br><span style="font-size:0.85rem; font-weight:500;">אפשר לחזור לכאן בכל רגע ולעדכן דירוגים</span></div>
             <div id="playersGrid" class="players-grid"></div>
         </div>
 
@@ -191,21 +207,28 @@
     };
     firebase.initializeApp(firebaseConfig);
 
-    // *** Analytics בטוח — לא מפיל את שליחת ההצבעה אם הוא חסום ***
     let analytics = null;
     try { analytics = firebase.analytics(); } catch (e) { console.warn("Analytics unavailable:", e); }
     function logEvt(name, params) {
-        try { if (analytics) analytics.logEvent(name, params); } catch (e) { console.warn("Analytics logEvent failed:", e); }
+        try { if (analytics) analytics.logEvent(name, params); } catch (e) {}
     }
 
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('group');
+    const token = urlParams.get('token');
+
     let groupName = "Unknown";
     let playersRef = null;
+    let voterRef = null;
+    let votesRef = null;
+    let myUid = null;
+    let voterName = "";
     let customParams = [];
     let playersData = [];
+    let myVotes = {}; // playerId -> vote doc data
     let currentPlayerId = null;
     let currentPlayerIsGk = false;
 
@@ -229,8 +252,13 @@
 
     // ========== Init ==========
     window.onload = async () => {
-        if (!groupId) { showError("לא נמצא מזהה קבוצה בקישור."); return; }
+        if (!groupId || !token) { showError("קישור לא תקין — חסר מזהה קבוצה או טוקן הצבעה.\nבקש קישור אישי חדש מהמנהל."); return; }
         try {
+            // 1. התחברות אנונימית (שקוף למשתמש)
+            const cred = await auth.signInAnonymously();
+            myUid = cred.user.uid;
+
+            // 2. טעינת הקבוצה
             const groupDoc = await db.collection('groups').doc(groupId).get();
             if (!groupDoc.exists) { showError("הקבוצה לא נמצאה."); return; }
             const groupData = groupDoc.data();
@@ -238,12 +266,48 @@
             customParams = groupData.customParams || [];
             document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupName} ⚽`;
             playersRef = db.collection('groups').doc(groupId).collection('players');
-            await fetchPlayers();
+            voterRef = db.collection('groups').doc(groupId).collection('voters').doc(token);
+            votesRef = voterRef.collection('votes');
+
+            // 3. תפיסת הטוקן / אימות בעלות
+            await claimToken();
+
+            // 4. טעינת שחקנים + ההצבעות שלי
+            await Promise.all([fetchPlayers(), fetchMyVotes()]);
+            renderPortal();
+            renderProgress(false);
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('portalScreen').style.display = 'block';
         } catch (error) {
             console.error(error);
-            showError("שגיאה בהתחברות לשרת: " + (error && error.message ? error.message : error));
+            if (error && error.code === 'VOTE_TOKEN_INVALID') {
+                showError("הקישור הזה לא מוכר במערכת. 🤔\nבקש קישור אישי חדש מהמנהל.");
+            } else if (error && error.code === 'VOTE_TOKEN_CLAIMED') {
+                showError("הקישור הזה כבר שויך למכשיר אחר. 🔒\nכל קישור הצבעה הוא אישי וניתן לשימוש ממכשיר אחד בלבד.\nאם החלפת טלפון או ניקית נתונים — בקש מהמנהל לשחרר את הקישור.");
+            } else {
+                showError("שגיאה בהתחברות לשרת: " + (error && error.message ? error.message : error));
+            }
         }
     };
+
+    async function claimToken() {
+        await db.runTransaction(async (tx) => {
+            const doc = await tx.get(voterRef);
+            if (!doc.exists) { const e = new Error("invalid token"); e.code = 'VOTE_TOKEN_INVALID'; throw e; }
+            const d = doc.data();
+            voterName = d.name || "";
+            if (!d.uid) {
+                tx.update(voterRef, { uid: myUid, claimedAt: firebase.firestore.FieldValue.serverTimestamp(), lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+            } else if (d.uid !== myUid) {
+                const e = new Error("token claimed"); e.code = 'VOTE_TOKEN_CLAIMED'; throw e;
+            } else {
+                tx.update(voterRef, { lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+        });
+        if (voterName) {
+            document.getElementById('voterGreeting').innerText = `היי ${voterName}! 👋 בחר שחקן כדי לדרג אותו`;
+        }
+    }
 
     function showError(msg) {
         document.getElementById('mainCard').style.display = 'none';
@@ -252,28 +316,43 @@
     }
 
     async function fetchPlayers() {
-        try {
-            const snap = await playersRef.orderBy("name").get();
-            playersData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderPortal();
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('portalScreen').style.display = 'block';
-        } catch(e) {
-            console.error(e);
-            document.getElementById('loading').innerText = "שגיאה בטעינת נתונים ❌ " + (e && e.message ? e.message : e);
-        }
+        const snap = await playersRef.orderBy("name").get();
+        playersData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
 
-    function getStorageKey(playerId) { return `voted_${groupId}_${playerId}`; }
-    function getDataStorageKey(playerId) { return `voteData_${groupId}_${playerId}`; }
-    function getEpochStorageKey(playerId) { return `voteEpoch_${groupId}_${playerId}`; }
+    async function fetchMyVotes() {
+        const snap = await votesRef.get();
+        myVotes = {};
+        snap.docs.forEach(d => { myVotes[d.id] = d.data(); });
+    }
 
-    // הצבעה תקפה = הצבענו בעבר וגם לא היה איפוס דירוגים מאז.
-    // אם voteEpoch של השחקן גדל (איפוס), ההצבעה השמורה בטלפון נחשבת ישנה ומתעלמים ממנה.
-    function hasValidVote(p) {
-        if (!localStorage.getItem(getStorageKey(p.id))) return false;
-        const storedEpoch = parseInt(localStorage.getItem(getEpochStorageKey(p.id)) || '1', 10);
-        return storedEpoch === (p.voteEpoch || 1);
+    function hasVote(p) { return !!myVotes[p.id]; }
+
+    // ========== Progress ==========
+    function renderProgress(celebrate) {
+        const total = playersData.length;
+        const voted = playersData.filter(p => hasVote(p)).length;
+        const pct = total > 0 ? Math.round((voted / total) * 100) : 0;
+        document.getElementById('progressText').innerText = `דירגת ${voted} / ${total} שחקנים ⚽`;
+        document.getElementById('progressPct').innerText = pct + '%';
+        document.getElementById('progressFill').style.width = pct + '%';
+        const done = total > 0 && voted === total;
+        document.getElementById('allDoneBanner').style.display = done ? 'block' : 'none';
+        if (done && celebrate) launchConfetti();
+    }
+
+    function launchConfetti() {
+        const emojis = ['⚽','🎉','🏆','🎊','⭐','🥳'];
+        for (let i = 0; i < 50; i++) {
+            const el = document.createElement('div');
+            el.className = 'confetti-piece';
+            el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            el.style.left = Math.random() * 100 + 'vw';
+            el.style.animationDuration = (2 + Math.random() * 2) + 's';
+            el.style.animationDelay = (Math.random() * 0.8) + 's';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 5000);
+        }
     }
 
     // ========== Portal ==========
@@ -282,7 +361,7 @@
         grid.innerHTML = playersData.map(p => {
             const isGk = !!p.isGk;
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
-            const hasVoted = hasValidVote(p);
+            const hasVoted = hasVote(p);
             const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
             const avatar = p.imgUrl
                 ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">`
@@ -293,13 +372,9 @@
                 : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`;
 
             let actionBadge = '';
-            if (hasVoted) {
-                actionBadge = '<div class="voted-badge">✏️ ערוך דירוג</div>';
-            } else if (isGk) {
-                actionBadge = '<div class="gk-vote-badge">🧤 דרג שוער</div>';
-            } else {
-                actionBadge = '<div class="vote-badge">הצבע עכשיו 🎯</div>';
-            }
+            if (hasVoted) actionBadge = '<div class="voted-badge">✏️ ערוך דירוג</div>';
+            else if (isGk) actionBadge = '<div class="gk-vote-badge">🧤 דרג שוער</div>';
+            else actionBadge = '<div class="vote-badge">הצבע עכשיו 🎯</div>';
 
             const lockedBadgeHTML = lockedCount > 0 ? `<div class="lock-badge">🔒 ${lockedCount} פרמטרים נעולים</div>` : '';
 
@@ -349,10 +424,7 @@
         const lockedParams = p.lockedParams || {};
         const lockedCount = Object.keys(lockedParams).length;
 
-        logEvt('select_player_to_vote', {
-            player_name: p.name, group_name: groupName,
-            is_edit: hasValidVote(p)
-        });
+        logEvt('select_player_to_vote', { player_name: p.name, group_name: groupName, is_edit: hasVote(p) });
 
         document.getElementById('displayPlayerName').innerText = p.name;
         const borderColor = currentPlayerIsGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
@@ -361,10 +433,8 @@
             : `<div class="vote-avatar" style="border-color:${borderColor}">${currentPlayerIsGk ? '🧤' : '👤'}</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
 
-        // Show hint if there are locked params
         const lockedNotice = document.getElementById('lockedNotice');
-        const normalHint = document.getElementById('normalVoteHint');
-        normalHint.style.display = 'block';
+        document.getElementById('normalVoteHint').style.display = 'block';
         if (lockedCount > 0) {
             lockedNotice.style.display = 'block';
             document.getElementById('lockedScoresDisplay').innerHTML = `
@@ -378,45 +448,40 @@
             lockedNotice.style.display = 'none';
         }
 
-        // Show/hide slider sections
         document.getElementById('fieldSliders').style.display = currentPlayerIsGk ? 'none' : 'block';
         document.getElementById('gkSliders').style.display = currentPlayerIsGk ? 'block' : 'none';
 
-        const isEditing = hasValidVote(p);
-        const savedVoteRaw = isEditing ? localStorage.getItem(getDataStorageKey(id)) : null;
-        let savedVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
+        const savedVote = myVotes[id] || null;
+        const isEditing = !!savedVote;
 
         if (currentPlayerIsGk) {
             const gkKeys = ['GkDiv','GkHan','GkKic','GkPos','GkRef'];
             gkKeys.forEach(key => {
                 const lkey = key.charAt(0).toLowerCase() + key.slice(1);
-                const val = (isEditing && savedVote && savedVote[lkey] !== undefined) ? savedVote[lkey] : 5;
+                const val = (isEditing && savedVote[lkey] !== undefined) ? savedVote[lkey] : 5;
                 document.getElementById('s' + key).value = val;
                 document.getElementById('v' + key).innerText = val;
             });
         } else {
             const defaultFixed = { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
-            const fixedVals = (isEditing && savedVote) ? { ...defaultFixed, ...savedVote } : defaultFixed;
+            const fixedVals = isEditing ? { ...defaultFixed, ...savedVote } : defaultFixed;
             ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'].forEach(key => {
                 const val = fixedVals[key] || 5;
                 document.getElementById('s' + key.charAt(0).toUpperCase() + key.slice(1)).value = val;
                 document.getElementById('v' + key.charAt(0).toUpperCase() + key.slice(1)).innerText = val;
             });
-            buildCustomSliders((isEditing && savedVote && savedVote.customStats) ? savedVote.customStats : null);
+            buildCustomSliders((isEditing && savedVote.customStats) ? savedVote.customStats : null);
         }
 
         const btn = document.getElementById('submitBtn');
         if (isEditing) {
             btn.innerText = "עדכן את הדירוג שלך ✏️";
             btn.style.background = "var(--edit-color)";
-            btn.style.color = "#fff";
-            btn.style.border = "none";
         } else {
             btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
             btn.style.background = currentPlayerIsGk ? "var(--gk-text)" : "var(--primary-color)";
-            btn.style.color = "#fff";
-            btn.style.border = "none";
         }
+        btn.style.color = "#fff"; btn.style.border = "none";
 
         document.getElementById('portalScreen').style.display = 'none';
         document.getElementById('voteScreen').style.display = 'block';
@@ -430,7 +495,6 @@
             gkDiv:'זינוק', gkHan:'אחיזה', gkKic:'בעיטה', gkPos:'מיקום', gkRef:'רפלקסים'
         };
         if (names[key]) return names[key];
-        // custom param
         if (key.startsWith('cp_')) {
             const cpId = key.replace('cp_', '');
             const cp = customParams.find(p => p.id === cpId);
@@ -444,6 +508,7 @@
         currentPlayerIsGk = false;
         document.getElementById('voteScreen').style.display = 'none';
         document.getElementById('portalScreen').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ========== Submit Vote ==========
@@ -455,11 +520,10 @@
         btn.innerText = "שומר ציונים... ⏳";
 
         const getVal = (id) => parseInt(document.getElementById(id).value);
-        const isEditing = hasValidVote(p);
-        const savedVoteRaw = isEditing ? localStorage.getItem(getDataStorageKey(currentPlayerId)) : null;
-        let oldVote = savedVoteRaw ? JSON.parse(savedVoteRaw) : null;
-
         const playerRef = playersRef.doc(currentPlayerId);
+        const myVoteRef = votesRef.doc(currentPlayerId);
+        let wasEditing = false;
+        let savedVoteData = null;
 
         try {
             if (currentPlayerIsGk) {
@@ -467,20 +531,23 @@
                     gkDiv: getVal('sGkDiv'), gkHan: getVal('sGkHan'), gkKic: getVal('sGkKic'),
                     gkPos: getVal('sGkPos'), gkRef: getVal('sGkRef'),
                 };
-                const oldGkVote = oldVote || { gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5 };
 
                 await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(playerRef);
                     if (!doc.exists) throw new Error("השחקן לא נמצא במסד הנתונים");
+                    const voteDoc = await transaction.get(myVoteRef);
+                    const isEditing = voteDoc.exists;
+                    wasEditing = isEditing;
+                    const oldGkVote = isEditing ? voteDoc.data() : { gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5 };
+
                     const data = doc.data();
                     const locked = data.lockedParams || {};
-
                     let totalVotesCount = data.votesCount || 1;
                     const gkKeys = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
                     let gkSums = data.gkSums || {};
 
                     gkKeys.forEach(k => {
-                        if (locked.hasOwnProperty(k)) return; // נעול — דלג
+                        if (locked.hasOwnProperty(k)) return;
                         const currentSum = gkSums[k] !== undefined ? gkSums[k] : (data[k] || 5);
                         gkSums[k] = isEditing ? currentSum + (newGkVote[k] - (oldGkVote[k] || 5)) : currentSum + newGkVote[k];
                     });
@@ -488,11 +555,8 @@
 
                     const gkAvgs = {};
                     gkKeys.forEach(k => {
-                        if (locked.hasOwnProperty(k)) {
-                            gkAvgs[k] = locked[k]; // השתמש בערך הנעול
-                        } else {
-                            gkAvgs[k] = parseFloat((gkSums[k] / totalVotesCount).toFixed(1));
-                        }
+                        if (locked.hasOwnProperty(k)) gkAvgs[k] = locked[k];
+                        else gkAvgs[k] = parseFloat((gkSums[k] / totalVotesCount).toFixed(1));
                     });
                     const gkScore = parseFloat((Object.values(gkAvgs).reduce((a,b) => a+b, 0) / gkKeys.length).toFixed(1));
 
@@ -502,8 +566,10 @@
                         gkPos: gkAvgs.gkPos, gkRef: gkAvgs.gkRef,
                         gkScore, attScore: gkScore, defScore: gkScore,
                     });
+                    transaction.set(myVoteRef, { ...newGkVote, isGk: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    if (!isEditing) transaction.update(voterRef, { votedCount: firebase.firestore.FieldValue.increment(1) });
                 });
-                localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify(newGkVote));
+                savedVoteData = { ...newGkVote, isGk: true };
 
             } else {
                 // ---- Field player vote ----
@@ -517,15 +583,19 @@
                     const el = document.getElementById(`scp_${cp.id}`);
                     newCustomVotes[cp.id] = el ? parseInt(el.value) : 5;
                 });
-                const oldFixed = oldVote || { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
-                const oldCustom = (oldVote && oldVote.customStats) ? oldVote.customStats : {};
 
                 await db.runTransaction(async (transaction) => {
                     const doc = await transaction.get(playerRef);
                     if (!doc.exists) throw new Error("השחקן לא נמצא במסד הנתונים");
+                    const voteDoc = await transaction.get(myVoteRef);
+                    const isEditing = voteDoc.exists;
+                    wasEditing = isEditing;
+                    const prev = isEditing ? voteDoc.data() : {};
+                    const oldFixed = isEditing ? { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5, ...prev } : { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+                    const oldCustom = (isEditing && prev.customStats) ? prev.customStats : {};
+
                     const data = doc.data();
                     const locked = data.lockedParams || {};
-
                     let totalVotesCount = data.votesCount || 1;
                     const fixedKeys = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
                     let sums = {};
@@ -537,33 +607,23 @@
 
                     if (!isEditing) totalVotesCount++;
 
-                    // עדכן סכומים רק לפרמטרים שאינם נעולים
                     fixedKeys.forEach(k => {
-                        if (locked.hasOwnProperty(k)) return; // נעול — דלג
-                        if (isEditing) {
-                            sums[k] += (newVotes[k] - (oldFixed[k] || 5));
-                        } else {
-                            sums[k] += newVotes[k];
-                        }
+                        if (locked.hasOwnProperty(k)) return;
+                        if (isEditing) sums[k] += (newVotes[k] - (oldFixed[k] || 5));
+                        else sums[k] += newVotes[k];
                     });
 
                     const newAvgs = {};
                     fixedKeys.forEach(k => {
-                        if (locked.hasOwnProperty(k)) {
-                            newAvgs[k] = locked[k]; // השתמש בערך הנעול
-                        } else {
-                            newAvgs[k] = parseFloat((sums[k] / totalVotesCount).toFixed(1));
-                        }
+                        if (locked.hasOwnProperty(k)) newAvgs[k] = locked[k];
+                        else newAvgs[k] = parseFloat((sums[k] / totalVotesCount).toFixed(1));
                     });
 
                     let customSums = data.customSums || {};
                     let customAvgs = data.customAvgs || {};
                     customParams.forEach(cp => {
                         const lockKey = `cp_${cp.id}`;
-                        if (locked.hasOwnProperty(lockKey)) {
-                            customAvgs[cp.id] = locked[lockKey]; // נעול
-                            return;
-                        }
+                        if (locked.hasOwnProperty(lockKey)) { customAvgs[cp.id] = locked[lockKey]; return; }
                         const newVal = newCustomVotes[cp.id] || 5;
                         const oldVal = oldCustom[cp.id] || 5;
                         const currentSum = customSums[cp.id] !== undefined ? customSums[cp.id] : 5;
@@ -571,7 +631,6 @@
                         customAvgs[cp.id] = parseFloat((customSums[cp.id] / totalVotesCount).toFixed(1));
                     });
 
-                    // חשב attScore/defScore ממוצע על כל הפרמטרים (נעולים + רגילים)
                     const attFixedVals = [newAvgs.fin, newAvgs.dri, newAvgs.pac, newAvgs.vis, newAvgs.pos];
                     const defFixedVals = [newAvgs.tac, newAvgs.awa, newAvgs.str, newAvgs.sta, newAvgs.com];
                     customParams.forEach(cp => {
@@ -588,27 +647,32 @@
                     });
                     updateObj['customStats'] = customAvgs;
                     transaction.update(playerRef, updateObj);
+                    transaction.set(myVoteRef, { ...newVotes, customStats: newCustomVotes, isGk: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    if (!isEditing) transaction.update(voterRef, { votedCount: firebase.firestore.FieldValue.increment(1) });
                 });
-                localStorage.setItem(getDataStorageKey(currentPlayerId), JSON.stringify({ ...newVotes, customStats: newCustomVotes }));
+                savedVoteData = { ...newVotes, customStats: newCustomVotes, isGk: false };
             }
 
-            logEvt('submit_player_vote', {
-                player_name: p.name, group_name: groupName, is_gk: currentPlayerIsGk
-            });
+            logEvt('submit_player_vote', { player_name: p.name, group_name: groupName, is_gk: currentPlayerIsGk, is_edit: wasEditing });
 
-            localStorage.setItem(getStorageKey(currentPlayerId), 'true');
-            localStorage.setItem(getEpochStorageKey(currentPlayerId), String(p.voteEpoch || 1));
+            // עדכון מקומי — בלי לקרוא שוב את כל הסגל מה-DB
+            myVotes[currentPlayerId] = savedVoteData;
+            if (!wasEditing) p.votesCount = (p.votesCount || 1) + 1;
+
             btn.disabled = false;
             btn.style.background = currentPlayerIsGk ? "var(--gk-text)" : "var(--primary-color)";
             btn.style.color = "#fff"; btn.style.border = "none";
             btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
-            alert(isEditing ? 'ההצבעה עודכנה! ✔️' : 'ההצבעה נקלטה! ✔️');
-            await fetchPlayers();
+
+            renderPortal();
+            renderProgress(!wasEditing);
             backToPortal();
 
         } catch(e) {
             console.error(e);
-            alert("שגיאה בשליחה: " + (e && e.message ? e.message : e));
+            let msg = (e && e.message) ? e.message : String(e);
+            if (e && e.code === 'permission-denied') msg = "אין הרשאה — ייתכן שהקישור שוחרר או בוטל. רענן את הדף.";
+            alert("שגיאה בשליחה: " + msg);
             btn.disabled = false;
             btn.innerText = currentPlayerIsGk ? "שלח דירוג שוער 🧤" : "שלח הצבעה לשחקן 🚀";
         }
