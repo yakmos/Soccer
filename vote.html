@@ -385,7 +385,7 @@
                     ${isGk ? '<div class="gk-badge">🧤 שוער</div>' : ''}
                     ${lockedBadgeHTML}
                     <div class="chip-stats-container">${scoreBadge}</div>
-                    <div class="votes-count">📊 ${p.votesCount || 1} דירוגים</div>
+                    <div class="votes-count">${(p.votesCount||0) > 0 ? `📊 ${p.votesCount} דירוגים` : '🆕 עדיין אין דירוגים'}</div>
                     ${actionBadge}
                 </div>`;
         }).join('');
@@ -542,21 +542,22 @@
 
                     const data = doc.data();
                     const locked = data.lockedParams || {};
-                    let totalVotesCount = data.votesCount || 1;
+                    let totalVotesCount = data.votesCount || 0;
                     const gkKeys = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
                     let gkSums = data.gkSums || {};
 
                     gkKeys.forEach(k => {
                         if (locked.hasOwnProperty(k)) return;
-                        const currentSum = gkSums[k] !== undefined ? gkSums[k] : (data[k] || 5);
+                        const currentSum = gkSums[k] !== undefined ? gkSums[k] : 0;
                         gkSums[k] = isEditing ? currentSum + (newGkVote[k] - (oldGkVote[k] || 5)) : currentSum + newGkVote[k];
                     });
                     if (!isEditing) totalVotesCount++;
+                    const divisor = Math.max(totalVotesCount, 1);
 
                     const gkAvgs = {};
                     gkKeys.forEach(k => {
                         if (locked.hasOwnProperty(k)) gkAvgs[k] = locked[k];
-                        else gkAvgs[k] = parseFloat((gkSums[k] / totalVotesCount).toFixed(1));
+                        else gkAvgs[k] = parseFloat((gkSums[k] / divisor).toFixed(1));
                     });
                     const gkScore = parseFloat((Object.values(gkAvgs).reduce((a,b) => a+b, 0) / gkKeys.length).toFixed(1));
 
@@ -596,16 +597,17 @@
 
                     const data = doc.data();
                     const locked = data.lockedParams || {};
-                    let totalVotesCount = data.votesCount || 1;
+                    let totalVotesCount = data.votesCount || 0;
                     const fixedKeys = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
                     let sums = {};
 
                     fixedKeys.forEach(k => {
                         const sumKey = 'sum' + k.charAt(0).toUpperCase() + k.slice(1);
-                        sums[k] = data[sumKey] !== undefined ? data[sumKey] : (data[k] || 5);
+                        sums[k] = data[sumKey] !== undefined ? data[sumKey] : 0;
                     });
 
                     if (!isEditing) totalVotesCount++;
+                    const divisor = Math.max(totalVotesCount, 1);
 
                     fixedKeys.forEach(k => {
                         if (locked.hasOwnProperty(k)) return;
@@ -616,7 +618,7 @@
                     const newAvgs = {};
                     fixedKeys.forEach(k => {
                         if (locked.hasOwnProperty(k)) newAvgs[k] = locked[k];
-                        else newAvgs[k] = parseFloat((sums[k] / totalVotesCount).toFixed(1));
+                        else newAvgs[k] = parseFloat((sums[k] / divisor).toFixed(1));
                     });
 
                     let customSums = data.customSums || {};
@@ -626,9 +628,9 @@
                         if (locked.hasOwnProperty(lockKey)) { customAvgs[cp.id] = locked[lockKey]; return; }
                         const newVal = newCustomVotes[cp.id] || 5;
                         const oldVal = oldCustom[cp.id] || 5;
-                        const currentSum = customSums[cp.id] !== undefined ? customSums[cp.id] : 5;
+                        const currentSum = customSums[cp.id] !== undefined ? customSums[cp.id] : 0;
                         customSums[cp.id] = isEditing ? currentSum + (newVal - oldVal) : currentSum + newVal;
-                        customAvgs[cp.id] = parseFloat((customSums[cp.id] / totalVotesCount).toFixed(1));
+                        customAvgs[cp.id] = parseFloat((customSums[cp.id] / divisor).toFixed(1));
                     });
 
                     const attFixedVals = [newAvgs.fin, newAvgs.dri, newAvgs.pac, newAvgs.vis, newAvgs.pos];
