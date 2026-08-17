@@ -231,7 +231,7 @@ function renderList() {
         const scores = (p.isGk
             ? `<span class="sc-gk">🧤 שוער ${p.gkScore ?? 5}</span>`
             : `<span class="sc-att">התקפה ${p.attScore ?? 5}</span><span class="sc-def">הגנה ${p.defScore ?? 5}</span>`)
-            + `<span style="color:var(--text-muted)">📊 ${p.votesCount || 1} דירוגים</span>`;
+            + `<span style="color:var(--text-muted)">📊 ${p.votesCount || 0} דירוגים</span>`;
         return `
         <div class="player-row ${isSel ? 'selected' : ''}" onclick="toggleSel('${p.id}')">
             <div class="avatar">${p.imgUrl ? `<img src="${p.imgUrl}" alt="">` : initials}</div>
@@ -261,7 +261,9 @@ function buildResetData(p, val, keepLocks) {
     const data = { lockedParams: keepLocks ? (p.lockedParams || {}) : {} };
 
     // --- voting accumulators (vote.html): full restart like a brand-new player ---
-    data.votesCount = 1;
+    // votesCount=0: אין יותר "מצביע פנטום" — הציון המוצג (val) הוא תצוגה בלבד
+    // עד ההצבעה האמיתית הראשונה, והסכומים מתחילים מ-0.
+    data.votesCount = 0;
     // קידום "דור הדירוג": הצבעות ששמורות בטלפונים של המצביעים ייחשבו ישנות
     data.voteEpoch = (p.voteEpoch || 1) + 1;
 
@@ -269,7 +271,7 @@ function buildResetData(p, val, keepLocks) {
     const fieldVals = FIELD_PARAMS.map(k => {
         const v = locks[k] !== undefined ? locks[k] : val;
         data[k] = v;
-        data['sum' + k.charAt(0).toUpperCase() + k.slice(1)] = v;
+        data['sum' + k.charAt(0).toUpperCase() + k.slice(1)] = 0;
         return v;
     });
     // custom stats + customSums/customAvgs (vote.html reads all three)
@@ -278,7 +280,7 @@ function buildResetData(p, val, keepLocks) {
     customParams.forEach(cp => {
         const v = locks[`cp_${cp.id}`] !== undefined ? locks[`cp_${cp.id}`] : val;
         custom[cp.id] = v;
-        customSums[cp.id] = v;
+        customSums[cp.id] = 0;
         (cp.type === 'att' ? attExtra : defExtra).push(v);
     });
     data.customStats = custom;
@@ -290,7 +292,7 @@ function buildResetData(p, val, keepLocks) {
     const gkVals = GK_PARAMS.map(k => {
         const v = locks[k] !== undefined ? locks[k] : val;
         data[k] = v;
-        gkSums[k] = v;
+        gkSums[k] = 0;
         return v;
     });
     data.gkSums = gkSums;
