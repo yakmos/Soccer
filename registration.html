@@ -472,7 +472,6 @@ let gameData       = null;
 let maxPlayers     = 10;
 let isAdmin        = false;
 let cancelled      = [];
-let historyCache   = [];
 let customParams   = [];
 
 window.onload = async () => {
@@ -507,19 +506,17 @@ window.onload = async () => {
             }
         }
 
-        const playersCol  = db.collection('groups').doc(groupId).collection('players');
-        const playersSnap = await playersCol.get();
-        allPlayers = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // האזנה חיה לכרטיסי השחקנים - שינוי גיל/סטטוס בכרטיס מעדכן את הרשימה מיד, בלי רענון
-        playersCol.onSnapshot(snap => {
-            allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderPlayersList();
-            updateCapacityBar();
+        // האזנה חיה לכרטיסי השחקנים - ה-snapshot הראשון משמש גם כטעינה הראשונית
+        // (חוסך get() כפול = חצי מקריאות השחקנים בכל פתיחת דף)
+        const playersCol = db.collection('groups').doc(groupId).collection('players');
+        await new Promise(resolve => {
+            playersCol.onSnapshot(snap => {
+                allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderPlayersList();
+                updateCapacityBar();
+                resolve();
+            });
         });
-
-        const historySnap = await db.collection('groups').doc(groupId).collection('history').get();
-        historyCache = historySnap.docs.map(d => d.data());
 
         document.getElementById('gameHeader').style.display = 'block';
         document.getElementById('groupNameEl').textContent  = '⚽ ' + (groupData.name || 'קבוצה');
@@ -1164,11 +1161,6 @@ function showMiniCard(playerId) {
     const p = allPlayers.find(x => x.id === playerId);
     if (!p) return;
 
-    const pHistory   = historyCache.filter(h => h.playerId === playerId);
-    const totalWins  = pHistory.filter(h => h.type === 'win').length;
-    const totalGoals = pHistory.filter(h => h.type === 'goal').length
-        + pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
-
     const isGk = !!p.isGk;
     const age  = calcAge(p.birthDate);
 
@@ -1249,16 +1241,6 @@ function showMiniCard(playerId) {
         <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;">${badges}</div>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">${ageBadge}</div>
-        <div style="display:flex;justify-content:center;gap:15px;margin-bottom:20px;">
-            <div style="background:rgba(252,211,77,0.1);border:1px solid rgba(252,211,77,0.3);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
-                <div style="font-size:1.6rem;font-weight:900;color:#FCD34D;">${totalGoals}</div>
-                <div style="font-size:0.8rem;font-weight:800;color:#FCD34D;">⚽ גולי קריירה</div>
-            </div>
-            <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
-                <div style="font-size:1.6rem;font-weight:900;color:#10B981;">${totalWins}</div>
-                <div style="font-size:0.8rem;font-weight:800;color:#10B981;">🏆 ניצחונות</div>
-            </div>
-        </div>
         ${scoreBoxes}
         ${statsSection}`;
 
