@@ -27,6 +27,7 @@
         .btn:active { transform: scale(0.98); }
         .btn:disabled { opacity: 0.5; }
         .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.4); }
+        .btn-wa { background: rgba(37,211,102,0.12); color: #25D366; border: 1px solid rgba(37,211,102,0.4); }
         .voter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; flex-wrap: wrap; }
         .voter-info { flex: 1; min-width: 140px; }
         .voter-name { font-weight: 800; font-size: 1.05rem; }
@@ -61,6 +62,7 @@
         <div class="card">
             <h3>👥 מצביעים (<span id="votersCount">0</span>)</h3>
             <div id="votersList"><div style="color:var(--text-muted); text-align:center; padding:10px;">טוען...</div></div>
+            <button class="btn btn-wa" onclick="shareSummaryWa()">📊 שתף סיכום דירוגים בוואטסאפ 💬</button>
             <div class="note">
                 🟢 <b>שויך</b> = הקישור נפתח ונקשר למכשיר. 🟡 <b>ממתין</b> = טרם נפתח.<br>
                 <b>שחרר מכשיר</b> — למי שהחליף טלפון או ניקה נתונים; הקישור יישאר זהה וייתפס מחדש בכניסה הבאה.
@@ -200,6 +202,13 @@
 
     function shareWa(token, name) {
         const msg = `היי ${name}! ⚽ הנה הקישור האישי שלך לדירוג שחקני הקבוצה:\n${voteLink(token)}\n\n⚠️ הקישור אישי — הוא ננעל למכשיר הראשון שפותח אותו, אז אל תעביר הלאה 😉\nאפשר לחזור אליו בכל רגע ולעדכן דירוגים.`;
+        window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+    }
+
+    function shareSummaryWa() {
+        if (voters.length === 0) { setStatus("אין מצביעים לשתף 🤷"); return; }
+        const lines = voters.map(v => `${v.name || '(ללא שם)'} - ${v.votedCount || 0} דירוגים`);
+        const msg = `📊 סטטוס דירוגים ⚽\n\n${lines.join('\n')}`;
         window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
 
