@@ -2201,9 +2201,10 @@ function assignFieldRoles(pool) {
     const numDef = Math.max(1, Math.ceil(n / 2));
     const numAtt = n - numDef;
 
-    // התקפה: מי שחזק בסיומת ובדריבל. בשוויון — מי שחלש יותר בהגנה (שהחזקים בהגנה יישארו מאחור)
-    const byAtt = [...pool].sort((a,b) =>
-        (((b.fin||5)+(b.dri||5)) - ((a.fin||5)+(a.dri||5))) || ((a.defScore||5) - (b.defScore||5)));
+    // התקפה: לפי נטייה יחסית — כמה השחקן התקפי ביחס ליכולת ההגנה שלו.
+    // כך שחקן שחזק בהגנה לא ייגרר להתקפה רק כי השאר חלשים ממנו בסיומת.
+    const attTendency = p => ((p.fin||5) + (p.dri||5)) / 2 - (p.defScore||5);
+    const byAtt = [...pool].sort((a,b) => (attTendency(b) - attTendency(a)) || (((b.fin||5)+(b.dri||5)) - ((a.fin||5)+(a.dri||5))));
     const forwards = byAtt.slice(0, numAtt);
     const defenders = pool.filter(p => !forwards.includes(p));
 
