@@ -130,8 +130,14 @@
     };
 
     async function loadVoters() {
-        const snap = await votersRef.orderBy('name').get();
+        const snap = await votersRef.get();
         voters = snap.docs.map(d => ({ token: d.id, ...d.data() }));
+        // מיון לפי מספר השחקנים שדורגו (מהגבוה לנמוך), ובמקרה של שוויון — לפי שם
+        voters.sort((a, b) => {
+            const diff = (b.votedCount || 0) - (a.votedCount || 0);
+            if (diff !== 0) return diff;
+            return (a.name || '').localeCompare(b.name || '', 'he');
+        });
         renderVoters();
     }
 
