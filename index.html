@@ -2091,6 +2091,51 @@ function switchTab(tabId, btnElement) {
 }
 
 // ========== Team Generation ==========
+// ========== איזון קבוצות: פונקציית ציון ==========
+// ציון נמוך = קבוצות מאוזנות יותר. משקללת: ממוצעי התקפה/הגנה,
+// פיזור כוכבים, שונות פנימית, וחוזק הקווים לאחר שיבוץ תפקידים בפועל.
+function evalTeams(teams) {
+    const avg = arr => arr.length ? arr.reduce((s,v) => s+v, 0) / arr.length : 5;
+    const spread = arr => Math.max(...arr) - Math.min(...arr);
+
+    const metrics = teams.map(t => {
+        const fixedGk = t.find(p => p.isGk);
+        const fp = fixedGk ? t.filter(p => !p.isGk) : t;
+
+        const att = avg(fp.map(p => p.attScore||5));
+        let def = avg(fp.map(p => p.defScore||5));
+        if (fixedGk) def = (def * fp.length + (fixedGk.gkScore || 5)) / (fp.length + 1);
+
+        // כוח אישי כולל של כל שחקן שדה
+        const powers = fp.map(p => ((p.attScore||5) + (p.defScore||5)) / 2);
+        const star = powers.length ? Math.max(...powers) : 5;
+        const mean = avg(powers);
+        const std = powers.length ? Math.sqrt(avg(powers.map(v => (v-mean)*(v-mean)))) : 0;
+
+        // איזון לפי תפקידים: איך הקבוצה תיראה בפועל אחרי שיבוץ
+        let pool = fp;
+        if (!fixedGk && fp.length > 1) {
+            // בלי שוער קבוע — החלש ביותר ישחק בשער (כמו בלוגיקת gkIds)
+            const weakest = [...fp].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)))[0];
+            pool = fp.filter(p => p !== weakest);
+        }
+        const roles = assignFieldRoles([...pool]);
+        const defLine = [], attLine = [];
+        for (const [role, p] of Object.entries(roles)) {
+            if (role.startsWith('בלם') || role.startsWith('מגן')) defLine.push(p.defScore||5);
+            else attLine.push(((p.fin||5) + (p.dri||5)) / 2);
+        }
+        return { att, def, star, std, defLine: avg(defLine), attLine: avg(attLine) };
+    });
+
+    return spread(metrics.map(m => m.att))
+         + spread(metrics.map(m => m.def))
+         + 0.5 * spread(metrics.map(m => m.star))
+         + 0.3 * spread(metrics.map(m => m.std))
+         + 0.5 * spread(metrics.map(m => m.defLine))
+         + 0.5 * spread(metrics.map(m => m.attLine));
+}
+
 async function run() {
     const lineup = players.filter(p => p.inLineup);
     const totalNeeded = groupSettings.numTeams * groupSettings.playersPerTeam;
@@ -2102,7 +2147,7 @@ async function run() {
     const playersPerTeam = groupSettings.playersPerTeam;
     if (gkPlayers.length > numTeams) return alert(`יש ${gkPlayers.length} שוערים אבל רק ${numTeams} קבוצות.`);
     let best = null, min = Infinity;
-    for(let i = 0; i < 5000; i++) {
+    for(let i = 0; i < 3000; i++) {
         const teams = Array.from({length: numTeams}, () => []);
         const tempGks = [...gkPlayers].sort(() => 0.5 - Math.random());
         const tempField = [...fieldPlayers].sort(() => 0.5 - Math.random());
@@ -2113,10 +2158,22 @@ async function run() {
             const slotsLeft = playersPerTeam - teams[t].length;
             for (let s = 0; s < slotsLeft; s++) { if (fieldIdx < tempField.length) teams[t].push(tempField[fieldIdx++]); }
         }
-        const attScores = teams.map(t => { const fixedGk = t.find(p => p.isGk); const fp = fixedGk ? t.filter(p => !p.isGk) : t; return fp.length ? fp.reduce((s, p) => s + (p.attScore||5), 0) / fp.length : 5; });
-        const defScores = teams.map(t => { const fixedGk = t.find(p => p.isGk); const fp = fixedGk ? t.filter(p => !p.isGk) : t; const fieldDef = fp.length ? fp.reduce((s, p) => s + (p.defScore||5), 0) / fp.length : 5; if (fixedGk) { const total = fp.length + 1; return (fieldDef * fp.length + (fixedGk.gkScore || 5)) / total; } return fieldDef; });
-        const diff = (Math.max(...attScores) - Math.min(...attScores)) + (Math.max(...defScores) - Math.min(...defScores));
-        if(diff < min) { min = diff; best = teams; }
+        const diff = evalTeams(teams);
+        if(diff < min) { min = diff; best = teams.map(t => [...t]); }
+    }
+    // שלב ליטוש: hill climbing — מנסים כל חילוף זוגי בין קבוצות, מבצעים אם משפר
+    let improved = true;
+    while (improved) {
+        improved = false;
+        for (let a = 0; a < numTeams; a++) for (let b = a + 1; b < numTeams; b++) {
+            for (let i = 0; i < best[a].length; i++) for (let j = 0; j < best[b].length; j++) {
+                if (best[a][i].isGk || best[b][j].isGk) continue; // שוערים קבועים לא זזים
+                [best[a][i], best[b][j]] = [best[b][j], best[a][i]];
+                const d = evalTeams(best);
+                if (d < min - 1e-9) { min = d; improved = true; }
+                else { [best[a][i], best[b][j]] = [best[b][j], best[a][i]]; } // ביטול
+            }
+        }
     }
     const hasFixedGk = best.map(t => t.some(p => p.isGk));
     const gkIds = best.map((t, i) => {
@@ -2141,14 +2198,23 @@ async function rotateGk(teamIndex) {
 
 function assignFieldRoles(pool) {
     const roles = {}; const n = pool.length; if (n === 0) return roles;
-    const numDef = Math.max(1, Math.floor(n / 2));
-    const byDef = [...pool].sort((a,b) => (b.defScore||5) - (a.defScore||5));
-    const defenders = byDef.slice(0, numDef); const forwards = byDef.slice(numDef);
-    defenders.sort((a,b) => (a.sta||5) - (b.sta||5));
+    const numDef = Math.max(1, Math.ceil(n / 2));
+    const numAtt = n - numDef;
+
+    // התקפה: מי שחזק בסיומת ובדריבל. בשוויון — מי שחלש יותר בהגנה (שהחזקים בהגנה יישארו מאחור)
+    const byAtt = [...pool].sort((a,b) =>
+        (((b.fin||5)+(b.dri||5)) - ((a.fin||5)+(a.dri||5))) || ((a.defScore||5) - (b.defScore||5)));
+    const forwards = byAtt.slice(0, numAtt);
+    const defenders = pool.filter(p => !forwards.includes(p));
+
+    // בלם: חלש בסיבולת אבל טוב בהגנה → ממזערים (סיבולת - הגנה)
+    defenders.sort((a,b) => ((a.sta||5) - (a.defScore||5)) - ((b.sta||5) - (b.defScore||5)));
     const sweeper = defenders.shift(); roles['בלם'] = sweeper;
-    defenders.sort((a,b) => (b.sta||5) - (a.sta||5));
+
+    // מגנים: סיבולת גבוהה + הגנה טובה
+    defenders.sort((a,b) => (((b.sta||5)+(b.defScore||5)) - ((a.sta||5)+(a.defScore||5))));
     defenders.forEach((p, i) => { roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p; });
-    forwards.sort((a,b) => (b.attScore||5) - (a.attScore||5));
+
     forwards.forEach((p, i) => { roles[forwards.length === 1 ? 'חלוץ' : (i === 0 ? 'חלוץ ימין' : i === 1 ? 'חלוץ שמאל' : `חלוץ ${i+1}`)] = p; });
     return roles;
 }
