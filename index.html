@@ -2396,8 +2396,9 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
     }).join('');
 
     content += `</div>
-        <div id='shareButtonsBox' style='margin-top:20px;'>
+        <div id='shareButtonsBox' style='margin-top:20px; display:flex; flex-direction:column; gap:8px;'>
             <button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'>שתף תמונה 📸</button>
+            <button class='btn btn-whatsapp' onclick='captureTeamImages()'>צילום לכל קבוצה בנפרד 📷📷📷</button>
         </div>`;
 
     r.innerHTML = content;
@@ -2414,6 +2415,47 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
 }
 
 // ========== Share ==========
+async function captureTeamImages() {
+    const b = document.getElementById('shareButtonsBox');
+    b.style.display = 'none';
+    const wasAdmin = document.body.classList.contains('is-admin');
+    document.body.classList.remove('is-admin');
+
+    const rows = document.querySelectorAll('.team-row');
+    const files = [];
+    try {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const origBg = row.style.backgroundColor, origPad = row.style.padding, origRadius = row.style.borderRadius;
+            row.style.backgroundColor = '#1E293B'; row.style.padding = '15px'; row.style.borderRadius = '16px';
+            const canvas = await html2canvas(row, {scale:2, useCORS:true, backgroundColor:'#1E293B'});
+            row.style.backgroundColor = origBg; row.style.padding = origPad; row.style.borderRadius = origRadius;
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+            files.push(new File([blob], `קבוצה-${i+1}.png`, {type:'image/png'}));
+        }
+    } catch(e) {
+        console.error('capture failed', e);
+    }
+
+    b.style.display = 'flex';
+    if (wasAdmin) document.body.classList.add('is-admin');
+    if (files.length === 0) return;
+
+    // ניסיון לשתף את כל התמונות יחד (בנייד — נפתח וואטסאפ עם 3 תמונות)
+    if (navigator.canShare && navigator.canShare({files})) {
+        try { await navigator.share({files, title:'הכוחות של הערב'}); return; } catch(err) { if (err.name === 'AbortError') return; }
+    }
+    // נפילה לאחור: הורדה של כל תמונה בנפרד (דסקטופ)
+    for (const f of files) {
+        const link = document.createElement('a');
+        link.download = f.name;
+        link.href = URL.createObjectURL(f);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        await new Promise(r => setTimeout(r, 300));
+    }
+}
+
 async function shareImageToWhatsApp() {
     const r = document.getElementById('results'), b = document.getElementById('shareButtonsBox');
     b.style.display = 'none'; const wasAdmin = document.body.classList.contains('is-admin'); document.body.classList.remove('is-admin');
