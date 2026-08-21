@@ -207,7 +207,7 @@
 
     function shareSummaryWa() {
         if (voters.length === 0) { setStatus("אין מצביעים לשתף 🤷"); return; }
-        const lines = voters.map(v => `${v.name || '(ללא שם)'} - ${v.votedCount || 0} דירוגים`);
+        const lines = voters.map(v => `${v.name || '(ללא שם)'} - דירג ${v.votedCount || 0} מתוך ${playersCount} אנשים`);
         const msg = `📊 סטטוס דירוגים ⚽\n\n${lines.join('\n')}`;
         window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
