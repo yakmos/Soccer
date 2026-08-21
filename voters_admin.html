@@ -207,7 +207,18 @@
 
     function shareSummaryWa() {
         if (voters.length === 0) { setStatus("אין מצביעים לשתף 🤷"); return; }
-        const lines = voters.map(v => `${v.name || '(ללא שם)'} - דירג ${v.votedCount || 0} מתוך ${playersCount} אנשים`);
+        function ratingEmoji(count) {
+            if (count > 15) return '🏆🔥';   // אגדי!
+            if (count > 10) return '😄';     // עוד יותר נחמד
+            if (count >= 5) return '🙂';     // קצת יותר נחמד
+            if (count >= 1) return '😢';     // עצוב
+            return '💤';                     // עוד לא התחיל בכלל
+        }
+
+        const lines = voters.map(v => {
+            const count = v.votedCount || 0;
+            return `\u200F${ratingEmoji(count)} ${v.name || '(ללא שם)'} - דירג ${count} מתוך ${playersCount} אנשים`;
+        });
         const msg = `📊 סטטוס דירוגים ⚽\n\n${lines.join('\n')}`;
         window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
