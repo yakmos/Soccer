@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעבר ל-5 מדדים</title>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; }
+    body { font-family:'Heebo',sans-serif; background:#0F172A; color:#E2E8F0; margin:0; padding:20px; }
+    .card { max-width:600px; margin:24px auto; background:#1E293B; border:1px solid #334155; border-radius:16px; padding:25px; }
+    h1 { font-size:1.35rem; margin:0 0 6px; }
+    .sub { color:#94A3B8; font-size:0.88rem; margin-bottom:20px; line-height:1.6; }
+    label { display:block; font-weight:800; font-size:0.88rem; margin:14px 0 6px; }
+    input[type=text], input[type=password] { width:100%; padding:12px; border-radius:10px; border:1px solid #334155; background:#0F172A; color:#E2E8F0; font-family:'Heebo',sans-serif; font-size:1rem; }
+    .modes { display:flex; gap:10px; margin-top:8px; }
+    .mode { flex:1; border:1px solid #334155; border-radius:12px; padding:14px; cursor:pointer; background:#0F172A; }
+    .mode.sel { border-color:#6366F1; background:rgba(99,102,241,0.12); }
+    .mode b { display:block; font-size:0.95rem; margin-bottom:4px; }
+    .mode span { font-size:0.78rem; color:#94A3B8; line-height:1.5; }
+    button { width:100%; padding:14px; border-radius:10px; border:none; font-family:'Heebo',sans-serif; font-weight:900; font-size:1.05rem; cursor:pointer; margin-top:18px; }
+    .go { background:#6366F1; color:#fff; }
+    .go.danger { background:#DC2626; }
+    .go:disabled { opacity:0.5; cursor:not-allowed; }
+    .warn { background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.3); color:#FCD34D; padding:12px; border-radius:10px; font-size:0.82rem; line-height:1.6; margin-top:16px; }
+    #log { margin-top:18px; font-size:0.84rem; line-height:1.8; white-space:pre-wrap; background:#0F172A; border:1px solid #334155; border-radius:10px; padding:14px; max-height:340px; overflow:auto; display:none; }
+    .ok { color:#10B981; } .err { color:#F87171; } .dim { color:#94A3B8; }
+    .chk { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:0.85rem; color:#94A3B8; }
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>⚙️ מעבר למערכת 5 המדדים</h1>
+    <div class="sub">הרץ פעם אחת, לפני שליחת קישורי ההצבעה החדשים.</div>
+
+    <label>מזהה קבוצה</label>
+    <input type="text" id="groupId" placeholder="CBLYpMMYzyc9k9dDPOjC">
+
+    <label>סיסמת מנהל</label>
+    <input type="password" id="pwd" placeholder="הסיסמה של הקבוצה">
+
+    <label>מה לעשות?</label>
+    <div class="modes">
+        <div class="mode sel" id="m-convert" onclick="setMode('convert')">
+            <b>🔄 המרה</b>
+            <span>גוזר את 5 המדדים מהישנים. הציונים והוותק נשמרים, אפשר להצביע מחדש בהדרגה.</span>
+        </div>
+        <div class="mode" id="m-reset" onclick="setMode('reset')">
+            <b>🗑️ איפוס</b>
+            <span>הכול חוזר ל-5, כל ההצבעות נמחקות. דורש סבב הצבעות מלא מאפס.</span>
+        </div>
+    </div>
+
+    <div class="chk">
+        <input type="checkbox" id="doVoters" checked>
+        <label for="doVoters" style="margin:0; font-weight:400;">לטפל גם בהצבעות השמורות של המצביעים</label>
+    </div>
+
+    <div id="confirmWrap" style="display:none;">
+        <label>הקלד <b>אפס</b> לאישור</label>
+        <input type="text" id="confirm" placeholder="אפס">
+    </div>
+
+    <div class="warn" id="warnBox">
+        ההמרה משנה את כרטיסי השחקנים ואת ההצבעות השמורות. אין ביטול — אם אתה לא בטוח, עדיף לגבות את הנתונים קודם.
+    </div>
+
+    <button class="go" id="btn" onclick="run()">בצע המרה 🔄</button>
+    <div id="log"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+    authDomain: "soccer-b30a6.firebaseapp.com",
+    projectId: "soccer-b30a6",
+    storageBucket: "soccer-b30a6.firebasestorage.app",
+    messagingSenderId: "295483280442",
+    appId: "1:295483280442:web:0633390394600eb6357903"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const DEL = firebase.firestore.FieldValue.delete();
+
+let mode = 'convert';
+function setMode(m) {
+    mode = m;
+    document.getElementById('m-convert').classList.toggle('sel', m === 'convert');
+    document.getElementById('m-reset').classList.toggle('sel', m === 'reset');
+    document.getElementById('confirmWrap').style.display = m === 'reset' ? 'block' : 'none';
+    const btn = document.getElementById('btn');
+    btn.classList.toggle('danger', m === 'reset');
+    btn.innerText = m === 'reset' ? 'אפס הכול 🗑️' : 'בצע המרה 🔄';
+    document.getElementById('warnBox').innerHTML = m === 'reset'
+        ? 'הפעולה תמחק את כל ההצבעות ותאפס את כל המדדים ל-5. אין ביטול. הקישורים האישיים של המצביעים יישארו תקפים.'
+        : 'ההמרה משנה את כרטיסי השחקנים ואת ההצבעות השמורות. אין ביטול — אם אתה לא בטוח, עדיף לגבות את הנתונים קודם.';
+}
+
+const params = new URLSearchParams(location.search);
+if (params.get('group')) document.getElementById('groupId').value = params.get('group');
+
+const logEl = document.getElementById('log');
+function log(msg, cls) {
+    logEl.style.display = 'block';
+    logEl.innerHTML += `<div class="${cls||''}">${msg}</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ===== נוסחאות ההמרה מ-10 מדדים ל-5 =====
+// כל מדד חדש הוא צירוף ליניארי של הישנים, ולכן אותה נוסחה בדיוק
+// עובדת גם על הערכים הממוצעים וגם על שדות הסכום (sumXxx).
+const MAP = {
+    atk: { fin:0.45, dri:0.35, pos:0.20 },
+    def: { tac:0.40, awa:0.40, str:0.20 },
+    sta: { sta:0.75, str:0.25 },
+    pac: { pac:1.00 },
+    pas: { vis:0.55, com:0.45 }
+};
+const OLD_KEYS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+const NEW_KEYS = ['atk','def','sta','pac','pas'];
+const cap = k => k.charAt(0).toUpperCase() + k.slice(1);
+
+function convertValues(src, dflt) {
+    const out = {};
+    for (const [newKey, w] of Object.entries(MAP)) {
+        let v = 0;
+        for (const [oldKey, weight] of Object.entries(w)) {
+            const raw = src[oldKey];
+            v += weight * (raw === undefined || raw === null ? dflt : raw);
+        }
+        out[newKey] = v;
+    }
+    return out;
+}
+
+// ציונים נגזרים - חייב להיות זהה ל-index.html
+const W_ATT = { atk:0.55, pas:0.25, pac:0.20 };
+const W_DEF = { def:0.55, sta:0.25, pac:0.20 };
+const wsum = (p, w) => Object.entries(w).reduce((a,[k,v]) => a + v*(p[k] || 5), 0);
+const r1 = v => parseFloat(v.toFixed(1));
+
+async function run() {
+    const groupId = document.getElementById('groupId').value.trim();
+    const pwd     = document.getElementById('pwd').value;
+    const btn     = document.getElementById('btn');
+    const touchVoters = document.getElementById('doVoters').checked;
+
+    if (!groupId) return alert('חסר מזהה קבוצה');
+    if (mode === 'reset' && document.getElementById('confirm').value.trim() !== 'אפס')
+        return alert('הקלד "אפס" בשדה האישור');
+
+    btn.disabled = true;
+    btn.innerText = 'עובד... ⏳';
+    logEl.innerHTML = '';
+
+    try {
+        // ---- 0. התחברות אנונימית (כמו בדף ההצבעה) ----
+        await auth.signInAnonymously();
+        log('✅ התחברות ל-Firebase', 'ok');
+
+        const groupRef = db.collection('groups').doc(groupId);
+        const groupDoc = await groupRef.get();
+        if (!groupDoc.exists) throw new Error('הקבוצה לא נמצאה — בדוק את מזהה הקבוצה');
+        if (groupDoc.data().password !== pwd) throw new Error('סיסמת מנהל שגויה');
+        log('✅ אימות מנהל', 'ok');
+
+        // ---- 1. כרטיסי השחקנים ----
+        const playersSnap = await groupRef.collection('players').get();
+        log(`נמצאו ${playersSnap.size} שחקנים`, 'dim');
+
+        let batch = db.batch(), ops = 0;
+        const flush = async () => { if (ops) { await batch.commit(); batch = db.batch(); ops = 0; } };
+
+        for (const doc of playersSnap.docs) {
+            const d = doc.data();
+            const upd = {};
+
+            if (mode === 'reset') {
+                NEW_KEYS.forEach(k => upd[k] = 5);
+                upd.votesCount = 0;
+                upd.customStats = {}; upd.customSums = {}; upd.customAvgs = {};
+                upd.attScore = d.isGk ? (d.gkScore || 5) : 5;
+                upd.defScore = upd.attScore;
+                upd.lockedParams = DEL;
+            } else {
+                const vals = convertValues(d, 5);
+                NEW_KEYS.forEach(k => upd[k] = r1(vals[k]));
+                if (d.isGk) {
+                    upd.attScore = d.gkScore || 5;
+                    upd.defScore = d.gkScore || 5;
+                } else {
+                    upd.attScore = r1(wsum(upd, W_ATT));
+                    upd.defScore = r1(wsum(upd, W_DEF));
+                }
+                // המרת שדות הסכום כדי שהוותק (votesCount) יישאר תקף
+                const sums = {};
+                OLD_KEYS.forEach(k => { const s = d['sum'+cap(k)]; if (s !== undefined) sums[k] = s; });
+                if (Object.keys(sums).length) {
+                    const n = d.votesCount || 1;
+                    const convSums = convertValues(sums, 5 * n);
+                    NEW_KEYS.forEach(k => upd['sum'+cap(k)] = convSums[k]);
+                }
+                // נעילות ישנות מצביעות על מדדים שכבר לא קיימים
+                if (d.lockedParams && Object.keys(d.lockedParams).length) upd.lockedParams = DEL;
+            }
+
+            OLD_KEYS.filter(k => !NEW_KEYS.includes(k)).forEach(k => upd[k] = DEL);
+            ['fin','dri','vis','pos','tac','awa','str','com'].forEach(k => upd['sum'+cap(k)] = DEL);
+            if (mode === 'reset') NEW_KEYS.forEach(k => upd['sum'+cap(k)] = DEL);
+
+            batch.update(doc.ref, upd);
+            if (++ops >= 300) await flush();
+        }
+        await flush();
+        log(`✅ ${playersSnap.size} כרטיסי שחקן ${mode === 'reset' ? 'אופסו' : 'הומרו'}`, 'ok');
+
+        // ---- 2. ההצבעות השמורות ----
+        if (!touchVoters) {
+            log('⏭️ דילוג על ההצבעות השמורות (לפי בחירתך)', 'dim');
+        } else {
+            let votersSnap;
+            try {
+                votersSnap = await groupRef.collection('voters').get();
+            } catch (e) {
+                log('⚠️ אין הרשאה לקרוא את רשימת המצביעים — כרטיסי השחקנים כן עודכנו.', 'err');
+                log('   כדי להשלים, הוסף לחוקי Firestore הרשאת list על voters, או הרץ שוב בלי הסימון.', 'dim');
+                throw new Error('שלב המצביעים נכשל (ההרשאות). כרטיסי השחקנים הושלמו בהצלחה.');
+            }
+            log(`נמצאו ${votersSnap.size} מצביעים`, 'dim');
+
+            let touched = 0;
+            for (const voter of votersSnap.docs) {
+                const votes = await voter.ref.collection('votes').get();
+                let vb = db.batch(), vo = 0;
+                for (const v of votes.docs) {
+                    const vd = v.data();
+                    if (mode === 'reset') {
+                        vb.delete(v.ref);
+                    } else if (!vd.isGk) {
+                        const conv = convertValues(vd, 5);
+                        const upd = {};
+                        NEW_KEYS.forEach(k => upd[k] = Math.round(conv[k]));
+                        OLD_KEYS.filter(k => !NEW_KEYS.includes(k)).forEach(k => upd[k] = DEL);
+                        vb.update(v.ref, upd);
+                    } else continue;
+                    touched++;
+                    if (++vo >= 300) { await vb.commit(); vb = db.batch(); vo = 0; }
+                }
+                if (vo) await vb.commit();
+                if (mode === 'reset') await voter.ref.update({ votedCount: 0 });
+            }
+            log(`✅ ${touched} הצבעות ${mode === 'reset' ? 'נמחקו' : 'הומרו'}`, 'ok');
+        }
+
+        log('\n🎉 הפעולה הושלמה. אפשר לשלוח את קישורי ההצבעה.', 'ok');
+        btn.innerText = 'הושלם ✅';
+    } catch (e) {
+        console.error(e);
+        const msg = (e && e.code === 'permission-denied')
+            ? 'אין הרשאה (permission-denied) — ראה את השורות למעלה כדי לזהות באיזה שלב זה קרה.'
+            : (e.message || String(e));
+        log('❌ ' + msg, 'err');
+        btn.disabled = false;
+        btn.innerText = 'נסה שוב';
+    }
+}
+</script>
+</body>
+</html>
