@@ -191,9 +191,14 @@ async function run() {
                 NEW_KEYS.forEach(k => upd[k] = 5);
                 upd.votesCount = 0;
                 upd.customStats = {}; upd.customSums = {}; upd.customAvgs = {};
-                upd.attScore = d.isGk ? (d.gkScore || 5) : 5;
-                upd.defScore = upd.attScore;
+                upd.attScore = 5;
+                upd.defScore = 5;
                 upd.lockedParams = DEL;
+                // מדדי השוער חולקים את אותו votesCount, לכן חייבים להתאפס איתו —
+                // אחרת ההצבעה הבאה תחלק סכום מצטבר ישן במונה של 1
+                ['gkDiv','gkHan','gkKic','gkPos','gkRef'].forEach(k => upd[k] = 5);
+                upd.gkScore = 5;
+                upd.gkSums = DEL;
             } else {
                 const vals = convertValues(d, 5);
                 NEW_KEYS.forEach(k => upd[k] = r1(vals[k]));
