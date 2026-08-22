@@ -1,146 +1,49 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>איפוס דירוגים 🔄</title>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <style>
-        :root {
-            --bg-color: #0F172A;
-            --surface-color: #1E293B;
-            --primary-color: #10B981;
-            --text-main: #F8FAFC;
-            --text-muted: #94A3B8;
-            --border-color: #334155;
-            --danger: #EF4444;
-            --edit-color: #3B82F6;
-            --gold: #FCD34D;
-            --att-text: #F87171;
-            --def-text: #60A5FA;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            font-family: 'Heebo', sans-serif; background: var(--bg-color); color: var(--text-main);
-            margin: 0; padding: 16px; padding-bottom: 110px;
-        }
-        .container { max-width: 700px; margin: 0 auto; }
-        h1 { font-size: 1.5rem; font-weight: 900; margin: 0 0 4px; }
-        .subtitle { color: var(--text-muted); font-size: .9rem; margin-bottom: 16px; }
-
-        .controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .search-input {
-            flex: 1; min-width: 150px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color);
-            background: var(--surface-color); color: var(--text-main); font-family: 'Heebo'; font-size: .95rem;
-        }
-        .search-input:focus { outline: none; border-color: var(--primary-color); }
-        .chip-btn {
-            background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-muted);
-            padding: 8px 14px; border-radius: 20px; font-family: 'Heebo'; font-weight: 700; font-size: .82rem; cursor: pointer;
-        }
-        .chip-btn:hover { border-color: var(--primary-color); color: var(--text-main); }
-
-        .options-card {
-            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px;
-            padding: 12px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px;
-        }
-        .opt-row { display: flex; align-items: center; gap: 10px; font-size: .88rem; }
-        .opt-row input[type="number"] {
-            width: 64px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border-color);
-            background: var(--bg-color); color: var(--text-main); font-family: 'Heebo'; font-weight: 700; font-size: 1rem; text-align: center;
-        }
-        .opt-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-muted); }
-        input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer; }
-
-        .player-row {
-            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px;
-            padding: 10px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
-            cursor: pointer; transition: border-color .15s, background .15s; user-select: none;
-        }
-        .player-row.selected { border-color: var(--primary-color); background: rgba(16,185,129,.08); }
-        .avatar {
-            width: 38px; height: 38px; border-radius: 50%; background: var(--bg-color); border: 2px solid var(--border-color);
-            display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--primary-color);
-            overflow: hidden; flex-shrink: 0;
-        }
-        .avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .p-name { font-weight: 900; font-size: .98rem; }
-        .p-scores { display: flex; gap: 8px; margin-top: 3px; font-size: .74rem; font-weight: 700; }
-        .sc-att { color: var(--att-text); } .sc-def { color: var(--def-text); } .sc-gk { color: #A78BFA; }
-        .lock-badge { font-size: .68rem; color: var(--gold); }
-        .row-check { margin-inline-start: auto; pointer-events: none; }
-
-        .bottom-bar {
-            position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface-color);
-            border-top: 1px solid var(--border-color); padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-            display: flex; align-items: center; gap: 12px; z-index: 10;
-        }
-        .bottom-inner { max-width: 700px; margin: 0 auto; display: flex; align-items: center; gap: 12px; width: 100%; }
-        .sel-count { font-size: .9rem; color: var(--text-muted); flex: 1; }
-        .sel-count b { color: var(--primary-color); font-size: 1.1rem; }
-        .reset-btn {
-            background: var(--danger); border: none; color: #fff; font-family: 'Heebo'; font-weight: 900;
-            font-size: 1rem; padding: 12px 26px; border-radius: 14px; cursor: pointer; transition: opacity .15s;
-        }
-        .reset-btn:disabled { opacity: .35; cursor: default; }
-
-        .loading, .empty-state { text-align: center; color: var(--text-muted); padding: 50px 20px; }
-        .spinner {
-            width: 36px; height: 36px; border: 4px solid var(--border-color); border-top-color: var(--primary-color);
-            border-radius: 50%; margin: 0 auto 14px; animation: spin .8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-
-        .toast {
-            position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
-            background: var(--primary-color); color: #fff; font-weight: 900; padding: 12px 24px;
-            border-radius: 14px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,.4); font-size: .95rem;
-        }
-        .toast.err { background: var(--danger); }
-        .hidden { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>איפוס דירוגים – מעבר ל-5 מדדים</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+    * { box-sizing: border-box; }
+    body { font-family:'Heebo',sans-serif; background:#0F172A; color:#E2E8F0; margin:0; padding:20px; }
+    .card { max-width:560px; margin:30px auto; background:#1E293B; border:1px solid #334155; border-radius:16px; padding:25px; }
+    h1 { font-size:1.4rem; margin:0 0 6px; }
+    .sub { color:#94A3B8; font-size:0.9rem; margin-bottom:20px; line-height:1.6; }
+    label { display:block; font-weight:800; font-size:0.9rem; margin:14px 0 6px; }
+    input { width:100%; padding:12px; border-radius:10px; border:1px solid #334155; background:#0F172A; color:#E2E8F0; font-family:'Heebo',sans-serif; font-size:1rem; }
+    button { width:100%; padding:14px; border-radius:10px; border:none; font-family:'Heebo',sans-serif; font-weight:900; font-size:1.05rem; cursor:pointer; margin-top:20px; }
+    .danger { background:#DC2626; color:#fff; }
+    .danger:disabled { opacity:0.5; cursor:not-allowed; }
+    .warn { background:rgba(220,38,38,0.1); border:1px solid rgba(220,38,38,0.35); color:#FCA5A5; padding:12px; border-radius:10px; font-size:0.85rem; line-height:1.6; margin-top:16px; }
+    #log { margin-top:20px; font-size:0.85rem; line-height:1.8; white-space:pre-wrap; background:#0F172A; border:1px solid #334155; border-radius:10px; padding:14px; max-height:320px; overflow:auto; display:none; }
+    .ok { color:#10B981; } .err { color:#F87171; }
+</style>
 </head>
 <body>
-<div class="container">
+<div class="card">
     <h1>🔄 איפוס דירוגים</h1>
-    <div class="subtitle" id="groupName">טוען...</div>
+    <div class="sub">מעבר ממערכת 10 המדדים למערכת 5 המדדים החדשה.<br>הרץ פעם אחת בלבד, לפני שליחת קישורי ההצבעה החדשים.</div>
 
-    <div id="loading" class="loading"><div class="spinner"></div>טוען שחקנים...</div>
+    <label>מזהה קבוצה (Group ID)</label>
+    <input id="groupId" placeholder="לדוגמה: CBLYpMMYzyc9k9dDPOjC">
 
-    <div id="content" class="hidden">
-        <div class="options-card">
-            <div class="opt-row">
-                ערך איפוס לכל הפרמטרים:
-                <input type="number" id="resetValue" value="5" min="1" max="10" step="0.5">
-            </div>
-            <div class="opt-row">
-                <label><input type="checkbox" id="keepLocks"> השאר פרמטרים נעולים 🔒 בערכם הנוכחי</label>
-            </div>
-        </div>
+    <label>סיסמת מנהל</label>
+    <input id="pwd" type="password" placeholder="הסיסמה של הקבוצה">
 
-        <div class="controls">
-            <input class="search-input" id="searchInput" placeholder="🔍 חיפוש שחקן...">
-            <button class="chip-btn" id="selectAllBtn">בחר הכל</button>
-            <button class="chip-btn" id="clearBtn">נקה בחירה</button>
-        </div>
+    <label>הקלד <b>אפס</b> לאישור</label>
+    <input id="confirm" placeholder="אפס">
 
-        <div id="playerList"></div>
+    <div class="warn">
+        ⚠️ הפעולה תמחק את כל ההצבעות הקיימות ותאפס את כל המדדים ל-5.<br>
+        אין דרך לבטל. הקישורים האישיים של המצביעים יישארו תקפים — רק ההצבעות עצמן נמחקות.
     </div>
 
-    <div id="noGroup" class="empty-state hidden">
-        ⚠️ חסר מזהה קבוצה בכתובת.<br>יש להיכנס עם <b dir="ltr">?group=GROUP_ID</b> כמו בשאר הדפים.
-    </div>
-    <div id="noAuth" class="empty-state hidden">🔒 נדרשת סיסמת מנהל כדי לאפס דירוגים.<br><button class="chip-btn" style="margin-top:12px" onclick="tryAuth()">נסה שוב</button></div>
-</div>
-
-<div class="bottom-bar hidden" id="bottomBar">
-    <div class="bottom-inner">
-        <div class="sel-count">נבחרו <b id="selCount">0</b> שחקנים</div>
-        <button class="reset-btn" id="resetBtn" disabled onclick="doReset()">אפס דירוגים</button>
-    </div>
+    <button class="danger" id="btn" onclick="run()">אפס הכול 🗑️</button>
+    <div id="log"></div>
 </div>
 
 <script>
@@ -155,208 +58,86 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const groupId = new URLSearchParams(location.search).get('group');
-const FIELD_PARAMS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
-const GK_PARAMS = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
+const params = new URLSearchParams(location.search);
+if (params.get('group')) document.getElementById('groupId').value = params.get('group');
 
-let groupData = null;
-let customParams = [];
-let players = [];
-let selected = new Set();
-let searchTerm = '';
-
-function showToast(msg, isErr) {
-    const t = document.createElement('div');
-    t.className = 'toast' + (isErr ? ' err' : '');
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2800);
+const logEl = document.getElementById('log');
+function log(msg, cls) {
+    logEl.style.display = 'block';
+    logEl.innerHTML += `<div class="${cls||''}">${msg}</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
-function tryAuth() {
-    const sessionKey = `admin_${groupId}`;
-    if (sessionStorage.getItem(sessionKey) === 'true') return true;
-    const pwd = prompt('סיסמת מנהל:');
-    if (pwd === groupData.password) {
-        sessionStorage.setItem(sessionKey, 'true');
-        document.getElementById('noAuth').classList.add('hidden');
-        document.getElementById('content').classList.remove('hidden');
-        document.getElementById('bottomBar').classList.remove('hidden');
-        return true;
-    }
-    if (pwd !== null) showToast('סיסמה שגויה ❌', true);
-    return false;
-}
+// שדות שיימחקו מכרטיס השחקן: המדדים הישנים והסכומים שלהם
+const OLD_KEYS = ['fin','dri','vis','pos','tac','awa','str','com'];
+const ALL_SUM_KEYS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com','atk','def','pas'];
+const NEW_KEYS = ['atk','def','sta','pac','pas'];
+const DEL = firebase.firestore.FieldValue.delete();
 
-async function init() {
-    if (!groupId) {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('noGroup').classList.remove('hidden');
-        return;
-    }
+async function run() {
+    const groupId = document.getElementById('groupId').value.trim();
+    const pwd     = document.getElementById('pwd').value;
+    const confirm = document.getElementById('confirm').value.trim();
+    const btn     = document.getElementById('btn');
+
+    if (!groupId)            return alert('חסר מזהה קבוצה');
+    if (confirm !== 'אפס')   return alert('הקלד "אפס" בשדה האישור');
+
+    btn.disabled = true;
+    btn.innerText = 'מאפס... ⏳';
+
     try {
         const groupRef = db.collection('groups').doc(groupId);
-        const [groupDoc, playersSnap] = await Promise.all([
-            groupRef.get(),
-            groupRef.collection('players').orderBy('name').get()
-        ]);
-        if (!groupDoc.exists) throw new Error('קבוצה לא נמצאה');
-        groupData = groupDoc.data();
-        customParams = groupData.customParams || [];
-        players = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const groupDoc = await groupRef.get();
+        if (!groupDoc.exists) throw new Error('הקבוצה לא נמצאה');
+        if (groupDoc.data().password !== pwd) throw new Error('סיסמת מנהל שגויה');
+        log('✅ אימות מנהל עבר', 'ok');
 
-        document.getElementById('groupName').textContent =
-            (groupData.groupName || groupData.name || 'הקבוצה שלי') + ` • ${players.length} שחקנים`;
-        document.getElementById('loading').classList.add('hidden');
+        // ---- 1. איפוס כרטיסי השחקנים ----
+        const playersSnap = await groupRef.collection('players').get();
+        log(`נמצאו ${playersSnap.size} שחקנים`);
 
-        if (tryAuth()) {
-            document.getElementById('content').classList.remove('hidden');
-            document.getElementById('bottomBar').classList.remove('hidden');
-            renderList();
-        } else {
-            document.getElementById('noAuth').classList.remove('hidden');
+        let batch = db.batch(), ops = 0;
+        for (const doc of playersSnap.docs) {
+            const upd = { votesCount: 0, attScore: 5, defScore: 5, customStats: {}, customSums: {}, customAvgs: {} };
+            NEW_KEYS.forEach(k => upd[k] = 5);
+            OLD_KEYS.forEach(k => upd[k] = DEL);
+            ALL_SUM_KEYS.forEach(k => upd['sum' + k.charAt(0).toUpperCase() + k.slice(1)] = DEL);
+            upd.lockedParams = DEL;   // נעילות ישנות מתייחסות למדדים שלא קיימים יותר
+            if (doc.data().isGk) { upd.attScore = doc.data().gkScore || 5; upd.defScore = doc.data().gkScore || 5; }
+            batch.update(doc.ref, upd);
+            if (++ops >= 400) { await batch.commit(); batch = db.batch(); ops = 0; }
         }
+        if (ops) await batch.commit();
+        log(`✅ ${playersSnap.size} כרטיסי שחקן אופסו`, 'ok');
+
+        // ---- 2. מחיקת ההצבעות של כל המצביעים ----
+        const votersSnap = await groupRef.collection('voters').get();
+        log(`נמצאו ${votersSnap.size} מצביעים`);
+
+        let deleted = 0;
+        for (const voter of votersSnap.docs) {
+            const votes = await voter.ref.collection('votes').get();
+            let vb = db.batch(), vo = 0;
+            for (const v of votes.docs) {
+                vb.delete(v.ref);
+                deleted++;
+                if (++vo >= 400) { await vb.commit(); vb = db.batch(); vo = 0; }
+            }
+            if (vo) await vb.commit();
+            await voter.ref.update({ votedCount: 0 });
+        }
+        log(`✅ ${deleted} הצבעות נמחקו, המונים אופסו`, 'ok');
+
+        log('\n🎉 האיפוס הושלם. אפשר לשלוח את קישורי ההצבעה.', 'ok');
+        btn.innerText = 'הושלם ✅';
     } catch (e) {
         console.error(e);
-        document.getElementById('loading').innerHTML = `⚠️ שגיאה: ${e.message}`;
+        log('❌ ' + (e.message || e), 'err');
+        btn.disabled = false;
+        btn.innerText = 'נסה שוב';
     }
 }
-
-function renderList() {
-    const shown = players.filter(p => !searchTerm || (p.name || '').includes(searchTerm));
-    document.getElementById('playerList').innerHTML = shown.map(p => {
-        const isSel = selected.has(p.id);
-        const initials = (p.name || '?').trim().charAt(0);
-        const hasLocks = p.lockedParams && Object.keys(p.lockedParams).length > 0;
-        const scores = (p.isGk
-            ? `<span class="sc-gk">🧤 שוער ${p.gkScore ?? 5}</span>`
-            : `<span class="sc-att">התקפה ${p.attScore ?? 5}</span><span class="sc-def">הגנה ${p.defScore ?? 5}</span>`)
-            + `<span style="color:var(--text-muted)">📊 ${p.votesCount || 0} דירוגים</span>`;
-        return `
-        <div class="player-row ${isSel ? 'selected' : ''}" onclick="toggleSel('${p.id}')">
-            <div class="avatar">${p.imgUrl ? `<img src="${p.imgUrl}" alt="">` : initials}</div>
-            <div>
-                <div class="p-name">${p.name || 'ללא שם'} ${hasLocks ? '<span class="lock-badge">🔒</span>' : ''}</div>
-                <div class="p-scores">${scores}</div>
-            </div>
-            <input type="checkbox" class="row-check" ${isSel ? 'checked' : ''} tabindex="-1">
-        </div>`;
-    }).join('') || `<div class="empty-state">לא נמצאו שחקנים</div>`;
-    updateBar();
-}
-
-function toggleSel(id) {
-    selected.has(id) ? selected.delete(id) : selected.add(id);
-    renderList();
-}
-
-function updateBar() {
-    document.getElementById('selCount').textContent = selected.size;
-    document.getElementById('resetBtn').disabled = selected.size === 0;
-}
-
-function buildResetData(p, val, keepLocks) {
-    const locks = (keepLocks && p.lockedParams) ? p.lockedParams : {};
-
-    const data = { lockedParams: keepLocks ? (p.lockedParams || {}) : {} };
-
-    // --- voting accumulators (vote.html): full restart like a brand-new player ---
-    // votesCount=0: אין יותר "מצביע פנטום" — הציון המוצג (val) הוא תצוגה בלבד
-    // עד ההצבעה האמיתית הראשונה, והסכומים מתחילים מ-0.
-    data.votesCount = 0;
-    // קידום "דור הדירוג": הצבעות ששמורות בטלפונים של המצביעים ייחשבו ישנות
-    data.voteEpoch = (p.voteEpoch || 1) + 1;
-
-    // field params + their running sums (sumFin, sumDri, ...)
-    const fieldVals = FIELD_PARAMS.map(k => {
-        const v = locks[k] !== undefined ? locks[k] : val;
-        data[k] = v;
-        data['sum' + k.charAt(0).toUpperCase() + k.slice(1)] = 0;
-        return v;
-    });
-    // custom stats + customSums/customAvgs (vote.html reads all three)
-    const custom = {}, customSums = {};
-    let attExtra = [], defExtra = [];
-    customParams.forEach(cp => {
-        const v = locks[`cp_${cp.id}`] !== undefined ? locks[`cp_${cp.id}`] : val;
-        custom[cp.id] = v;
-        customSums[cp.id] = 0;
-        (cp.type === 'att' ? attExtra : defExtra).push(v);
-    });
-    data.customStats = custom;
-    data.customAvgs = custom;
-    data.customSums = customSums;
-
-    // gk params + gkSums map
-    const gkSums = {};
-    const gkVals = GK_PARAMS.map(k => {
-        const v = locks[k] !== undefined ? locks[k] : val;
-        data[k] = v;
-        gkSums[k] = 0;
-        return v;
-    });
-    data.gkSums = gkSums;
-    const gkScore = parseFloat((gkVals.reduce((a,b)=>a+b,0) / gkVals.length).toFixed(1));
-
-    if (p.isGk) {
-        data.gkScore = gkScore;
-        data.attScore = gkScore;
-        data.defScore = gkScore;
-    } else {
-        const attVals = [...fieldVals.slice(0,5), ...attExtra];
-        const defVals = [...fieldVals.slice(5,10), ...defExtra];
-        data.attScore = parseFloat((attVals.reduce((a,b)=>a+b,0)/attVals.length).toFixed(1));
-        data.defScore = parseFloat((defVals.reduce((a,b)=>a+b,0)/defVals.length).toFixed(1));
-        data.gkScore = gkScore;
-    }
-    return data;
-}
-
-async function doReset() {
-    const val = parseFloat(document.getElementById('resetValue').value);
-    if (isNaN(val) || val < 1 || val > 10) return showToast('ערך איפוס חייב להיות בין 1 ל-10', true);
-    const keepLocks = document.getElementById('keepLocks').checked;
-    const names = players.filter(p => selected.has(p.id)).map(p => p.name).slice(0, 6).join(', ');
-    const extra = selected.size > 6 ? ` ועוד ${selected.size - 6}` : '';
-    if (!confirm(`לאפס דירוגים ל-${val} עבור ${selected.size} שחקנים?\n${names}${extra}\n\nהפעולה תדרוס את כל הפרמטרים${keepLocks ? ' (מלבד נעולים)' : ', כולל נעולים'} ותאפס גם את היסטוריית ההצבעות (מונה הדירוגים יחזור ל-1).`)) return;
-
-    const btn = document.getElementById('resetBtn');
-    btn.disabled = true; btn.textContent = 'מאפס... ⏳';
-    try {
-        const playersRef = db.collection('groups').doc(groupId).collection('players');
-        const ids = [...selected];
-        // Firestore batch limit is 500 writes — chunk to be safe
-        for (let i = 0; i < ids.length; i += 400) {
-            const batch = db.batch();
-            ids.slice(i, i + 400).forEach(id => {
-                const p = players.find(x => x.id === id);
-                batch.update(playersRef.doc(id), buildResetData(p, val, keepLocks));
-            });
-            await batch.commit();
-        }
-        // refresh local data
-        const snap = await playersRef.orderBy('name').get();
-        players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        selected.clear();
-        renderList();
-        showToast(`✅ הדירוגים אופסו ל-${val} בהצלחה`);
-    } catch (e) {
-        console.error(e);
-        showToast('שגיאה באיפוס: ' + e.message, true);
-    } finally {
-        btn.disabled = selected.size === 0;
-        btn.textContent = 'אפס דירוגים';
-    }
-}
-
-document.getElementById('searchInput').addEventListener('input', e => { searchTerm = e.target.value.trim(); renderList(); });
-document.getElementById('selectAllBtn').addEventListener('click', () => {
-    players.filter(p => !searchTerm || (p.name||'').includes(searchTerm)).forEach(p => selected.add(p.id));
-    renderList();
-});
-document.getElementById('clearBtn').addEventListener('click', () => { selected.clear(); renderList(); });
-
-init();
 </script>
 </body>
 </html>
