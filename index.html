@@ -2427,6 +2427,10 @@ function renderTeamCardContent(t, i, isFixed, currentGkId, wins) {
     const attTotal = fieldPlayers.length ? (fieldPlayers.reduce((s,p) => s+(p.attScore||5), 0) / fieldPlayers.length).toFixed(1) : '5.0';
     const keys = Object.keys(roles).filter(k => k !== 'שוער');
     const defKeys = keys.filter(k => k.includes('מגן')||k.includes('בלם'));
+    // סידור ויזואלי של קו ההגנה: הדף הוא RTL, לכן האיבר הראשון מוצג בימין.
+    // הסדר הרצוי במגרש: מגן ימין | בלם (במרכז) | מגן שמאל
+    const defPos = k => k.includes('ימין') ? 0 : (k.includes('בלם') ? 1 : (k.includes('שמאל') ? 2 : 3));
+    defKeys.sort((a,b) => defPos(a) - defPos(b));
     const attKeys = keys.filter(k => !defKeys.includes(k));
     const gkCard = currentGkPlayer
         ? renderPitchCard(currentGkPlayer, '🧤', isFixed ? 'שוער' : 'שוער (מתחלף)')
