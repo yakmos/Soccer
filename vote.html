@@ -333,7 +333,13 @@
     async function fetchMyVotes() {
         const snap = await votesRef.get();
         myVotes = {};
-        snap.docs.forEach(d => { myVotes[d.id] = d.data(); });
+        snap.docs.forEach(d => {
+            const v = d.data();
+            // הצבעה בפורמט הישן (10 מדדים) — מתייחסים אליה כאילו לא הוצבעה,
+            // כדי שחישוב הדלתא לא יתבסס על מדדים שכבר לא קיימים.
+            if (!v.isGk && v.atk === undefined) return;
+            myVotes[d.id] = v;
+        });
     }
 
     function hasVote(p) { return !!myVotes[p.id]; }
