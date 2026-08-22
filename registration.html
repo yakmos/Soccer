@@ -1220,19 +1220,13 @@ function showMiniCard(playerId) {
         const attCustom = customParams.filter(cp => cp.type === 'att');
         const defCustom = customParams.filter(cp => cp.type === 'def');
         statsSection = `
-            <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">⚔️ מדדי התקפה</div>
-            ${getBar('סיומת מול שער', p.fin)}
-            ${getBar('דריבל ושליטה', p.dri)}
-            ${getBar('מהירות וזריזות',p.pac)}
-            ${getBar('ראיית משחק',   p.vis)}
-            ${getBar('תנועה ללא כדור',p.pos)}
+            <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">⚽ חמשת המדדים</div>
+            ${getBar('⚔️ התקפה',  p.atk)}
+            ${getBar('🛡️ הגנה',   p.def)}
+            ${getBar('🫁 כושר',    p.sta)}
+            ${getBar('⚡ מהירות',  p.pac)}
+            ${getBar('🎯 מסירות',  p.pas)}
             ${attCustom.length > 0 ? `<div style="font-size:0.85rem;color:#F87171;border-bottom:1px solid #334155;padding-bottom:5px;margin:12px 0 10px;text-align:right;">⚔️ התקפה מותאמת</div>${attCustom.map(cp => getBar(cp.name, (p.customStats&&p.customStats[cp.id])||5)).join('')}` : ''}
-            <div style="font-size:1rem;color:#94A3B8;border-bottom:1px solid #334155;padding-bottom:5px;margin:15px 0 12px;text-align:right;">🛡️ מדדי הגנה ופיזיות</div>
-            ${getBar('חילוצי כדור',  p.tac)}
-            ${getBar('קריאת משחק',   p.awa)}
-            ${getBar('פיזיות ועוצמה',p.str)}
-            ${getBar('כושר גופני',   p.sta)}
-            ${getBar('יציאה מלחץ',   p.com)}
             ${defCustom.length > 0 ? `<div style="font-size:0.85rem;color:#60A5FA;border-bottom:1px solid #334155;padding-bottom:5px;margin:12px 0 10px;text-align:right;">🛡️ הגנה מותאמת</div>${defCustom.map(cp => getBar(cp.name, (p.customStats&&p.customStats[cp.id])||5)).join('')}` : ''}`;
     }
 
