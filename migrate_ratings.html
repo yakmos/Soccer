@@ -39,8 +39,11 @@
     <label>מזהה קבוצה</label>
     <input type="text" id="groupId" placeholder="CBLYpMMYzyc9k9dDPOjC">
 
-    <label>סיסמת מנהל</label>
-    <input type="password" id="pwd" placeholder="הסיסמה של הקבוצה">
+    <label>אימייל מנהל-על</label>
+    <input type="text" id="adminEmail" placeholder="אותו חשבון שבו אתה נכנס ל-admin.html">
+
+    <label>סיסמת החשבון</label>
+    <input type="password" id="adminPass" placeholder="סיסמת Firebase">
 
     <label>מה לעשות?</label>
     <div class="modes">
@@ -85,6 +88,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const DEL = firebase.firestore.FieldValue.delete();
+const SUPER_ADMIN_UID = "83rxsZbqtANkW6qoj3DlBPGNtNn1";
 
 let mode = 'convert';
 function setMode(m) {
@@ -145,11 +149,13 @@ const r1 = v => parseFloat(v.toFixed(1));
 
 async function run() {
     const groupId = document.getElementById('groupId').value.trim();
-    const pwd     = document.getElementById('pwd').value;
+    const email   = document.getElementById('adminEmail').value.trim();
+    const pass    = document.getElementById('adminPass').value;
     const btn     = document.getElementById('btn');
     const touchVoters = document.getElementById('doVoters').checked;
 
     if (!groupId) return alert('חסר מזהה קבוצה');
+    if (!email || !pass) return alert('חסרים פרטי התחברות של מנהל-העל');
     if (mode === 'reset' && document.getElementById('confirm').value.trim() !== 'אפס')
         return alert('הקלד "אפס" בשדה האישור');
 
@@ -158,15 +164,17 @@ async function run() {
     logEl.innerHTML = '';
 
     try {
-        // ---- 0. התחברות אנונימית (כמו בדף ההצבעה) ----
-        await auth.signInAnonymously();
-        log('✅ התחברות ל-Firebase', 'ok');
+        // ---- 0. התחברות כמנהל-על (אותו חשבון כמו ב-admin.html) ----
+        const cred = await auth.signInWithEmailAndPassword(email, pass);
+        log(`✅ התחברות כמנהל (uid ${cred.user.uid.slice(0,8)}…)`, 'ok');
+        if (cred.user.uid !== SUPER_ADMIN_UID) {
+            log('⚠️ החשבון הזה אינו מנהל-העל המוכר — ייתכן שההרשאות יידחו', 'err');
+        }
 
         const groupRef = db.collection('groups').doc(groupId);
         const groupDoc = await groupRef.get();
         if (!groupDoc.exists) throw new Error('הקבוצה לא נמצאה — בדוק את מזהה הקבוצה');
-        if (groupDoc.data().password !== pwd) throw new Error('סיסמת מנהל שגויה');
-        log('✅ אימות מנהל', 'ok');
+        log(`✅ קבוצה נטענה: ${groupDoc.data().name || groupId}`, 'ok');
 
         // ---- 1. כרטיסי השחקנים ----
         const playersSnap = await groupRef.collection('players').get();
@@ -260,9 +268,11 @@ async function run() {
         btn.innerText = 'הושלם ✅';
     } catch (e) {
         console.error(e);
-        const msg = (e && e.code === 'permission-denied')
-            ? 'אין הרשאה (permission-denied) — ראה את השורות למעלה כדי לזהות באיזה שלב זה קרה.'
-            : (e.message || String(e));
+        let msg = e.message || String(e);
+        if (e && e.code === 'permission-denied')
+            msg = 'אין הרשאה — השורה האחרונה שהצליחה למעלה מראה באיזה שלב זה נעצר.';
+        else if (e && String(e.code||'').startsWith('auth/'))
+            msg = 'ההתחברות נכשלה (' + e.code + ') — בדוק אימייל/סיסמה של חשבון המנהל.';
         log('❌ ' + msg, 'err');
         btn.disabled = false;
         btn.innerText = 'נסה שוב';
