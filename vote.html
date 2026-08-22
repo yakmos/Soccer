@@ -162,19 +162,12 @@
 
             <!-- Field player sliders -->
             <div id="fieldSliders">
-                <h3 class="att-title">⚔️ מדדי התקפה</h3>
-                <div class="slider-group"><div class="slider-header"><span>סיומת מול שער</span><span class="val-badge" id="vFin">5</span></div><input type="range" class="att-slider" id="sFin" min="1" max="10" value="5" oninput="document.getElementById('vFin').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>דריבל ושליטה בכדור</span><span class="val-badge" id="vDri">5</span></div><input type="range" class="att-slider" id="sDri" min="1" max="10" value="5" oninput="document.getElementById('vDri').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>מהירות וזריזות</span><span class="val-badge" id="vPac">5</span></div><input type="range" class="att-slider" id="sPac" min="1" max="10" value="5" oninput="document.getElementById('vPac').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>ראיית משחק ובישולים</span><span class="val-badge" id="vVis">5</span></div><input type="range" class="att-slider" id="sVis" min="1" max="10" value="5" oninput="document.getElementById('vVis').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>תנועה ללא כדור</span><span class="val-badge" id="vPos">5</span></div><input type="range" class="att-slider" id="sPos" min="1" max="10" value="5" oninput="document.getElementById('vPos').innerText=this.value"></div>
-
-                <h3 class="def-title">🛡️ מדדי הגנה ופיזיות</h3>
-                <div class="slider-group"><div class="slider-header"><span>חילוצי כדור ותיקולים</span><span class="val-badge" id="vTac">5</span></div><input type="range" class="def-slider" id="sTac" min="1" max="10" value="5" oninput="document.getElementById('vTac').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>קריאת משחק ומיקום</span><span class="val-badge" id="vAwa">5</span></div><input type="range" class="def-slider" id="sAwa" min="1" max="10" value="5" oninput="document.getElementById('vAwa').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>פיזיות ועוצמה</span><span class="val-badge" id="vStr">5</span></div><input type="range" class="def-slider" id="sStr" min="1" max="10" value="5" oninput="document.getElementById('vStr').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>כושר גופני וסיבולת</span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
-                <div class="slider-group"><div class="slider-header"><span>יציאה מלחץ ומסירה</span><span class="val-badge" id="vCom">5</span></div><input type="range" class="def-slider" id="sCom" min="1" max="10" value="5" oninput="document.getElementById('vCom').innerText=this.value"></div>
+                <h3 class="att-title">⚽ חמשת המדדים</h3>
+                <div class="slider-group"><div class="slider-header"><span>⚔️ התקפה<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">סיומת, בעיטות, יצירת סכנה</small></span><span class="val-badge" id="vAtk">5</span></div><input type="range" class="att-slider" id="sAtk" min="1" max="10" value="5" oninput="document.getElementById('vAtk').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>🛡️ הגנה<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">חילוצים, קריאת משחק, מיקום</small></span><span class="val-badge" id="vDef">5</span></div><input type="range" class="def-slider" id="sDef" min="1" max="10" value="5" oninput="document.getElementById('vDef').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>🫁 כושר<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">סיבולת לאורך כל המשחק</small></span><span class="val-badge" id="vSta">5</span></div><input type="range" class="def-slider" id="sSta" min="1" max="10" value="5" oninput="document.getElementById('vSta').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>⚡ מהירות<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">ריצה, זריזות, פיצוצים קצרים</small></span><span class="val-badge" id="vPac">5</span></div><input type="range" class="att-slider" id="sPac" min="1" max="10" value="5" oninput="document.getElementById('vPac').innerText=this.value"></div>
+                <div class="slider-group"><div class="slider-header"><span>🎯 מסירות<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">דיוק מסירה, ראיית משחק, בישולים</small></span><span class="val-badge" id="vPas">5</span></div><input type="range" class="att-slider" id="sPas" min="1" max="10" value="5" oninput="document.getElementById('vPas').innerText=this.value"></div>
 
                 <div id="customParamsSliders"></div>
             </div>
@@ -224,6 +217,23 @@
     let playersRef = null;
     let voterRef = null;
     let votesRef = null;
+
+    // ===== חמשת המדדים =====
+    // attScore/defScore הם ציונים נגזרים; המצביע מדרג רק את 5 המדדים הגולמיים.
+    const FIELD_KEYS = ['atk','def','sta','pac','pas'];
+    function calcAttDef(v, attCustomVals, defCustomVals) {
+        const g = k => (v[k] !== undefined ? v[k] : 5);
+        const baseAtt = 0.55*g('atk') + 0.25*g('pas') + 0.20*g('pac');
+        const baseDef = 0.55*g('def') + 0.25*g('sta') + 0.20*g('pac');
+        // מדד מותאם אישית נכנס במשקל 1 מול משקל 3 לציון הבסיס
+        const blend = (base, customs) => (customs && customs.length)
+            ? (base*3 + customs.reduce((a,b)=>a+b,0)) / (3 + customs.length)
+            : base;
+        return {
+            attScore: parseFloat(blend(baseAtt, attCustomVals).toFixed(1)),
+            defScore: parseFloat(blend(baseDef, defCustomVals).toFixed(1))
+        };
+    }
     let myUid = null;
     let voterName = "";
     let customParams = [];
@@ -463,9 +473,9 @@
                 document.getElementById('v' + key).innerText = val;
             });
         } else {
-            const defaultFixed = { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+            const defaultFixed = { atk:5, def:5, sta:5, pac:5, pas:5 };
             const fixedVals = isEditing ? { ...defaultFixed, ...savedVote } : defaultFixed;
-            ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'].forEach(key => {
+            FIELD_KEYS.forEach(key => {
                 const val = fixedVals[key] || 5;
                 document.getElementById('s' + key.charAt(0).toUpperCase() + key.slice(1)).value = val;
                 document.getElementById('v' + key.charAt(0).toUpperCase() + key.slice(1)).innerText = val;
@@ -490,8 +500,7 @@
 
     function paramDisplayName(key) {
         const names = {
-            fin:'סיומת', dri:'דריבל', pac:'מהירות', vis:'ראיית משחק', pos:'תנועה',
-            tac:'חילוצים', awa:'קריאת משחק', str:'פיזיות', sta:'כושר', com:'יציאה מלחץ',
+            atk:'התקפה', def:'הגנה', sta:'כושר', pac:'מהירות', pas:'מסירות',
             gkDiv:'זינוק', gkHan:'אחיזה', gkKic:'בעיטה', gkPos:'מיקום', gkRef:'רפלקסים'
         };
         if (names[key]) return names[key];
@@ -575,9 +584,8 @@
             } else {
                 // ---- Field player vote ----
                 const newVotes = {
-                    fin: getVal('sFin'), dri: getVal('sDri'), pac: getVal('sPac'),
-                    vis: getVal('sVis'), pos: getVal('sPos'), tac: getVal('sTac'),
-                    awa: getVal('sAwa'), str: getVal('sStr'), sta: getVal('sSta'), com: getVal('sCom')
+                    atk: getVal('sAtk'), def: getVal('sDef'), sta: getVal('sSta'),
+                    pac: getVal('sPac'), pas: getVal('sPas')
                 };
                 const newCustomVotes = {};
                 customParams.forEach(cp => {
@@ -592,13 +600,13 @@
                     const isEditing = voteDoc.exists;
                     wasEditing = isEditing;
                     const prev = isEditing ? voteDoc.data() : {};
-                    const oldFixed = isEditing ? { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5, ...prev } : { fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5 };
+                    const oldFixed = isEditing ? { atk:5, def:5, sta:5, pac:5, pas:5, ...prev } : { atk:5, def:5, sta:5, pac:5, pas:5 };
                     const oldCustom = (isEditing && prev.customStats) ? prev.customStats : {};
 
                     const data = doc.data();
                     const locked = data.lockedParams || {};
                     let totalVotesCount = data.votesCount || 0;
-                    const fixedKeys = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+                    const fixedKeys = FIELD_KEYS;
                     let sums = {};
 
                     fixedKeys.forEach(k => {
@@ -633,14 +641,12 @@
                         customAvgs[cp.id] = parseFloat((customSums[cp.id] / divisor).toFixed(1));
                     });
 
-                    const attFixedVals = [newAvgs.fin, newAvgs.dri, newAvgs.pac, newAvgs.vis, newAvgs.pos];
-                    const defFixedVals = [newAvgs.tac, newAvgs.awa, newAvgs.str, newAvgs.sta, newAvgs.com];
+                    const attCustomVals = [], defCustomVals = [];
                     customParams.forEach(cp => {
-                        if (cp.type === 'att') attFixedVals.push(customAvgs[cp.id] || 5);
-                        else defFixedVals.push(customAvgs[cp.id] || 5);
+                        if (cp.type === 'att') attCustomVals.push(customAvgs[cp.id] || 5);
+                        else defCustomVals.push(customAvgs[cp.id] || 5);
                     });
-                    const attScore = parseFloat((attFixedVals.reduce((a,b)=>a+b,0)/attFixedVals.length).toFixed(1));
-                    const defScore = parseFloat((defFixedVals.reduce((a,b)=>a+b,0)/defFixedVals.length).toFixed(1));
+                    const { attScore, defScore } = calcAttDef(newAvgs, attCustomVals, defCustomVals);
 
                     const updateObj = { votesCount: totalVotesCount, attScore, defScore, customSums, customAvgs };
                     fixedKeys.forEach(k => {
