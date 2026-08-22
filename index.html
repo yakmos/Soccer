@@ -757,30 +757,19 @@
                         <div id="fieldStatsSection">
                             <div class="stats-section">
                                 <h4>
-                                    <span>⚔️ מדדי התקפה - בסיסיים (1-10)</span>
+                                    <span>⚽ חמשת המדדים (1-10)</span>
                                     <div style="display:flex; gap:6px; align-items:center;">
                                         <button type="button" onclick="lockAllParams()" style="background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.35); color:var(--lock-color); border-radius:6px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif;">🔒 נעל הכול</button>
                                         <button type="button" onclick="unlockAllParams()" style="background:transparent; border:1px solid var(--border-color); color:var(--text-muted); border-radius:6px; padding:2px 8px; font-size:0.75rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif;">🔓 שחרר הכול</button>
-                                        <span class="section-label-tag type-att">התקפה</span>
+                                        <span class="section-label-tag type-att">מדדים</span>
                                     </div>
                                 </h4>
                                 <div class="lock-hint" id="lockHintField">🔒 לחץ על מנעול ליד כל פרמטר כדי לנעול אותו — הצבעות הציבור לא ישנו ערך נעול</div>
-                                <div class="param-row" id="row_fin"><span>סיומת מול שער</span> <input type="number" id="pFin" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_fin" onclick="toggleParamLock('fin')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_dri"><span>דריבל ושליטה בכדור</span> <input type="number" id="pDri" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_dri" onclick="toggleParamLock('dri')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_pac"><span>מהירות וזריזות</span> <input type="number" id="pPac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pac" onclick="toggleParamLock('pac')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_vis"><span>ראיית משחק ובישולים</span> <input type="number" id="pVis" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_vis" onclick="toggleParamLock('vis')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_pos"><span>תנועה ללא כדור</span> <input type="number" id="pPos" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pos" onclick="toggleParamLock('pos')" title="נעל פרמטר">🔓</button></div>
-                            </div>
-                            <div class="stats-section">
-                                <h4>
-                                    <span>🛡️ מדדי הגנה ופיזיות - בסיסיים (1-10)</span>
-                                    <span class="section-label-tag type-def">הגנה</span>
-                                </h4>
-                                <div class="param-row" id="row_tac"><span>חילוצי כדור ותיקולים</span> <input type="number" id="pTac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_tac" onclick="toggleParamLock('tac')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_awa"><span>קריאת משחק ומיקום</span> <input type="number" id="pAwa" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_awa" onclick="toggleParamLock('awa')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_str"><span>פיזיות ועוצמה</span> <input type="number" id="pStr" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_str" onclick="toggleParamLock('str')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_sta"><span>כושר גופני וסיבולת</span> <input type="number" id="pSta" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_sta" onclick="toggleParamLock('sta')" title="נעל פרמטר">🔓</button></div>
-                                <div class="param-row" id="row_com"><span>יציאה מלחץ ומסירה</span> <input type="number" id="pCom" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_com" onclick="toggleParamLock('com')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_atk"><span>⚔️ התקפה<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">סיומת, בעיטות, יצירת סכנה</small></span> <input type="number" id="pAtk" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_atk" onclick="toggleParamLock('atk')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_def"><span>🛡️ הגנה<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">חילוצים, קריאת משחק, מיקום</small></span> <input type="number" id="pDef" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_def" onclick="toggleParamLock('def')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_sta"><span>🫁 כושר<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">סיבולת לאורך כל המשחק</small></span> <input type="number" id="pSta" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_sta" onclick="toggleParamLock('sta')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_pac"><span>⚡ מהירות<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">ריצה, זריזות, פיצוצים קצרים</small></span> <input type="number" id="pPac" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pac" onclick="toggleParamLock('pac')" title="נעל פרמטר">🔓</button></div>
+                                <div class="param-row" id="row_pas"><span>🎯 מסירות<small style="display:block;font-weight:400;font-size:0.72rem;color:var(--text-muted);">דיוק מסירה, ראיית משחק, בישולים</small></span> <input type="number" id="pPas" value="5" min="1" max="10"><button type="button" class="param-lock-btn" id="lock_pas" onclick="toggleParamLock('pas')" title="נעל פרמטר">🔓</button></div>
                             </div>
                             <div id="customParamsFormSection" style="display:none;">
                                 <div class="stats-section" style="border-color: rgba(252,211,77,0.2); background: rgba(252,211,77,0.03);">
@@ -850,19 +839,12 @@
                     <select id="statSelector" class="form-input" onchange="renderLeaderboards()" style="font-weight: 800; font-size: 1.1rem; color: var(--primary-color);">
                         <option value="attScore">🎯 ציון התקפה כללי</option>
                         <option value="defScore">🛡️ ציון הגנה כללי</option>
-                        <optgroup label="מדדי התקפה">
-                            <option value="fin">⚽ סיומת מול שער</option>
-                            <option value="dri">🤹 דריבל ושליטה</option>
-                            <option value="pac">⚡ מהירות וזריזות</option>
-                            <option value="vis">👁️ ראיית משחק ובישולים</option>
-                            <option value="pos">🏃 תנועה ללא כדור</option>
-                        </optgroup>
-                        <optgroup label="מדדי הגנה ופיזיות">
-                            <option value="tac">🦵 חילוצי כדור ותיקולים</option>
-                            <option value="awa">🧠 קריאת משחק ומיקום</option>
-                            <option value="str">💪 פיזיות ועוצמה</option>
-                            <option value="sta">🫁 כושר גופני וסיבולת</option>
-                            <option value="com">🧘 יציאה מלחץ ומסירה</option>
+                        <optgroup label="חמשת המדדים">
+                            <option value="atk">⚔️ התקפה</option>
+                            <option value="def">🛡️ הגנה</option>
+                            <option value="sta">🫁 כושר</option>
+                            <option value="pac">⚡ מהירות</option>
+                            <option value="pas">🎯 מסירות</option>
                         </optgroup>
                         <optgroup label="🧤 מדדי שוער">
                             <option value="gkScore">🧤 ציון שוער כללי</option>
@@ -1277,7 +1259,20 @@ function getColoredGkBadge(gkScore) {
 
 // ========== Per-Param Lock ==========
 let currentLockedParams = {};
-const FIELD_PARAMS = ['fin','dri','pac','vis','pos','tac','awa','str','sta','com'];
+const FIELD_PARAMS = ['atk','def','sta','pac','pas'];
+
+// ===== משקלים מרכזיים של המערכת (מקום אחד לכוונון) =====
+// ציונים נגזרים מ-5 המדדים הגולמיים
+const W_ATT = { atk:0.55, pas:0.25, pac:0.20 };
+const W_DEF = { def:0.55, sta:0.25, pac:0.20 };
+// התאמה לתפקיד בשדה (1-3-2)
+const W_SWEEPER  = { def:0.70, pas:0.30 };              // בלם אחורי - מפזר כדורים
+const W_FULLBACK = { def:0.45, sta:0.30, pac:0.25 };    // מגן אגף - רץ הלוך ושוב
+const W_FORWARD  = { atk:0.55, pac:0.30, pas:0.15 };    // חלוץ
+const wsum = (p, w) => Object.entries(w).reduce((a, [k, v]) => a + v * (p[k] || 5), 0);
+const fitSweeper  = p => wsum(p, W_SWEEPER);
+const fitFullback = p => wsum(p, W_FULLBACK);
+const fitForward  = p => wsum(p, W_FORWARD);
 const GK_PARAMS = ['gkDiv','gkHan','gkKic','gkPos','gkRef'];
 
 function toggleParamLock(key) {
@@ -1399,17 +1394,21 @@ function unlockAllParams() { resetLockedParamsUI(); }
 
 function calcScoresWithLocks(vals, customStatsObj) {
     const keys = FIELD_PARAMS;
-    const effVals = vals.map((v, i) => getEffectiveParamValue(keys[i], v));
-    let attVals = effVals.slice(0, 5);
-    let defVals = effVals.slice(5, 10);
+    const eff = {};
+    keys.forEach((k, i) => { eff[k] = getEffectiveParamValue(k, vals[i]); });
+    const attCustom = [], defCustom = [];
     customParams.forEach(p => {
         const raw = (customStatsObj && customStatsObj[p.id] !== undefined) ? customStatsObj[p.id] : 5;
-        const eff = getEffectiveParamValue(`cp_${p.id}`, raw);
-        if (p.type === 'att') attVals.push(eff); else defVals.push(eff);
+        const v = getEffectiveParamValue(`cp_${p.id}`, raw);
+        if (p.type === 'att') attCustom.push(v); else defCustom.push(v);
     });
+    // מדד מותאם אישית נכנס במשקל 1 מול משקל 3 לציון הבסיס
+    const blend = (base, customs) => customs.length
+        ? (base*3 + customs.reduce((a,b)=>a+b,0)) / (3 + customs.length)
+        : base;
     return {
-        attScore: parseFloat((attVals.reduce((a,b)=>a+b,0)/attVals.length).toFixed(1)),
-        defScore: parseFloat((defVals.reduce((a,b)=>a+b,0)/defVals.length).toFixed(1))
+        attScore: parseFloat(blend(wsum(eff, W_ATT), attCustom).toFixed(1)),
+        defScore: parseFloat(blend(wsum(eff, W_DEF), defCustom).toFixed(1))
     };
 }
 
@@ -1444,11 +1443,11 @@ async function savePlayer() {
             gkDiv: getEffectiveParamValue('gkDiv', gkDiv), gkHan: getEffectiveParamValue('gkHan', gkHan),
             gkKic: getEffectiveParamValue('gkKic', gkKic), gkPos: getEffectiveParamValue('gkPos', gkPosV),
             gkRef: getEffectiveParamValue('gkRef', gkRef), gkScore,
-            fin:5, dri:5, pac:5, vis:5, pos:5, tac:5, awa:5, str:5, sta:5, com:5,
+            atk:5, def:5, sta:5, pac:5, pas:5,
             attScore: gkScore, defScore: gkScore, customStats: {}
         });
     } else {
-        const rawVals = ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom']
+        const rawVals = ['pAtk','pDef','pSta','pPac','pPas']
             .map(id => parseFloat(document.getElementById(id).value) || 5);
         const customStatsObj = readCustomParamInputs();
         const { attScore, defScore } = calcScoresWithLocks(rawVals, customStatsObj);
@@ -1459,8 +1458,7 @@ async function savePlayer() {
             effCustom[cp.id] = getEffectiveParamValue(`cp_${cp.id}`, raw);
         });
         Object.assign(playerData, {
-            fin:effVals[0], dri:effVals[1], pac:effVals[2], vis:effVals[3], pos:effVals[4],
-            tac:effVals[5], awa:effVals[6], str:effVals[7], sta:effVals[8], com:effVals[9],
+            atk:effVals[0], def:effVals[1], sta:effVals[2], pac:effVals[3], pas:effVals[4],
             customStats: effCustom, attScore, defScore, gkScore: 5, gkDiv:5, gkHan:5, gkKic:5, gkPos:5, gkRef:5
         });
     }
@@ -1530,8 +1528,8 @@ function startEdit(id, p) {
         document.getElementById('pGkPos').value = p.gkPos || 5;
         document.getElementById('pGkRef').value = p.gkRef || 5;
     } else {
-        ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(inputId => {
-            const key = inputId.toLowerCase().replace('p','');
+        ['pAtk','pDef','pSta','pPac','pPas'].forEach(inputId => {
+            const key = inputId.slice(1).toLowerCase();
             document.getElementById(inputId).value = p[key] || 5;
         });
         fillCustomParamInputs(p);
@@ -1555,7 +1553,7 @@ function cancelEdit() {
     document.getElementById('fieldStatsSection').style.display = 'block';
     document.getElementById('gkStatsSection').style.display = 'none';
     resetAllFlagButtons();
-    ['pFin','pDri','pPac','pVis','pPos','pTac','pAwa','pStr','pSta','pCom'].forEach(id => document.getElementById(id).value = 5);
+    ['pAtk','pDef','pSta','pPac','pPas'].forEach(id => document.getElementById(id).value = 5);
     ['pGkDiv','pGkHan','pGkKic','pGkPos','pGkRef'].forEach(id => document.getElementById(id).value = 5);
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
     document.getElementById('saveBtn').innerText = "שמור שחקן";
@@ -1743,11 +1741,9 @@ const attendanceBadge = attendancePct !== null
         const attCustomParams = customParams.filter(cp => cp.type === 'att');
         const defCustomParams = customParams.filter(cp => cp.type === 'def');
         statsSection = `
-            <div class="modal-section-title">מדדי התקפה בסיסיים</div>
-            ${getBar('סיומת מול שער', p.fin)}${getBar('דריבל ושליטה', p.dri)}${getBar('מהירות וזריזות', p.pac)}${getBar('ראיית משחק', p.vis)}${getBar('תנועה ללא כדור', p.pos)}
+            <div class="modal-section-title">⚽ חמשת המדדים</div>
+            ${getBar('⚔️ התקפה', p.atk)}${getBar('🛡️ הגנה', p.def)}${getBar('🫁 כושר', p.sta)}${getBar('⚡ מהירות', p.pac)}${getBar('🎯 מסירות', p.pas)}
             ${attCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--att-text);">⚔️ מדדי התקפה מותאמים</div>${attCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}
-            <div class="modal-section-title">מדדי הגנה ופיזיות בסיסיים</div>
-            ${getBar('חילוצי כדור', p.tac)}${getBar('קריאת משחק', p.awa)}${getBar('פיזיות ועוצמה', p.str)}${getBar('כושר גופני', p.sta)}${getBar('יציאה מלחץ', p.com)}
             ${defCustomParams.length > 0 ? `<div class="modal-section-title" style="color:var(--def-text);">🛡️ מדדי הגנה מותאמים</div>${defCustomParams.map(cp => getBar(cp.name, (p.customStats && p.customStats[cp.id] !== undefined) ? p.customStats[cp.id] : 5)).join('')}` : ''}`;
     }
     const content = `
@@ -1862,8 +1858,8 @@ if (statKey === 'age') {
     return;
 }
     let colorClass = 'var(--primary-color)';
-    if (['attScore','fin','dri','pac','vis','pos'].includes(statKey)) colorClass = 'var(--att-text)';
-    else if (['defScore','tac','awa','str','sta','com'].includes(statKey)) colorClass = 'var(--def-text)';
+    if (['attScore','atk','pac','pas'].includes(statKey)) colorClass = 'var(--att-text)';
+    else if (['defScore','def','sta'].includes(statKey)) colorClass = 'var(--def-text)';
     else if (['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey)) colorClass = 'var(--gk-text)';
     const isGkStat = ['gkScore','gkDiv','gkHan','gkKic','gkPos','gkRef'].includes(statKey);
     const getStatValue = (player, key) => {
@@ -2116,16 +2112,24 @@ function evalTeams(teams) {
         let pool = fp;
         if (!fixedGk && fp.length > 1) {
             // בלי שוער קבוע — החלש ביותר ישחק בשער (כמו בלוגיקת gkIds)
-            const weakest = [...fp].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)))[0];
+            const weakest = [...fp].sort((a,b) => gkPickScore(a) - gkPickScore(b))[0];
             pool = fp.filter(p => p !== weakest);
         }
+        // איכות הקווים נמדדת לפי ההתאמה האמיתית של השחקן לתפקיד שיקבל
         const roles = assignFieldRoles([...pool]);
         const defLine = [], attLine = [];
         for (const [role, p] of Object.entries(roles)) {
-            if (role.startsWith('בלם') || role.startsWith('מגן')) defLine.push(p.defScore||5);
-            else attLine.push(((p.fin||5) + (p.dri||5)) / 2);
+            if (role.startsWith('בלם'))      defLine.push(fitSweeper(p));
+            else if (role.startsWith('מגן')) defLine.push(fitFullback(p));
+            else                             attLine.push(fitForward(p));
         }
-        return { att, def, star, std, defLine: avg(defLine), attLine: avg(attLine) };
+
+        // מדדים פיזיים/משחקיים שאסור לתת להם להצטבר בקבוצה אחת
+        const avgPac = avg(fp.map(p => p.pac||5));
+        const avgSta = avg(fp.map(p => p.sta||5));
+        const topPas = fp.length ? Math.max(...fp.map(p => p.pas||5)) : 5;
+
+        return { att, def, star, std, defLine: avg(defLine), attLine: avg(attLine), avgPac, avgSta, topPas };
     });
 
     return spread(metrics.map(m => m.att))
@@ -2133,7 +2137,10 @@ function evalTeams(teams) {
          + 0.5 * spread(metrics.map(m => m.star))
          + 0.3 * spread(metrics.map(m => m.std))
          + 0.5 * spread(metrics.map(m => m.defLine))
-         + 0.5 * spread(metrics.map(m => m.attLine));
+         + 0.5 * spread(metrics.map(m => m.attLine))
+         + 0.5 * spread(metrics.map(m => m.avgPac))   // קבוצה איטית מול קבוצה מהירה
+         + 0.4 * spread(metrics.map(m => m.topPas))   // לכל קבוצה מוביל משחק אחד לפחות
+         + 0.3 * spread(metrics.map(m => m.avgSta));  // סיבולת למחצית שנייה
 }
 
 async function run() {
@@ -2178,7 +2185,7 @@ async function run() {
     const hasFixedGk = best.map(t => t.some(p => p.isGk));
     const gkIds = best.map((t, i) => {
         if (hasFixedGk[i]) return t.find(p => p.isGk).id;
-        const sorted = [...t].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5)));
+        const sorted = [...t].sort((a,b) => gkPickScore(a) - gkPickScore(b));
         return sorted[0]?.id || null;
     });
     let gameData = { gkIds, hasFixedGk, teamWins: Array(groupSettings.numTeams).fill(0), timestamp: firebase.firestore.FieldValue.serverTimestamp() };
@@ -2196,24 +2203,28 @@ async function rotateGk(teamIndex) {
     await gameRef.update({ gkIds: newGkIds });
 }
 
+// מי הולך לשער כשאין שוער קבוע: התרומה הכוללת בשדה היא השיקול העיקרי,
+// והמהירות היא שובר-שוויון — בין שני שחקנים שקולים, האיטי יותר הולך לשער.
+function gkPickScore(p) { return wsum(p, W_ATT) + wsum(p, W_DEF) + 0.3 * (p.pac || 5); }
+
 function assignFieldRoles(pool) {
     const roles = {}; const n = pool.length; if (n === 0) return roles;
     const numDef = Math.max(1, Math.ceil(n / 2));
     const numAtt = n - numDef;
 
-    // התקפה: לפי נטייה יחסית — כמה השחקן התקפי ביחס ליכולת ההגנה שלו.
-    // כך שחקן שחזק בהגנה לא ייגרר להתקפה רק כי השאר חלשים ממנו בסיומת.
-    const attTendency = p => ((p.fin||5) + (p.dri||5)) / 2 - (p.defScore||5);
-    const byAtt = [...pool].sort((a,b) => (attTendency(b) - attTendency(a)) || (((b.fin||5)+(b.dri||5)) - ((a.fin||5)+(a.dri||5))));
+    // חלוצים: לפי נטייה יחסית — כמה השחקן מתאים להתקפה ביחס להתאמתו להגנה.
+    // כך שחקן שמצוין בהגנה לא ייגרר קדימה רק כי השאר חלשים ממנו בהתקפה.
+    const attTendency = p => fitForward(p) - Math.max(fitFullback(p), fitSweeper(p));
+    const byAtt = [...pool].sort((a,b) => (attTendency(b) - attTendency(a)) || (fitForward(b) - fitForward(a)));
     const forwards = byAtt.slice(0, numAtt);
     const defenders = pool.filter(p => !forwards.includes(p));
 
-    // בלם: חלש בסיבולת אבל טוב בהגנה → ממזערים (סיבולת - הגנה)
-    defenders.sort((a,b) => ((a.sta||5) - (a.defScore||5)) - ((b.sta||5) - (b.defScore||5)));
+    // בלם: המתאים ביותר לתפקיד הבלם (הגנה + יכולת מסירה מהעומק)
+    defenders.sort((a,b) => fitSweeper(b) - fitSweeper(a));
     const sweeper = defenders.shift(); roles['בלם'] = sweeper;
 
-    // מגנים: סיבולת גבוהה + הגנה טובה
-    defenders.sort((a,b) => (((b.sta||5)+(b.defScore||5)) - ((a.sta||5)+(a.defScore||5))));
+    // מגנים: הגנה + כושר + מהירות לאגפים
+    defenders.sort((a,b) => fitFullback(b) - fitFullback(a));
     defenders.forEach((p, i) => { roles[defenders.length === 1 ? 'מגן' : (i === 0 ? 'מגן ימין' : i === 1 ? 'מגן שמאל' : `מגן ${i+1}`)] = p; });
 
     forwards.forEach((p, i) => { roles[forwards.length === 1 ? 'חלוץ' : (i === 0 ? 'חלוץ ימין' : i === 1 ? 'חלוץ שמאל' : `חלוץ ${i+1}`)] = p; });
@@ -2225,14 +2236,14 @@ function assignRoles(team, forcedGkId) {
     const fixedGk = team.find(p => p.isGk);
     if (fixedGk) { roles['שוער'] = fixedGk; }
     else if (forcedGkId) { const idx = pool.findIndex(p => p.id === forcedGkId); if (idx !== -1) roles['שוער'] = pool.splice(idx, 1)[0]; }
-    else { pool.sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); roles['שוער'] = pool.shift(); }
+    else { pool.sort((a,b) => gkPickScore(a) - gkPickScore(b)); roles['שוער'] = pool.shift(); }
     Object.assign(roles, assignFieldRoles(pool)); return roles;
 }
 
 function assignRolesNoGk(team, currentGkId) {
     const allPlayers = [...team].filter(p => !p.isGk); const roles = {};
     let gkPlayer = allPlayers.find(p => p.id === currentGkId);
-    if (!gkPlayer) { const sorted = [...allPlayers].sort((a,b) => ((a.attScore||5)+(a.defScore||5)) - ((b.attScore||5)+(b.defScore||5))); gkPlayer = sorted[0]; }
+    if (!gkPlayer) { const sorted = [...allPlayers].sort((a,b) => gkPickScore(a) - gkPickScore(b)); gkPlayer = sorted[0]; }
     roles['שוער'] = gkPlayer;
     Object.assign(roles, assignFieldRoles(allPlayers.filter(p => p.id !== gkPlayer.id)));
     return roles;
