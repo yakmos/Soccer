@@ -91,6 +91,13 @@
     </div>
 
     <div class="card">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">📣 מודעות ב"מצא משחק" <span id="listingsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <div id="listingsList">
+            <p style="text-align: center; color: var(--muted);">טוען מודעות... ⏳</p>
+        </div>
+    </div>
+
+    <div class="card">
         <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">רשימת כל הקבוצות <span id="groupsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="groupsList">
             <p style="text-align: center; color: var(--muted);">טוען קבוצות... ⏳</p>
@@ -130,6 +137,7 @@
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
             loadGroups();
+            loadListingsAdmin();
         } else {
             if (user && !user.isAnonymous) {
                 msg.textContent = `החשבון ${user.email || ''} אינו מנהל המערכת.`;
@@ -179,7 +187,7 @@
                 const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString('he-IL') : '---';
                 const admins = data.admins ? Object.values(data.admins) : [];
                 const status = data.ownerUid
-                    ? `<span class="badge badge-ok">Google</span> מנהלים: ${esc(admins.join(', '))}`
+                    ? `<span class="badge badge-ok">Google</span> מנהלים: ${esc(admins.join(', '))}${data.visibility === 'public' ? ' | 🌍 ציבורית' : ''}`
                     : `<span class="badge badge-legacy">ממתינה להעברה</span>`;
                 const pwdBtn = !data.ownerUid
                     ? `<button class="btn btn-small" onclick="showLegacyPassword('${doc.id}')">הצג סיסמה</button>`
@@ -249,6 +257,37 @@
             status.textContent = 'שגיאה: ' + e.message;
         }
         await loadGroups();
+    }
+
+    // מודעות "מצא משחק" — להסרת ספאם או מודעות לא רלוונטיות
+    async function loadListingsAdmin() {
+        const el = document.getElementById('listingsList');
+        try {
+            const snap = await db.collection('listings').get();
+            document.getElementById('listingsCount').textContent = `(${snap.size})`;
+            if (snap.empty) {
+                el.innerHTML = '<p style="text-align:center; color: var(--muted);">אין מודעות כרגע.</p>';
+                return;
+            }
+            el.innerHTML = snap.docs.map(d => {
+                const l = d.data();
+                return `<div class="group-row">
+                    <div class="group-info">
+                        <div class="group-name">${esc(l.name)}</div>
+                        <div class="group-meta">📍 ${esc(l.city)}${l.venue ? ' · ' + esc(l.venue) : ''} | ☎️ ${esc(l.phone)}<br>בעלים: ${esc(l.ownerUid)}</div>
+                    </div>
+                    <div class="actions"><button class="btn-danger" onclick="deleteListing('${d.id}')">הסר</button></div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            el.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
+        }
+    }
+
+    async function deleteListing(id) {
+        if (!confirm('להסיר את המודעה מ"מצא משחק"?')) return;
+        try { await db.collection('listings').doc(id).delete(); loadListingsAdmin(); }
+        catch (e) { alert('שגיאה: ' + e.message); }
     }
 
     async function deleteFullGroup(groupId) {
