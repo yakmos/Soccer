@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Soccer Manager — ניהול קבוצת כדורגל בלי בלגן</title>
+<meta name="description" content="הרשמה למשחקים, רשימת המתנה, חלוקה מאוזנת לקבוצות, דירוגים ו-MVP. פותחים קבוצה בדקה ושולחים קישור אחד לוואטסאפ.">
+<meta property="og:title" content="Soccer Manager — ניהול קבוצת כדורגל">
+<meta property="og:description" content="הרשמה למשחקים, חלוקה מאוזנת לקבוצות, דירוגים ו-MVP. הכל בקישור אחד לוואטסאפ.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="he_IL">
+<meta name="theme-color" content="#0F172A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="admin-auth.js"></script>
+<script src="group-prefs.js"></script>
+<style>
+    :root {
+        --bg: #0F172A; --bg-deep: #0B1220; --surface: #1E293B; --surface-2: #273449;
+        --border: #334155; --text: #F8FAFC; --muted: #94A3B8;
+        --primary: #10B981; --primary-ink: #03140D; --primary-soft: rgba(16,185,129,0.12); --primary-line: rgba(16,185,129,0.4);
+        --blue: #60A5FA; --amber: #FCD34D; --wa: #25D366; --danger: #F87171;
+        --radius: 16px;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: 'Heebo', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    body.modal-open { overflow: hidden; }
+    a { color: inherit; text-decoration: none; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+    .muted { color: var(--muted); }
+    h1, h2, h3 { line-height: 1.2; margin: 0; }
+
+    /* ===== Buttons ===== */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 12px;
+           padding: 12px 20px; font: inherit; font-weight: 800; font-size: 1rem; cursor: pointer; transition: transform .15s, background .15s, border-color .15s; white-space: nowrap; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .btn-lg { padding: 15px 26px; font-size: 1.08rem; }
+    .btn-block { width: 100%; }
+    .btn-primary { background: var(--primary); color: var(--primary-ink); }
+    .btn-primary:hover { background: #34D399; }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover { background: var(--surface); }
+    .btn-wa { background: var(--wa); color: #062E16; }
+    .linkish { background: none; border: none; padding: 0; font: inherit; color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ===== Nav ===== */
+    .nav { position: sticky; top: 0; z-index: 50; background: rgba(15,23,42,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(51,65,85,0.7); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 1.1rem; letter-spacing: -0.01em; white-space: nowrap; }
+    .nav-ico { display: none; }
+    .brand-ball { font-size: 1.3rem; }
+    .nav-actions { display: flex; align-items: center; gap: 6px; }
+    .nav-link { padding: 8px 12px; border-radius: 10px; color: var(--muted); font-weight: 700; font-size: .95rem; white-space: nowrap; }
+    .nav-link:hover, .nav-link.active { color: var(--text); background: var(--surface); }
+    .nav-btn { padding: 8px 14px; font-size: .92rem; }
+    .banner { background: rgba(252,211,77,0.1); border-bottom: 1px solid rgba(252,211,77,0.3); color: var(--amber); font-size: .88rem; }
+    .banner .wrap { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding-top: 8px; padding-bottom: 8px; }
+    .banner button { background: none; border: none; color: inherit; font-size: 1.1rem; cursor: pointer; }
+
+    /* ===== Hero ===== */
+    .hero { position: relative; overflow: hidden; padding: 56px 0 64px;
+            background: radial-gradient(900px 480px at 85% -10%, rgba(16,185,129,0.18), transparent 60%),
+                        radial-gradient(700px 400px at -10% 10%, rgba(96,165,250,0.10), transparent 60%); }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 48px; align-items: center; }
+    .eyebrow { display: inline-block; background: var(--primary-soft); color: var(--primary); border: 1px solid var(--primary-line); padding: 4px 12px; border-radius: 999px; font-size: .85rem; font-weight: 800; margin-bottom: 18px; }
+    .hero h1 { font-size: clamp(2.1rem, 5.4vw, 3.5rem); font-weight: 900; letter-spacing: -0.02em; margin-bottom: 18px; }
+    .hero h1 .accent { color: var(--primary); display: block; }
+    .lead { font-size: clamp(1.05rem, 2.2vw, 1.2rem); color: #CBD5E1; max-width: 560px; margin: 0 0 28px; }
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+    .hero-note { margin: 18px 0 0; color: var(--muted); font-size: .9rem; }
+
+    /* App mock */
+    .mock { background: linear-gradient(180deg, #1E293B, #172033); border: 1px solid var(--border); border-radius: 26px; padding: 18px; box-shadow: 0 30px 60px rgba(0,0,0,0.45), 0 0 0 8px rgba(30,41,59,0.35); max-width: 380px; margin-inline-start: auto; transform: rotate(-1.5deg); }
+    .mock-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+    .mock-title { font-weight: 900; font-size: 1.05rem; }
+    .mock-sub { color: var(--muted); font-size: .8rem; }
+    .pill { font-size: .75rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+    .pill-ok { background: var(--primary-soft); color: var(--primary); border: 1px solid var(--primary-line); }
+    .mock-teams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .team { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 10px 8px; }
+    .team-h { display: flex; justify-content: space-between; align-items: baseline; font-size: .72rem; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .team-h b { color: var(--text); font-size: .95rem; }
+    .team ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+    .team li { font-size: .78rem; background: var(--surface); border-radius: 8px; padding: 3px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team li.more { background: none; color: var(--muted); padding: 0 6px; }
+    .t1 { border-top: 3px solid #10B981; } .t2 { border-top: 3px solid #60A5FA; } .t3 { border-top: 3px solid #FCD34D; }
+    .mock-foot { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(252,211,77,0.08); border: 1px solid rgba(252,211,77,0.25); border-radius: 12px; padding: 8px 12px; font-size: .82rem; }
+    .mock-foot span { color: var(--amber); font-weight: 700; }
+
+    /* ===== Sections ===== */
+    .section { padding: 64px 0; }
+    .section.alt { background: var(--bg-deep); border-top: 1px solid rgba(51,65,85,0.5); border-bottom: 1px solid rgba(51,65,85,0.5); }
+    .section-title { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900; margin-bottom: 10px; text-align: center; }
+    .section-sub { color: var(--muted); text-align: center; margin: 0 auto 36px; max-width: 560px; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: step; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; position: relative; }
+    .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); font-weight: 900; margin-bottom: 12px; }
+    .step h3 { font-size: 1.15rem; margin-bottom: 6px; }
+    .step p { margin: 0; color: var(--muted); }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+    .feature-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-2); font-size: 1.35rem; margin-bottom: 12px; }
+    .feature h3 { font-size: 1.1rem; margin-bottom: 6px; }
+    .feature p { margin: 0; color: var(--muted); font-size: .95rem; }
+    .band { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(16,185,129,0.10)); border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
+    .band h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: 6px; }
+    .band p { margin: 0; color: var(--muted); }
+    .faq { max-width: 720px; margin: 0 auto; display: grid; gap: 10px; }
+    .faq details { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px 18px; }
+    .faq summary { cursor: pointer; font-weight: 800; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: '+'; color: var(--primary); font-weight: 900; font-size: 1.2rem; line-height: 1; }
+    .faq details[open] summary::after { content: '–'; }
+    .faq details p { margin: 0 0 16px; color: var(--muted); }
+    .final { text-align: center; }
+    .final h2 { font-size: clamp(1.7rem, 4vw, 2.4rem); font-weight: 900; margin-bottom: 10px; }
+    .final p { color: var(--muted); margin: 0 0 24px; }
+    footer { border-top: 1px solid rgba(51,65,85,0.6); padding: 28px 0 40px; color: var(--muted); font-size: .9rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+    footer nav { display: flex; gap: 16px; }
+    footer a:hover { color: var(--text); }
+
+    /* ===== Group cards ===== */
+    .group-list { display: grid; gap: 10px; }
+    .group-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; transition: border-color .15s, background .15s; }
+    .group-card:hover { border-color: var(--primary-line); background: #22304A; }
+    .gc-icon { width: 42px; height: 42px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--primary-soft); font-size: 1.25rem; }
+    .gc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .gc-name { font-weight: 800; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gc-meta { color: var(--muted); font-size: .85rem; }
+    .dot { margin: 0 6px; opacity: .6; }
+    .gc-badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .badge { font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+    .badge-owner { color: var(--amber); background: rgba(252,211,77,0.1); }
+    .badge-public { color: var(--blue); background: rgba(96,165,250,0.12); }
+    .gc-go { color: var(--muted); flex: none; display: flex; }
+    .empty { background: transparent; border: 1px dashed var(--border); border-radius: 14px; padding: 26px 18px; text-align: center; color: var(--muted); }
+    .empty b { color: var(--text); font-size: 1.05rem; }
+    .empty .btn { margin-top: 14px; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 10px 0 0; }
+    .recent-block { margin-top: 36px; }
+    .recent-top { padding-top: 24px; }
+    .block-title { font-size: 1.15rem; font-weight: 800; margin: 0 0 12px; }
+
+    /* ===== Dashboard / Find ===== */
+    .page { padding-top: 32px; padding-bottom: 64px; min-height: 70vh; }
+    .page-note { margin-top: 32px; color: var(--muted); font-size: .92rem; }
+    .nowrap { white-space: nowrap; }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .page-head h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); font-weight: 900; }
+    .page-head p { margin: 4px 0 0; color: var(--muted); }
+    .page-foot { margin-top: 32px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: .92rem; }
+    .search { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; color: var(--text); font: inherit; font-size: 1.02rem; margin-bottom: 8px; }
+    .search:focus { border-color: var(--primary); outline: none; }
+    .find-count { color: var(--muted); font-size: .85rem; margin: 0 4px 14px; min-height: 1.2em; }
+    .listing-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+    .listing { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .listing-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .listing h3 { font-size: 1.12rem; font-weight: 800; }
+    .chip { font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); white-space: nowrap; }
+    .listing .meta { color: #CBD5E1; font-size: .92rem; }
+    .listing .desc { color: var(--muted); font-size: .92rem; margin: 4px 0 6px; }
+    .listing .btn { margin-top: auto; }
+
+    /* ===== Modal / form ===== */
+    .modal { position: fixed; inset: 0; z-index: 100; background: rgba(2,6,23,0.72); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-card { position: relative; width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+    .modal-card h2 { font-size: 1.4rem; font-weight: 900; margin-bottom: 4px; }
+    .modal-card > p { color: var(--muted); margin: 0 0 18px; }
+    .modal-x { position: absolute; top: 14px; left: 14px; width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--surface-2); color: var(--muted); font-size: 1rem; cursor: pointer; }
+    .field { display: block; margin-bottom: 14px; }
+    .field > span { display: block; font-weight: 700; font-size: .9rem; margin-bottom: 6px; color: #CBD5E1; }
+    .field input, .field select, .field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); font: inherit; font-size: 1rem; }
+    .field textarea { resize: vertical; min-height: 64px; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .day-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .day-chip { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font: inherit; font-weight: 800; cursor: pointer; }
+    .day-chip[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+    .vis { border: none; padding: 0; margin: 4px 0 14px; }
+    .vis legend { font-weight: 700; font-size: .9rem; margin-bottom: 8px; color: #CBD5E1; padding: 0; }
+    .vis-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .vis-opt { position: relative; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; cursor: pointer; background: var(--bg); }
+    .vis-opt input { position: absolute; opacity: 0; pointer-events: none; }
+    .vis-opt b { font-size: 1rem; }
+    .vis-opt small { color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .vis-opt:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+    .vis-opt:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .public-box { background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.25); border-radius: 14px; padding: 14px 14px 2px; margin-bottom: 16px; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 860px) {
+        .hero { padding: 36px 0 44px; }
+        .hero-grid { grid-template-columns: 1fr; gap: 36px; }
+        .mock { margin: 0 auto; transform: none; }
+        .steps, .features { grid-template-columns: 1fr; }
+        .band { flex-direction: column; align-items: stretch; text-align: center; }
+        .section { padding: 48px 0; }
+    }
+    @media (min-width: 600px) and (max-width: 860px) { .features { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) {
+        .hero-ctas .btn { width: 100%; }
+        .nav-link { padding: 8px; }
+        .brand { font-size: 1rem; }
+        .nav-btn { padding: 8px 12px; }
+        .field-row, .vis-opts { grid-template-columns: 1fr; }
+        .modal { align-items: flex-end; padding: 0; }
+        .modal-card { border-radius: 20px 20px 0 0; max-height: 92vh; padding: 22px 16px calc(22px + env(safe-area-inset-bottom)); }
+        .group-card { flex-wrap: wrap; }
+        .gc-badges { width: 100%; justify-content: flex-start; padding-inline-start: 56px; }
+        .gc-go { display: none; }
+    }
+    @media (max-width: 420px) { .nav-ico { display: inline; font-size: 1.1rem; } .nav-text { display: none; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .group-card { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="banner" id="inAppBanner" hidden>
+    <div class="wrap">
+        <span>💡 כדי להתחבר עם Google, פתח את הדף בדפדפן (בתפריט: "פתח בדפדפן").</span>
+        <button type="button" aria-label="סגור" onclick="this.closest('.banner').hidden = true">✕</button>
+    </div>
+</div>
+
+<header class="nav">
+    <div class="wrap nav-inner">
+        <a class="brand" href="home.html"><span class="brand-ball" aria-hidden="true">⚽</span>Soccer Manager</a>
+        <nav class="nav-actions" aria-label="ניווט ראשי">
+            <a class="nav-link" id="navFind" href="#find" aria-label="מצא משחק"><span class="nav-ico" aria-hidden="true">🔎</span><span class="nav-text">מצא משחק</span></a>
+            <button class="btn btn-ghost nav-btn" id="navAuthBtn" type="button">כניסה</button>
+        </nav>
+    </div>
+</header>
+
+<!-- ============ דף נחיתה ============ -->
+<main id="viewLanding">
+    <section class="wrap recent-top" id="recentStrip" hidden>
+        <h2 class="block-title">הקבוצות האחרונות שלך</h2>
+        <div class="group-list" id="recentList"></div>
+    </section>
+
+    <section class="hero">
+        <div class="wrap hero-grid">
+            <div>
+                <span class="eyebrow">לארגון משחקי כדורגל שכונתיים</span>
+                <h1>הכדורגל השבועי שלך,<span class="accent">בלי הבלגן בוואטסאפ.</span></h1>
+                <p class="lead">הרשמה למשחק, רשימת המתנה, חלוקה מאוזנת לקבוצות, דירוגים <span class="nowrap">ו-MVP</span>. פותחים קבוצה בדקה, שולחים קישור אחד לקבוצת הוואטסאפ, והשחקנים נרשמים בלחיצה.</p>
+                <div class="hero-ctas">
+                    <button class="btn btn-primary btn-lg" type="button" onclick="startCreate()">פתח קבוצה בחינם</button>
+                    <a class="btn btn-ghost btn-lg" href="#find">מחפש משחק באזור?</a>
+                </div>
+                <p class="hero-note">כניסה עם Google · לשחקנים לא צריך חשבון · חינם בתקופת ההשקה</p>
+            </div>
+            <div aria-hidden="true">
+                <div class="mock">
+                    <div class="mock-top">
+                        <div>
+                            <div class="mock-title">⚽ שישי בשכונה</div>
+                            <div class="mock-sub">שישי 16:00 · המגרש הסינתטי</div>
+                        </div>
+                        <span class="pill pill-ok">18/18 נרשמו</span>
+                    </div>
+                    <div class="mock-teams">
+                        <div class="team t1"><div class="team-h"><span>קבוצה 1</span><b>7.4</b></div><ul><li>🧤 אבי</li><li>דני</li><li>עומר</li><li>גיא</li><li class="more">ועוד 2</li></ul></div>
+                        <div class="team t2"><div class="team-h"><span>קבוצה 2</span><b>7.3</b></div><ul><li>🧤 רון</li><li>איתי</li><li>נועם</li><li>טל</li><li class="more">ועוד 2</li></ul></div>
+                        <div class="team t3"><div class="team-h"><span>קבוצה 3</span><b>7.4</b></div><ul><li>🧤 בן</li><li>עידו</li><li>אור</li><li>יואב</li><li class="more">ועוד 2</li></ul></div>
+                    </div>
+                    <div class="mock-foot"><span>🏆 MVP של השבוע</span><b>עומר · 9 קולות</b></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="how">
+        <div class="wrap">
+            <h2 class="section-title">איך זה עובד</h2>
+            <p class="section-sub">שלושה צעדים, ומהשבוע הבא ההרשמה והחלוקה לקבוצות מסתדרות לבד.</p>
+            <div class="steps">
+                <div class="step"><h3>פותחים קבוצה</h3><p>נותנים שם, עיר ומתי משחקים. תוך דקה היא מוכנה.</p></div>
+                <div class="step"><h3>שולחים קישור לוואטסאפ</h3><p>השחקנים פותחים ונרשמים. בלי אפליקציה ובלי סיסמה.</p></div>
+                <div class="step"><h3>יוצאים למגרש</h3><p>ההרשמה, רשימת ההמתנה והחלוקה לקבוצות קורות לבד.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section alt" id="features">
+        <div class="wrap">
+            <h2 class="section-title">כל מה שמארגן צריך</h2>
+            <p class="section-sub">נבנה מתוך קבוצה אמיתית שמשחקת כל שבוע, ומכל ויכוח על "קבוצות לא מאוזנות".</p>
+            <div class="features">
+                <div class="feature"><div class="feature-icon">⚖️</div><h3>חלוקה מאוזנת לקבוצות</h3><p>האלגוריתם מאזן התקפה, הגנה ושוערים לפי הדירוגים. נגמרו הוויכוחים על הקבוצות.</p></div>
+                <div class="feature"><div class="feature-icon">📝</div><h3>הרשמה עם רשימת המתנה</h3><p>מגבלת משתתפים, קדימויות שאתם קובעים, ורשימת המתנה שמתקדמת לבד כשמישהו מבטל.</p></div>
+                <div class="feature"><div class="feature-icon">⭐</div><h3>דירוגי שחקנים</h3><p>כל שחקן מדרג את החברים בקישור אישי, והציונים משפיעים על החלוקה.</p></div>
+                <div class="feature"><div class="feature-icon">🏆</div><h3>MVP, שערים וטבלאות</h3><p>הצבעת MVP אחרי כל משחק, מלכי שערים והיסטוריית משחקים.</p></div>
+                <div class="feature"><div class="feature-icon">🔄</div><h3>שוק שחקנים</h3><p>חסרים שחקנים הערב? מפרסמים בשוק ומוצאים מחליף.</p></div>
+                <div class="feature"><div class="feature-icon">🛡️</div><h3>כמה מנהלים, בלי סיסמאות</h3><p>כניסה מאובטחת עם Google, ומזמינים עוד מנהלים בקישור.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="wrap">
+            <div class="band">
+                <div>
+                    <h2>מחפש קבוצה לשחק איתה?</h2>
+                    <p>קבוצות ציבוריות מפרסמות כאן איפה ומתי הן משחקות. פונים למארגן בוואטסאפ.</p>
+                </div>
+                <a class="btn btn-ghost btn-lg" href="#find">🔎 מצא משחק</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section alt" id="faq">
+        <div class="wrap">
+            <h2 class="section-title">שאלות נפוצות</h2>
+            <p class="section-sub">התשובות הקצרות לשאלות שכולם שואלים.</p>
+            <div class="faq">
+                <details><summary>כמה זה עולה?</summary><p>בתקופת ההשקה השימוש חינם, בלי הגבלה על מספר הקבוצות.</p></details>
+                <details><summary>השחקנים צריכים להירשם או להוריד אפליקציה?</summary><p>לא. רק המנהל מתחבר עם Google. השחקנים פותחים את הקישור מהוואטסאפ ונרשמים בלחיצה, והאתר זוכר להם את הקבוצה.</p></details>
+                <details><summary>אפשר כמה מנהלים לקבוצה?</summary><p>כן. בהגדרות הקבוצה יוצרים קישור הזמנה חד-פעמי ושולחים אותו למנהל הנוסף.</p></details>
+                <details><summary>מי רואה את הקבוצה שלי?</summary><p>קבוצה פרטית גלויה רק למי שקיבל ממך קישור. קבוצה ציבורית מופיעה גם ב"מצא משחק" עם עיר, זמנים ומספר לפניות, אבל הקישור לקבוצה עצמה נשאר אצלך.</p></details>
+                <details><summary>יש לי כבר קבוצה במערכת. מה עושים?</summary><p>נכנסים לקבוצה מהקישור הרגיל ולוחצים "ניהול". אחרי הכניסה הראשונה עם Google היא תופיע ב"הקבוצות שלי".</p></details>
+            </div>
+        </div>
+    </section>
+
+    <section class="section final">
+        <div class="wrap">
+            <h2>המשחק הבא כבר מתארגן?</h2>
+            <p>פתח קבוצה עכשיו ושלח את הקישור לחבר'ה.</p>
+            <button class="btn btn-primary btn-lg" type="button" onclick="startCreate()">פתח קבוצה בחינם</button>
+        </div>
+    </section>
+</main>
+
+<!-- ============ הקבוצות שלי ============ -->
+<main id="viewDashboard" hidden>
+    <section class="wrap page">
+        <div class="page-head">
+            <div>
+                <h1 id="dashHello">שלום 👋</h1>
+                <p>כל הקבוצות שאתה מנהל, במקום אחד.</p>
+            </div>
+            <button class="btn btn-primary" type="button" onclick="startCreate()">+ קבוצה חדשה</button>
+        </div>
+        <h2 class="block-title">הקבוצות שלי</h2>
+        <div class="group-list" id="myGroupsList"></div>
+        <div class="recent-block" id="dashRecentWrap" hidden>
+            <h2 class="block-title">קבוצות שביקרת בהן</h2>
+            <div class="group-list" id="dashRecentList"></div>
+        </div>
+        <div class="page-foot">
+            <a class="linkish" href="#find">🔎 מצא משחק</a>
+            <a class="linkish" href="admin.html" id="superAdminLink" hidden>לוח בקרה גלובלי</a>
+            <button class="linkish" type="button" onclick="signOut()">התנתקות</button>
+        </div>
+    </section>
+</main>
+
+<!-- ============ מצא משחק ============ -->
+<main id="viewFind" hidden>
+    <section class="wrap page">
+        <div class="page-head">
+            <div>
+                <h1>מצא משחק</h1>
+                <p>קבוצות שפתוחות לשחקנים חדשים. פונים למארגן בוואטסאפ.</p>
+            </div>
+        </div>
+        <input class="search" id="findSearch" type="search" placeholder="חיפוש לפי עיר, מגרש או שם קבוצה" aria-label="חיפוש קבוצות" oninput="renderListings()">
+        <div class="find-count" id="findCount" aria-live="polite"></div>
+        <div class="listing-list" id="findList"></div>
+        <p class="page-note">מארגן קבוצה? <button class="linkish" type="button" onclick="startCreate()">פתח קבוצה</button> וסמן אותה כציבורית כדי להופיע כאן.</p>
+    </section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <span>⚽ Soccer Manager · נבנה בשביל הכדורגל השכונתי</span>
+        <nav aria-label="קישורים">
+            <a href="#find">מצא משחק</a>
+            <a href="#" onclick="startCreate(); return false;">פתח קבוצה</a>
+        </nav>
+    </div>
+</footer>
+
+<!-- ============ יצירת קבוצה ============ -->
+<div class="modal" id="createModal" hidden role="dialog" aria-modal="true" aria-labelledby="createTitle">
+    <div class="modal-card">
+        <button class="modal-x" type="button" onclick="closeCreate()" aria-label="סגור">✕</button>
+        <h2 id="createTitle">קבוצה חדשה</h2>
+        <p>אפשר לשנות הכל אחר כך בהגדרות הקבוצה.</p>
+        <form id="createForm" onsubmit="createGroup(event)" novalidate>
+            <label class="field"><span>שם הקבוצה *</span><input id="cName" maxlength="60" autocomplete="off" placeholder="לדוגמה: שישי בשכונה" required></label>
+            <div class="field-row">
+                <label class="field"><span>עיר / יישוב *</span><input id="cCity" maxlength="40" list="cityList" autocomplete="off" placeholder="לדוגמה: חיפה" required></label>
+                <label class="field"><span>מגרש</span><input id="cVenue" maxlength="60" autocomplete="off" placeholder="לא חובה"></label>
+            </div>
+            <div class="field-row">
+                <div class="field"><span>ימי משחק</span><div class="day-chips" id="cDays"></div></div>
+                <label class="field"><span>שעה</span><input id="cTime" type="time"></label>
+            </div>
+            <fieldset class="vis">
+                <legend>מי יכול למצוא את הקבוצה?</legend>
+                <div class="vis-opts">
+                    <label class="vis-opt"><input type="radio" name="cVis" value="private" checked><b>🔒 פרטית</b><small>רק מי שקיבל ממך קישור</small></label>
+                    <label class="vis-opt"><input type="radio" name="cVis" value="public"><b>🌍 ציבורית</b><small>מופיעה ב"מצא משחק" ושחקנים חדשים יכולים לפנות אליך</small></label>
+                </div>
+            </fieldset>
+            <div class="public-box" id="cPublicFields" hidden>
+                <label class="field"><span>טלפון לפניות בוואטסאפ *</span><input id="cPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="050-1234567"></label>
+                <label class="field"><span>רמת משחק</span><select id="cLevel"></select></label>
+                <label class="field"><span>כמה מילים על הקבוצה</span><textarea id="cDesc" maxlength="300" rows="2" placeholder="לדוגמה: 3 קבוצות של 6, מחפשים שחקנים קבועים"></textarea></label>
+                <p class="hint">המספר יוצג לכל מי שמחפש משחק. את הקישור לקבוצה אתה שולח רק למי שתבחר.</p>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" id="cSubmit" type="submit">צור קבוצה</button>
+        </form>
+    </div>
+</div>
+<datalist id="cityList"></datalist>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+        authDomain: "soccer-b30a6.firebaseapp.com",
+        projectId: "soccer-b30a6",
+        storageBucket: "soccer-b30a6.firebasestorage.app",
+        messagingSenderId: "295483280442",
+        appId: "1:295483280442:web:0633390394600eb6357903",
+        measurementId: "G-425XRT1EVL"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const G = window.GroupPrefs;
+
+    let currentUser = null;
+    let myGroups;            // undefined = טוען, null = שגיאה, מערך = נטען
+    let listings = null;
+    let currentView = 'viewLanding';
+
+    const $ = id => document.getElementById(id);
+    const IN_APP = /FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|MicroMessenger/i.test(navigator.userAgent);
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function groupUrl(id) { return 'index.html?group=' + encodeURIComponent(id); }
+    const CHEVRON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    // ===== ניווט בין מסכים =====
+    function showView(id) {
+        if (currentView === id) return;
+        currentView = id;
+        ['viewLanding', 'viewDashboard', 'viewFind'].forEach(v => { $(v).hidden = v !== id; });
+        window.scrollTo(0, 0);
+    }
+
+    function route() {
+        if (location.hash === '#find') {
+            showView('viewFind');
+            loadListings();
+        } else if (AdminAuth.isRealUser(currentUser)) {
+            showView('viewDashboard');
+            renderDashboard();
+        } else {
+            showView('viewLanding');
+            renderRecent($('recentList'), $('recentStrip'), new Set());
+        }
+        renderNav();
+    }
+
+    function goHome() {
+        history.pushState(null, '', location.pathname + location.search);
+        route();
+    }
+
+    function renderNav() {
+        const btn = $('navAuthBtn');
+        const signedIn = AdminAuth.isRealUser(currentUser);
+        btn.textContent = signedIn ? 'הקבוצות שלי' : 'כניסה';
+        btn.onclick = signedIn ? goHome : signIn;
+        $('navFind').classList.toggle('active', currentView === 'viewFind');
+    }
+
+    // ===== התחברות =====
+    function authErrorAlert(e) {
+        let msg = 'ההתחברות נכשלה: ' + AdminAuth.errorMessage(e);
+        if (IN_APP) msg += '\n\nנסה לפתוח את הדף בדפדפן (Chrome או Safari).';
+        alert(msg);
+    }
+
+    async function signIn() {
+        try { await AdminAuth.signInWithGoogle(); }
+        catch (e) { if (!AdminAuth.isCancel(e)) authErrorAlert(e); }
+    }
+
+    async function signOut() {
+        await auth.signOut();
+        history.pushState(null, '', location.pathname);
+        route();
+    }
+
+    auth.onAuthStateChanged(u => {
+        currentUser = u;
+        if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); }
+        route();
+    });
+    window.addEventListener('hashchange', route);
+    window.addEventListener('popstate', route);
+
+    // ===== הקבוצות שלי =====
+    async function loadMyGroups() {
+        const uid = currentUser && currentUser.uid;
+        if (!uid) return;
+        myGroups = undefined;
+        if (currentView === 'viewDashboard') renderDashboard();
+        try {
+            const snap = await db.collection('groups').where('adminUids', 'array-contains', uid).get();
+            if (!currentUser || currentUser.uid !== uid) return;
+            myGroups = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'he'));
+        } catch (e) {
+            console.error('my groups', e);
+            myGroups = null;
+        }
+        if (currentView === 'viewDashboard') renderDashboard();
+    }
+
+    function groupCardHTML(g, uid) {
+        const city = (g.location && g.location.city) || '';
+        const when = G.formatSchedule(g.schedule);
+        const meta = [city && '📍 ' + esc(city), when && '📅 ' + esc(when)].filter(Boolean).join('<span class="dot">·</span>');
+        let badges = '';
+        if (uid) {
+            badges += g.ownerUid === uid ? '<span class="badge badge-owner">👑 בעלים</span>' : '<span class="badge">🛡️ מנהל</span>';
+            badges += g.visibility === 'public' ? '<span class="badge badge-public">🌍 ציבורית</span>' : '<span class="badge">🔒 פרטית</span>';
+        }
+        return `<a class="group-card" href="${groupUrl(g.id)}">
+            <span class="gc-icon" aria-hidden="true">⚽</span>
+            <span class="gc-body"><span class="gc-name">${esc(g.name || 'קבוצה')}</span>${meta ? `<span class="gc-meta">${meta}</span>` : ''}</span>
+            ${badges ? `<span class="gc-badges">${badges}</span>` : ''}
+            <span class="gc-go">${CHEVRON}</span>
+        </a>`;
+    }
+
+    function renderRecent(listEl, wrapEl, excludeIds) {
+        const items = G.getRecentGroups().filter(g => !excludeIds.has(g.id)).slice(0, 6);
+        wrapEl.hidden = !items.length;
+        listEl.innerHTML = items.map(g => groupCardHTML({ id: g.id, name: g.name, location: { city: g.city } })).join('');
+    }
+
+    function renderDashboard() {
+        const u = currentUser;
+        if (!AdminAuth.isRealUser(u)) return;
+        const first = String(u.displayName || '').trim().split(/\s+/)[0];
+        $('dashHello').textContent = first ? `שלום, ${first} 👋` : 'שלום 👋';
+        $('superAdminLink').hidden = !AdminAuth.isSuperAdmin(u);
+        const list = $('myGroupsList');
+        if (myGroups === undefined) {
+            list.innerHTML = '<div class="empty">טוען את הקבוצות שלך…</div>';
+        } else if (myGroups === null) {
+            list.innerHTML = '<div class="empty">לא הצלחנו לטעון את הקבוצות. <button class="linkish" type="button" onclick="loadMyGroups()">נסה שוב</button></div>';
+        } else if (!myGroups.length) {
+            list.innerHTML = `<div class="empty"><b>עדיין אין לך קבוצות.</b><br>פתח קבוצה ראשונה ושלח את הקישור לחבר'ה.<br>
+                <button class="btn btn-primary" type="button" onclick="startCreate()">+ פתח קבוצה</button>
+                <p class="hint">יש לך קבוצה ותיקה? היכנס אליה מהקישור ולחץ "ניהול" פעם אחת, והיא תופיע כאן.</p></div>`;
+        } else {
+            list.innerHTML = myGroups.map(g => groupCardHTML(g, u.uid)).join('');
+        }
+        const mine = new Set((myGroups || []).map(g => g.id));
+        renderRecent($('dashRecentList'), $('dashRecentWrap'), mine);
+    }
+
+    // ===== מצא משחק =====
+    async function loadListings() {
+        if (listings) { renderListings(); return; }
+        $('findList').innerHTML = '<div class="empty">טוען קבוצות…</div>';
+        try {
+            const snap = await db.collection('listings').limit(300).get();
+            listings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+            console.error('listings', e);
+            $('findList').innerHTML = '<div class="empty">לא הצלחנו לטעון את הרשימה. נסה לרענן את הדף.</div>';
+            return;
+        }
+        renderListings();
+    }
+
+    function norm(s) { return String(s || '').toLowerCase().replace(/[\s\-־"'׳״.,]/g, ''); }
+
+    function listingCardHTML(l) {
+        const when = G.formatSchedule({ days: l.days, time: l.time });
+        const level = G.LEVELS[l.level] || '';
+        const phone = G.normalizePhone(l.phone);
+        const msg = `היי, ראיתי את "${l.name}" ב-Soccer Manager. אפשר להצטרף למשחק?`;
+        const wa = phone ? `https://wa.me/${G.phoneToIntl(phone)}?text=${encodeURIComponent(msg)}` : '';
+        return `<article class="listing">
+            <div class="listing-top"><h3>${esc(l.name)}</h3>${level ? `<span class="chip">${esc(level)}</span>` : ''}</div>
+            <div class="meta">📍 ${esc(l.city)}${l.venue ? ' · ' + esc(l.venue) : ''}</div>
+            ${when ? `<div class="meta">📅 ${esc(when)}</div>` : ''}
+            ${l.description ? `<p class="desc">${esc(l.description)}</p>` : ''}
+            ${wa ? `<a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener">💬 דבר עם המארגן</a>` : ''}
+        </article>`;
+    }
+
+    function renderListings() {
+        if (!listings) return;
+        const q = norm($('findSearch').value);
+        const items = listings
+            .filter(l => !q || norm([l.name, l.city, l.venue].join(' ')).includes(q))
+            .sort((a, b) => String(a.city || '').localeCompare(String(b.city || ''), 'he') || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
+        $('findCount').textContent = listings.length ? (items.length === 1 ? 'קבוצה אחת' : `${items.length} קבוצות`) : '';
+        if (!items.length) {
+            $('findList').innerHTML = listings.length
+                ? '<div class="empty">לא נמצאו קבוצות שמתאימות לחיפוש. נסה יישוב קרוב.</div>'
+                : `<div class="empty"><b>עוד אין כאן קבוצות ציבוריות.</b><br>מארגן קבוצה? פתח קבוצה וסמן אותה כציבורית, והיא תופיע כאן.<br>
+                    <button class="btn btn-primary" type="button" onclick="startCreate()">פתח קבוצה</button></div>`;
+            return;
+        }
+        $('findList').innerHTML = items.map(listingCardHTML).join('');
+    }
+
+    // ===== יצירת קבוצה =====
+    // חייבת להיקרא ישירות מלחיצה, כדי שחלון ההתחברות של Google לא ייחסם
+    async function startCreate() {
+        if (!AdminAuth.isRealUser(auth.currentUser)) {
+            try { await AdminAuth.signInWithGoogle(); }
+            catch (e) { if (!AdminAuth.isCancel(e)) authErrorAlert(e); return; }
+            if (!AdminAuth.isRealUser(auth.currentUser)) return;
+        }
+        openCreate();
+    }
+
+    function toggleCreatePublic() {
+        const pub = document.querySelector('input[name="cVis"]:checked').value === 'public';
+        $('cPublicFields').hidden = !pub;
+    }
+
+    function openCreate() {
+        $('createForm').reset();
+        G.renderDayChips($('cDays'), []);
+        $('cLevel').innerHTML = G.levelOptionsHTML('');
+        toggleCreatePublic();
+        $('cSubmit').disabled = false;
+        $('cSubmit').textContent = 'צור קבוצה';
+        $('createModal').hidden = false;
+        document.body.classList.add('modal-open');
+        setTimeout(() => $('cName').focus(), 60);
+    }
+
+    function closeCreate() {
+        $('createModal').hidden = true;
+        document.body.classList.remove('modal-open');
+    }
+
+    async function createGroup(ev) {
+        ev.preventDefault();
+        const u = auth.currentUser;
+        if (!AdminAuth.isRealUser(u)) { closeCreate(); alert('ההתחברות פגה. התחבר שוב ונסה.'); return; }
+        const name = $('cName').value.trim();
+        const city = $('cCity').value.trim();
+        const venue = $('cVenue').value.trim();
+        const days = G.readDayChips($('cDays'));
+        const time = G.cleanTime($('cTime').value);
+        const visibility = document.querySelector('input[name="cVis"]:checked').value;
+        if (!name) { alert('נא להזין שם לקבוצה.'); $('cName').focus(); return; }
+        if (!city) { alert('נא להזין עיר או יישוב.'); $('cCity').focus(); return; }
+
+        let listing = null;
+        if (visibility === 'public') {
+            const phone = G.normalizePhone($('cPhone').value);
+            if (!phone) { alert('נא להזין מספר טלפון תקין לפניות, לדוגמה 050-1234567.'); $('cPhone').focus(); return; }
+            listing = G.buildListing({ ownerUid: u.uid, name, city, venue, days, time, level: $('cLevel').value, description: $('cDesc').value, phone });
+        }
+
+        const btn = $('cSubmit');
+        btn.disabled = true;
+        btn.textContent = 'יוצר קבוצה…';
+        try {
+            const ts = firebase.firestore.FieldValue.serverTimestamp();
+            const groupRef = db.collection('groups').doc();
+            const group = {
+                name: name.slice(0, 60),
+                ownerUid: u.uid,
+                admins: { [u.uid]: AdminAuth.displayName(u) },
+                adminUids: [u.uid],
+                settings: { numTeams: 3, playersPerTeam: 6, priorityLabel: '' },
+                customParams: [],
+                createdAt: ts,
+                location: { city: city.slice(0, 40), venue: venue.slice(0, 60) },
+                schedule: { days, time },
+                visibility
+            };
+            const batch = db.batch();
+            if (listing) {
+                const listingRef = db.collection('listings').doc();
+                group.listingId = listingRef.id;
+                batch.set(listingRef, { ...listing, createdAt: ts, updatedAt: ts });
+            }
+            batch.set(groupRef, group);
+            await batch.commit();
+            G.rememberGroup(groupRef.id, group.name, city);
+            location.href = groupUrl(groupRef.id) + '&welcome=1';
+        } catch (e) {
+            console.error('create group', e);
+            alert('שגיאה ביצירת הקבוצה: ' + AdminAuth.errorMessage(e));
+            btn.disabled = false;
+            btn.textContent = 'צור קבוצה';
+        }
+    }
+
+    document.querySelectorAll('input[name="cVis"]').forEach(r => r.addEventListener('change', toggleCreatePublic));
+    $('createModal').addEventListener('click', e => { if (e.target === $('createModal')) closeCreate(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('createModal').hidden) closeCreate(); });
+    G.fillCityList($('cityList'));
+    if (IN_APP) $('inAppBanner').hidden = false;
+    route();
+</script>
+</body>
+</html>
