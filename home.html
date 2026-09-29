@@ -162,6 +162,7 @@
     .search:focus { border-color: var(--primary); outline: none; }
     .find-count { color: var(--muted); font-size: .85rem; margin: 0 4px 14px; min-height: 1.2em; }
     .listing-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+    .listing-list .empty { grid-column: 1 / -1; }
     .listing { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 6px; }
     .listing-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
     .listing h3 { font-size: 1.12rem; font-weight: 800; }
@@ -378,7 +379,7 @@
         <input class="search" id="findSearch" type="search" placeholder="חיפוש לפי עיר, מגרש או שם קבוצה" aria-label="חיפוש קבוצות" oninput="renderListings()">
         <div class="find-count" id="findCount" aria-live="polite"></div>
         <div class="listing-list" id="findList"></div>
-        <p class="page-note">מארגן קבוצה? <button class="linkish" type="button" onclick="startCreate()">פתח קבוצה</button> וסמן אותה כציבורית כדי להופיע כאן.</p>
+        <p class="page-note" id="findNote" hidden>מארגן קבוצה? <button class="linkish" type="button" onclick="startCreate()">פתח קבוצה</button> וסמן אותה כציבורית כדי להופיע כאן.</p>
     </section>
 </main>
 
@@ -619,6 +620,7 @@
             .filter(l => !q || norm([l.name, l.city, l.venue].join(' ')).includes(q))
             .sort((a, b) => String(a.city || '').localeCompare(String(b.city || ''), 'he') || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
         $('findCount').textContent = listings.length ? (items.length === 1 ? 'קבוצה אחת' : `${items.length} קבוצות`) : '';
+        $('findNote').hidden = !listings.length;
         if (!items.length) {
             $('findList').innerHTML = listings.length
                 ? '<div class="empty">לא נמצאו קבוצות שמתאימות לחיפוש. נסה יישוב קרוב.</div>'
