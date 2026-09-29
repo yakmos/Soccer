@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
+    <script src="group-prefs.js"></script>
 
     <style>
         :root {
@@ -473,6 +474,7 @@ let selectedPlayer = null;
 let gameData       = null;
 let maxPlayers     = 10;
 let isAdmin        = false;
+let priorityLabel  = '';   // שם קבוצת העדיפות של הקבוצה ('' = אין)
 let cancelled      = [];
 let customParams   = [];
 
@@ -487,6 +489,7 @@ window.onload = async () => {
         const settings = groupData.settings || {};
         maxPlayers  = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
         customParams = groupData.customParams || [];
+        priorityLabel = GroupPrefs.priorityLabel(groupId, groupData);
 
         const regRef = db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId);
@@ -584,7 +587,7 @@ function getEntryBirthDate(entry) {
 
 // סדר עדיפות חדש (1 = הכי חזק):
 // 1-2:  פעיל ותיק (מעל 30 / מתחת)
-// 3-4:  תושב מגדים חדש פעיל (מעל 30 / מתחת)
+// 3-4:  חדש פעיל מקבוצת העדיפות של הקבוצה, למשל "תושב מגדים" (מעל 30 / מתחת)
 // 5-6:  פעיל חדש (מעל 30 / מתחת)
 // 7-8:  לא פעיל ותיק (מעל 30 / מתחת)
 // 9-10: לא פעיל חדש (מעל 30 / מתחת)
@@ -595,7 +598,7 @@ function getPriorityScore(entry) {
     const over30 = age !== null && age >= 30;
 
     if (live.isActive && !live.isNew)                        return over30 ? 1 : 2;
-    if (live.isActive && live.isNew && live.isMoshavResident) return over30 ? 3 : 4;
+    if (live.isActive && live.isNew && live.isMoshavResident && priorityLabel) return over30 ? 3 : 4;
     if (live.isActive && live.isNew)                         return over30 ? 5 : 6;
     if (!live.isActive && !live.isNew)                       return over30 ? 7 : 8;
     return over30 ? 9 : 10;
@@ -605,8 +608,12 @@ function getEntryBadgesHTML(entry) {
     let b = '';
     if (entry.isActive)         b += `<span class="badge-active">✅ פעיל</span>`;
     if (entry.isNew)            b += `<span class="badge-new">🆕 חדש</span>`;
-    if (entry.isMoshavResident) b += `<span class="badge-resident">🏠 תושב</span>`;
+    if (entry.isMoshavResident && priorityLabel) b += `<span class="badge-resident">🏠 ${escHtml(priorityLabel)}</span>`;
     return b;
+}
+
+function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function updateDateBadge(data) {
