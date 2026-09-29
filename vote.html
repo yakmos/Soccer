@@ -264,8 +264,12 @@
     window.onload = async () => {
         if (!groupId || !token) { showError("קישור לא תקין — חסר מזהה קבוצה או טוקן הצבעה.\nבקש קישור אישי חדש מהמנהל."); return; }
         try {
-            // 1. התחברות אנונימית (שקוף למשתמש)
-            const cred = await auth.signInAnonymously();
+            // 1. זיהוי המכשיר: משתמש קיים (למשל מנהל שמחובר עם Google) או התחברות אנונימית שקופה.
+            //    לא מתחברים אנונימית מעל משתמש קיים — זה היה מנתק את המנהל.
+            const existingUser = await new Promise(resolve => {
+                const unsub = auth.onAuthStateChanged(u => { unsub(); resolve(u); });
+            });
+            const cred = existingUser ? { user: existingUser } : await auth.signInAnonymously();
             myUid = cred.user.uid;
 
             // 2. טעינת הקבוצה
@@ -581,6 +585,7 @@
                         gkDiv: gkAvgs.gkDiv, gkHan: gkAvgs.gkHan, gkKic: gkAvgs.gkKic,
                         gkPos: gkAvgs.gkPos, gkRef: gkAvgs.gkRef,
                         gkScore, attScore: gkScore, defScore: gkScore,
+                        lastVoteToken: token, // מאפשר לחוקי האבטחה לוודא שהמצביע מחזיק בקישור תקף
                     });
                     transaction.set(myVoteRef, { ...newGkVote, isGk: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     if (!isEditing) transaction.update(voterRef, { votedCount: firebase.firestore.FieldValue.increment(1) });
@@ -660,6 +665,7 @@
                         updateObj[k] = newAvgs[k];
                     });
                     updateObj['customStats'] = customAvgs;
+                    updateObj['lastVoteToken'] = token; // מאפשר לחוקי האבטחה לוודא שהמצביע מחזיק בקישור תקף
                     transaction.update(playerRef, updateObj);
                     transaction.set(myVoteRef, { ...newVotes, customStats: newCustomVotes, isGk: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     if (!isEditing) transaction.update(voterRef, { votedCount: firebase.firestore.FieldValue.increment(1) });
