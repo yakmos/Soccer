@@ -284,10 +284,18 @@
         }
     }
 
+    // הסרת מודעה: הקבוצה חוזרת להיות פרטית, כדי שהמודעה לא תחזור בשמירה הבאה של ההגדרות
     async function deleteListing(id) {
-        if (!confirm('להסיר את המודעה מ"מצא משחק"?')) return;
-        try { await db.collection('listings').doc(id).delete(); loadListingsAdmin(); }
-        catch (e) { alert('שגיאה: ' + e.message); }
+        if (!confirm('להסיר את המודעה מ"מצא משחק"? הקבוצה תהפוך לפרטית.')) return;
+        try {
+            const batch = db.batch();
+            const groups = await db.collection('groups').where('listingId', '==', id).get();
+            groups.forEach(g => batch.update(g.ref, { visibility: 'private', listingId: firebase.firestore.FieldValue.delete() }));
+            batch.delete(db.collection('listings').doc(id));
+            await batch.commit();
+            loadListingsAdmin();
+            loadGroups();
+        } catch (e) { alert('שגיאה: ' + e.message); }
     }
 
     async function deleteFullGroup(groupId) {
@@ -303,12 +311,18 @@
             // מחיקת משחק
             batch.delete(db.collection('groups').doc(groupId).collection('game').doc('current'));
 
+            // מחיקת המודעה ב"מצא משחק", אם הקבוצה פורסמה
+            const groupSnap = await db.collection('groups').doc(groupId).get();
+            const listingId = groupSnap.exists ? groupSnap.data().listingId : null;
+            if (listingId) batch.delete(db.collection('listings').doc(listingId));
+
             // מחיקת הקבוצה עצמה
             batch.delete(db.collection('groups').doc(groupId));
 
             await batch.commit();
             alert("הקבוצה נמחקה.");
             loadGroups();
+            loadListingsAdmin();
         } catch (e) {
             alert("שגיאה במחיקה: " + e.message);
         }
