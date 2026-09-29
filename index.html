@@ -8,7 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+    <script src="admin-auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -528,9 +530,9 @@
             <div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:14px; padding:18px 20px;">
                 <div style="font-size:1rem; font-weight:900; color:var(--text-main); margin-bottom:6px;">צור קבוצה חדשה</div>
                 <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 14px 0; line-height:1.5;">הפעם הראשונה שלך? צור קבוצה — ושמור את הקישור שתקבל!</p>
-                <input type="text" id="newGroupName" class="form-input" placeholder="שם הקבוצה (לדוגמה: שישי בשכונה)">
-                <input type="password" id="newGroupPassword" class="form-input" placeholder="בחר סיסמת מנהל">
-                <button class="btn" onclick="createNewGroup()" id="createGroupBtn" style="font-size:1rem; padding:13px;">צור קבוצה ✨</button>
+                <input type="text" id="newGroupName" class="form-input" placeholder="שם הקבוצה (לדוגמה: שישי בשכונה)" maxlength="60">
+                <button class="btn" onclick="createNewGroup()" id="createGroupBtn" style="font-size:1rem; padding:13px;">צור קבוצה עם Google ✨</button>
+                <p style="color:var(--text-muted); font-size:0.78rem; margin:10px 0 0 0; line-height:1.5;">🔒 הניהול מאובטח בחשבון Google שלך — בלי סיסמאות. מנהלים נוספים מוסיפים בקישור הזמנה.</p>
             </div>
         </div>
     </div>
@@ -964,6 +966,13 @@
                     <button class="add-param-btn" onclick="addCustomParam()">+ הוסף</button>
                 </div>
             </div>
+            <div id="adminsManager" style="text-align: right; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                <h3 style="font-size: 1rem; font-weight: 900; color: var(--text-main); margin: 0 0 6px 0;">🛡️ מנהלי הקבוצה</h3>
+                <div id="adminsList" style="font-size: 0.95rem;"></div>
+                <button class="add-param-btn" onclick="inviteCoAdmin()" style="width: 100%; margin-top: 10px;">🔗 הזמן מנהל נוסף</button>
+                <div id="adminInviteResult"></div>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 8px 0 0 0; line-height: 1.5;">קישור חד-פעמי, תקף ל-7 ימים. מי שפותח אותו מתחבר עם Google והופך למנהל.</p>
+            </div>
             <button class="btn" onclick="saveGroupSettings()" style="margin-top: 20px;">שמור הגדרות</button>
         </div>
     </div>
@@ -990,7 +999,8 @@ db.enablePersistence({ synchronizeTabs: true }).catch(err => console.warn("Persi
 // ========== State ==========
 const urlParams = new URLSearchParams(window.location.search);
 const currentGroupId = urlParams.get('group');
-let groupRef = null, playersRef = null, gameRef = null, groupPassword = null;
+let groupRef = null, playersRef = null, gameRef = null;
+let currentGroupData = null;   // מסמך הקבוצה העדכני (כולל admins / ownerUid)
 let groupSettings = { numTeams: 3, playersPerTeam: 6 };
 let customParams = [];
 let players = [], activeTeams = null, activeGkIds = [], activeHasFixedGk = [], activeWins = [];
@@ -1017,13 +1027,6 @@ window.onload = async () => {
         document.getElementById('lobbyContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('adminBtnHeader').style.display = 'block';
-       if (sessionStorage.getItem(`admin_${currentGroupId}`) === 'true') {
-    document.body.classList.add('is-admin');
-    const bottomBar = document.getElementById('adminBottomBar');
-    if (bottomBar) bottomBar.style.display = 'block';
-    const btn = document.getElementById('adminBtnHeader');
-    if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
-}
 
         groupRef = db.collection('groups').doc(currentGroupId);
         playersRef = groupRef.collection('players');
@@ -1033,7 +1036,7 @@ window.onload = async () => {
             const doc = await groupRef.get();
             if (doc.exists) {
                 const groupData = doc.data();
-                groupPassword = groupData.password;
+                currentGroupData = groupData;
                 document.getElementById('headerTitle').innerText = `⚽ ${groupData.name}`;
                 if (groupData.settings) {
                     groupSettings.numTeams = groupData.settings.numTeams || 3;
@@ -1046,13 +1049,127 @@ window.onload = async () => {
                 return;
             }
         } catch (error) { console.error("Error loading group:", error); }
-        
+
         updateGroupLinkUI();
         startRealtimeListeners();
         initRegCalendar();
         initBdayCal();
+
+        // מצב מנהל נקבע לפי חשבון Google המחובר — לא לפי סיסמה
+        try {
+            const user = await AdminAuth.getUser();
+            const inviteCode = urlParams.get('adminInvite');
+            if (AdminAuth.isAdminOf(currentGroupData, user, false)) {
+                setAdminMode(true);
+                if (inviteCode) history.replaceState(null, '', `${location.pathname}?group=${currentGroupId}`);
+            } else if (inviteCode) {
+                showInviteBanner(inviteCode);
+            }
+        } catch (e) { console.warn('auth init', e); }
     }
 };
+
+// ========== Admin mode (Google) ==========
+function setAdminMode(on) {
+    const btn = document.getElementById('adminBtnHeader');
+    const bottomBar = document.getElementById('adminBottomBar');
+    const mainTab = document.getElementById('tab-main');
+    if (on) {
+        document.body.classList.add('is-admin');
+        if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
+        if (bottomBar && (!mainTab || mainTab.classList.contains('active'))) bottomBar.style.display = 'block';
+    } else {
+        document.body.classList.remove('is-admin');
+        if (btn) { btn.innerText = 'ניהול 🔒'; btn.style.color = ''; }
+        if (bottomBar) bottomBar.style.display = 'none';
+    }
+    render();
+}
+
+function escAdminText(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showInviteBanner(code) {
+    const host = document.querySelector('#appContainer .container');
+    if (!host || document.getElementById('inviteBanner')) return;
+    const bar = document.createElement('div');
+    bar.id = 'inviteBanner';
+    bar.className = 'card';
+    bar.style.cssText = 'border: 1px solid var(--primary-color); text-align: center;';
+    bar.innerHTML = `
+        <div style="font-weight:900; font-size:1.1rem; margin-bottom:6px;">🛡️ הוזמנת לנהל את הקבוצה</div>
+        <div style="color:var(--text-muted); font-size:0.9rem; margin-bottom:12px; line-height:1.5;">התחבר עם חשבון Google כדי לאשר. מעכשיו תיכנס כמנהל בלי סיסמה.</div>
+        <button class="btn" id="acceptInviteBtn" style="font-size:1rem; padding:13px;">התחבר עם Google ואשר ✅</button>`;
+    host.prepend(bar);
+    document.getElementById('acceptInviteBtn').onclick = async () => {
+        const res = await AdminAuth.acceptInvite(db, currentGroupId, code, currentGroupData);
+        if (!res.ok) return;
+        bar.remove();
+        history.replaceState(null, '', `${location.pathname}?group=${currentGroupId}`);
+        try { const fresh = await groupRef.get(); if (fresh.exists) currentGroupData = fresh.data(); } catch (e) {}
+        setAdminMode(true);
+        showToast(res.already ? 'אתה כבר מנהל בקבוצה הזו ✅' : 'ברוך הבא לצוות הניהול ✅', 'success');
+    };
+}
+
+function renderAdminsManager() {
+    const el = document.getElementById('adminsList');
+    if (!el) return;
+    const admins = (currentGroupData && currentGroupData.admins) || {};
+    const me = firebase.auth().currentUser;
+    const canRemove = AdminAuth.isOwnerOf(currentGroupData, me) || AdminAuth.isSuperAdmin(me);
+    const ids = Object.keys(admins);
+    if (!ids.length) {
+        el.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">הקבוצה עדיין לא הועברה לכניסת Google.</div>';
+        return;
+    }
+    el.innerHTML = ids.map(uid => {
+        const isOwner = currentGroupData.ownerUid === uid;
+        const isMe = !!me && me.uid === uid;
+        const removeBtn = (canRemove && !isOwner)
+            ? `<button onclick="removeCoAdmin('${uid}')" style="background:none; border:1px solid rgba(239,68,68,0.4); color:var(--danger); border-radius:8px; padding:4px 10px; font-family:inherit; font-weight:700; cursor:pointer;">הסר</button>`
+            : '';
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border-color);">
+            <span>${escAdminText(admins[uid] || 'מנהל')}${isOwner ? ' 👑' : ''}${isMe ? ' <span style="color:var(--text-muted); font-size:0.8rem;">(אתה)</span>' : ''}</span>${removeBtn}
+        </div>`;
+    }).join('');
+}
+
+let lastAdminInviteLink = '';
+async function inviteCoAdmin() {
+    const out = document.getElementById('adminInviteResult');
+    try {
+        const code = await AdminAuth.createInvite(db, currentGroupId);
+        lastAdminInviteLink = AdminAuth.inviteLink(currentGroupId, code);
+        const groupName = (currentGroupData && currentGroupData.name) || '';
+        const msg = `🛡️ הזמנה לנהל את הקבוצה "${groupName}" ב-Soccer Manager.\nהקישור חד-פעמי ותקף ל-7 ימים — פתח אותו והתחבר עם Google:\n${lastAdminInviteLink}`;
+        if (out) out.innerHTML = `
+            <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.35); border-radius:10px; padding:10px; margin-top:10px;">
+                <div style="font-size:0.85rem; margin-bottom:8px; font-weight:700;">קישור הזמנה חד-פעמי נוצר ✅</div>
+                <a href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="display:block; text-align:center; text-decoration:none; background:#25D366; color:#fff; border-radius:10px; padding:10px; font-weight:800;">💬 שלח בוואטסאפ</a>
+                <button class="add-param-btn" onclick="copyAdminInviteLink()" style="width:100%; margin-top:8px;">📋 העתק קישור</button>
+            </div>`;
+    } catch (e) {
+        console.error(e);
+        alert('שגיאה ביצירת הזמנה: ' + AdminAuth.errorMessage(e));
+    }
+}
+
+async function copyAdminInviteLink() {
+    if (!lastAdminInviteLink) return;
+    try { await navigator.clipboard.writeText(lastAdminInviteLink); showToast('קישור ההזמנה הועתק 📋', 'success'); }
+    catch (e) { prompt('העתק את הקישור:', lastAdminInviteLink); }
+}
+
+async function removeCoAdmin(uid) {
+    const name = ((currentGroupData && currentGroupData.admins) || {})[uid] || 'המנהל';
+    if (!confirm(`להסיר את ${name} מניהול הקבוצה?`)) return;
+    try {
+        await AdminAuth.removeAdmin(db, currentGroupId, uid);
+        showToast('המנהל הוסר', 'success');
+    } catch (e) { alert('שגיאה: ' + AdminAuth.errorMessage(e)); }
+}
 
 // ========== Realtime Listeners ==========
 function startRealtimeListeners() {
@@ -1094,10 +1211,18 @@ function startRealtimeListeners() {
     groupRef.onSnapshot(snap => {
         if (snap.exists) {
             const data = snap.data();
+            currentGroupData = data;
             customParams = data.customParams || [];
             renderCustomParamsManagerList();
             renderCustomParamsFormInputs();
             updateLeaderboardCustomOptions();
+            renderAdminsManager();
+
+            // מנהל שהוסר מהקבוצה יוצא ממצב ניהול מיד
+            if (document.body.classList.contains('is-admin')
+                && !AdminAuth.isAdminOf(data, firebase.auth().currentUser)) {
+                setAdminMode(false);
+            }
 
             if (data.lastRegNotice !== undefined) {
                 const noticeInput = document.getElementById('regNoticeInput');
@@ -2011,6 +2136,9 @@ function openSettingsModal() {
     document.getElementById('setNumTeams').value = groupSettings.numTeams;
     document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
     renderCustomParamsManagerList();
+    renderAdminsManager();
+    const inviteOut = document.getElementById('adminInviteResult');
+    if (inviteOut) inviteOut.innerHTML = '';
     document.getElementById('settingsModalOverlay').style.display = 'flex';
 }
 function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
@@ -2041,37 +2169,55 @@ function joinByLink() {
 
 async function createNewGroup() {
     const nameInput = document.getElementById('newGroupName').value.trim();
-    const passInput = document.getElementById('newGroupPassword').value.trim();
     const btn = document.getElementById('createGroupBtn');
-    if (!nameInput || !passInput) return alert('נא להזין שם קבוצה וסיסמה.');
+    if (!nameInput) return alert('נא להזין שם קבוצה.');
+    if (nameInput.length > 60) return alert('שם הקבוצה ארוך מדי (עד 60 תווים).');
+    // קודם התחברות (החלון חייב להיפתח ישירות מהלחיצה)
+    let user;
+    try {
+        user = await AdminAuth.ensureGoogleUser();
+    } catch (e) {
+        if (!AdminAuth.isCancel(e)) alert('ההתחברות נכשלה: ' + AdminAuth.errorMessage(e));
+        return;
+    }
+    if (!user) return;
     btn.innerText = 'יוצר קבוצה... ⏳'; btn.disabled = true;
     try {
         const newGroupRef = await db.collection('groups').add({
-            name: nameInput, password: passInput,
+            name: nameInput,
+            ownerUid: user.uid,
+            admins: { [user.uid]: AdminAuth.displayName(user) },
             settings: { numTeams: 3, playersPerTeam: 6 },
             customParams: [], createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        alert('הקבוצה נוצרה בהצלחה!');
+        alert('הקבוצה נוצרה בהצלחה! שמור את הקישור שתקבל — אותו שולחים לשחקנים.');
         window.location.href = `${window.location.pathname}?group=${newGroupRef.id}`;
-    } catch (error) { alert('שגיאה ביצירת הקבוצה.'); btn.innerText = 'צור קבוצה ✨'; btn.disabled = false; }
+    } catch (error) {
+        console.error(error);
+        alert('שגיאה ביצירת הקבוצה: ' + AdminAuth.errorMessage(error));
+        btn.innerText = 'צור קבוצה עם Google ✨'; btn.disabled = false;
+    }
 }
 
 // ========== Admin ==========
-function promptAdmin() {
-    const sessionKey = `admin_${currentGroupId}`;
+// כניסה עם Google. קבוצה ותיקה עם סיסמה עוברת פעם אחת לבעלות של החשבון המחובר.
+async function promptAdmin() {
     if (document.body.classList.contains('is-admin')) {
-        showToast('כבר מחובר כמנהל ✅', 'success');
+        const u = firebase.auth().currentUser;
+        if (confirm(`אתה מחובר כמנהל${u && u.email ? ' (' + u.email + ')' : ''}.\nלהתנתק ממצב ניהול?`)) {
+            await AdminAuth.signOut();
+            setAdminMode(false);
+            showToast('התנתקת ממצב ניהול', 'info');
+        }
         return;
     }
-    if(prompt("הזן סיסמת מנהל לקבוצה זו:") === groupPassword) {
-        document.body.classList.add('is-admin');
-        sessionStorage.setItem(sessionKey, 'true');
-        const btn = document.getElementById('adminBtnHeader');
-        if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
-        const bottomBar = document.getElementById('adminBottomBar');
-        if (bottomBar && document.getElementById('tab-main').classList.contains('active')) bottomBar.style.display = 'block';
-        render();
-    } else alert("סיסמה שגויה.");
+    const res = await AdminAuth.loginAsAdmin(db, currentGroupId, currentGroupData);
+    if (!res.ok) return;
+    if (res.claimed) {
+        try { const fresh = await groupRef.get(); if (fresh.exists) currentGroupData = fresh.data(); } catch (e) {}
+    }
+    setAdminMode(true);
+    showToast('נכנסת כמנהל ✅', 'success');
 }
 
 // ========== Tab Switching ==========
