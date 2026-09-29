@@ -5,6 +5,7 @@
 // מודל ההרשאות (נאכף בחוקי Firestore, לא רק כאן):
 //   groups/{gid}.ownerUid          — מי שיצר או העביר את הקבוצה לכניסת Google
 //   groups/{gid}.admins            — מפה {uid: שם תצוגה} של כל המנהלים
+//   groups/{gid}.adminUids         — אותם מזהים כרשימה, בשביל "הקבוצות שלי" בדף הבית
 //   groups/{gid}/private/legacy    — הסיסמה הישנה, לא קריאה לאף אחד
 //   groups/{gid}/claims/{uid}      — הוכחת סיסמה ישנה בזמן העברה (לא קריאה)
 //   groups/{gid}/adminInvites/{c}  — קישורי הזמנה חד-פעמיים למנהל נוסף
@@ -125,6 +126,7 @@
         batch.update(groupRef, {
             ownerUid: u.uid,
             admins: { [u.uid]: displayName(u) },
+            adminUids: [u.uid],
             password: firebase.firestore.FieldValue.delete()
         });
         await batch.commit();
@@ -150,6 +152,7 @@
                         await db.collection('groups').doc(groupId).update({
                             ownerUid: u.uid,
                             admins: { [u.uid]: displayName(u) },
+                            adminUids: [u.uid],
                             password: firebase.firestore.FieldValue.delete()
                         });
                         alert('✅ הקבוצה עברה לבעלות החשבון שלך. מנהלים נוספים מוסיפים דרך ⚙️ הגדרות → "הזמן מנהל נוסף".');
@@ -229,8 +232,11 @@
         // הצטרפות + מחיקת ההזמנה באותה פעולה — כך הקישור חד-פעמי באמת
         const groupRef = db.collection('groups').doc(groupId);
         try {
+            const fresh = await groupRef.get();
+            const current = Object.keys((fresh.exists && fresh.data().admins) || {});
+            const adminUids = Array.from(new Set(current.concat([u.uid])));
             const batch = db.batch();
-            batch.update(groupRef, { ['admins.' + u.uid]: displayName(u), joinedWithInvite: code });
+            batch.update(groupRef, { ['admins.' + u.uid]: displayName(u), adminUids: adminUids, joinedWithInvite: code });
             batch.delete(groupRef.collection('adminInvites').doc(code));
             await batch.commit();
         } catch (e) {
@@ -246,7 +252,10 @@
     }
 
     async function removeAdmin(db, groupId, uid) {
-        await db.collection('groups').doc(groupId).update({ ['admins.' + uid]: firebase.firestore.FieldValue.delete() });
+        const groupRef = db.collection('groups').doc(groupId);
+        const fresh = await groupRef.get();
+        const remaining = Object.keys((fresh.exists && fresh.data().admins) || {}).filter(k => k !== uid);
+        await groupRef.update({ ['admins.' + uid]: firebase.firestore.FieldValue.delete(), adminUids: remaining });
     }
 
     async function signOut() { await auth().signOut(); }
