@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="admin-auth.js"></script>
 
     <style>
         :root {
@@ -493,18 +495,16 @@ window.onload = async () => {
         gameData = regDoc.data();
         if (!gameData.open) { showClosed(); return; }
 
-        const sessionKey = `admin_${groupId}`;
-        if (sessionStorage.getItem(sessionKey) === 'true') {
-            isAdmin = true;
-            document.body.classList.add("is-admin");
-        } else if (urlParams.get("admin") === "1") {
-            const pwd = prompt("סיסמת מנהל:");
-            if (pwd === groupData.password) {
+        // מצב מנהל לפי חשבון Google המחובר (משותף לכל דפי האתר)
+        try {
+            const user = await AdminAuth.getUser();
+            if (AdminAuth.isAdminOf(groupData, user, false)) {
                 isAdmin = true;
                 document.body.classList.add("is-admin");
-                sessionStorage.setItem(sessionKey, 'true');
+            } else if (urlParams.get("admin") === "1") {
+                showToast('לכניסת מנהל לחץ על כפתור "מנהל" 🔒', 'info');
             }
-        }
+        } catch (e) { console.warn('auth init', e); }
 
         // האזנה חיה לכרטיסי השחקנים - ה-snapshot הראשון משמש גם כטעינה הראשונית
         // (חוסך get() כפול = חצי מקריאות השחקנים בכל פתיחת דף)
@@ -1008,21 +1008,32 @@ async function removeCancelledEntry(cancelledDocId) {
     }
 }
 
-function promptAdminLogin() {
-    if (isAdmin) { showToast('כבר מחובר כמנהל ✅','success'); return; }
-    if (!groupData) return;
-    const pwd = prompt('סיסמת מנהל:');
-    if (pwd === groupData.password) {
-        isAdmin = true;
-        document.body.classList.add('is-admin');
-        sessionStorage.setItem(`admin_${groupId}`, 'true');
-        const btn = document.getElementById('adminLoginBtn');
-        if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
-        updateDateBadge(gameData);
-        showToast('מחובר כמנהל ✅','success');
-    } else if (pwd !== null) {
-        showToast('סיסמה שגויה ❌','error');
+function markAdminUI() {
+    isAdmin = true;
+    document.body.classList.add('is-admin');
+    const btn = document.getElementById('adminLoginBtn');
+    if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
+    if (gameData) updateDateBadge(gameData);
+}
+
+// כניסת מנהל עם Google (במקום סיסמה). חייבת להיקרא ישירות מלחיצה.
+async function promptAdminLogin() {
+    if (isAdmin) {
+        const u = firebase.auth().currentUser;
+        if (confirm(`אתה מחובר כמנהל${u && u.email ? ' (' + u.email + ')' : ''}.\nלהתנתק ממצב ניהול?`)) {
+            await AdminAuth.signOut();
+            location.reload();
+        }
+        return;
     }
+    if (!groupData) return;
+    const res = await AdminAuth.loginAsAdmin(db, groupId, groupData);
+    if (!res.ok) return;
+    if (res.claimed) {
+        try { const fresh = await db.collection('groups').doc(groupId).get(); if (fresh.exists) groupData = fresh.data(); } catch (e) {}
+    }
+    markAdminUI();
+    showToast('מחובר כמנהל ✅','success');
 }
 
 function showToast(msg, type='success') {
