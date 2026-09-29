@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="admin-auth.js"></script>
     <style>
         :root {
             --bg-color: #0F172A; --surface-color: #1E293B; --primary-color: #10B981;
@@ -52,6 +53,13 @@
         <h1>ניהול קישורי הצבעה 🔗</h1>
         <p class="subtitle" id="groupSub">טוען...</p>
 
+        <div class="card" id="loginGate" style="display:none; text-align:center;">
+            <h3>🔒 הדף הזה למנהלי הקבוצה</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; line-height:1.6; margin:0;">התחבר עם חשבון Google של מנהל הקבוצה כדי לנהל קישורי הצבעה.</p>
+            <button class="btn" onclick="adminLogin()">כניסת מנהל עם Google</button>
+        </div>
+
+        <div id="adminArea" style="display:none;">
         <div class="card">
             <h3>➕ יצירת קישורים</h3>
             <textarea id="namesInput" placeholder="שם מצביע בכל שורה, למשל:&#10;יקיר&#10;דני&#10;אבי"></textarea>
@@ -74,6 +82,7 @@
             <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.6;">מוחק את כל מסמכי ההצבעות של כל המצביעים ומאפס את מוני ההצבעות. את איפוס הממוצעים על השחקנים בצע ככלי הקיים (reset_ratings).</p>
             <button class="btn btn-danger" onclick="deleteAllVotes()">מחק את כל ההצבעות 💥</button>
         </div>
+        </div>
     </div>
 </div>
 
@@ -92,6 +101,7 @@
     const auth = firebase.auth();
 
     const groupId = new URLSearchParams(location.search).get('group');
+    let groupData = null;
     let votersRef = null;
     let playersCount = 0;
     let voters = [];
@@ -117,19 +127,39 @@
     window.onload = async () => {
         if (!groupId) { showError("חסר מזהה קבוצה בקישור (?group=...)"); return; }
         try {
-            await auth.signInAnonymously();
             const groupDoc = await db.collection('groups').doc(groupId).get();
             if (!groupDoc.exists) { showError("הקבוצה לא נמצאה."); return; }
-            document.getElementById('groupSub').innerText = `קבוצה: ${groupDoc.data().name || groupId}`;
+            groupData = groupDoc.data();
+            document.getElementById('groupSub').innerText = `קבוצה: ${groupData.name || groupId}`;
             votersRef = db.collection('groups').doc(groupId).collection('voters');
-            const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
-            playersCount = playersSnap.size;
-            await loadVoters();
+            // הדף הזה למנהלים בלבד — כניסה עם Google, והחוקים ב-Firestore אוכפים את זה
+            const user = await AdminAuth.getUser();
+            if (AdminAuth.isAdminOf(groupData, user, false)) await startAdmin();
+            else document.getElementById('loginGate').style.display = 'block';
         } catch (e) {
             console.error(e);
             showError("שגיאה: " + (e.message || e));
         }
     };
+
+    async function startAdmin() {
+        document.getElementById('loginGate').style.display = 'none';
+        document.getElementById('adminArea').style.display = 'block';
+        const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
+        playersCount = playersSnap.size;
+        await loadVoters();
+    }
+
+    // חייבת להיקרא ישירות מלחיצה (חלון ההתחברות של Google)
+    async function adminLogin() {
+        const res = await AdminAuth.loginAsAdmin(db, groupId, groupData);
+        if (!res.ok) return;
+        if (res.claimed) {
+            try { const fresh = await db.collection('groups').doc(groupId).get(); if (fresh.exists) groupData = fresh.data(); } catch (e) {}
+        }
+        try { await startAdmin(); }
+        catch (e) { console.error(e); showError("שגיאה: " + (e.message || e)); }
+    }
 
     async function loadVoters() {
         const snap = await votersRef.get();
