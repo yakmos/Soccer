@@ -5,48 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ניהול מערכת - Soccer Manager Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
-    
+
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="admin-auth.js"></script>
 
     <style>
         :root {
             --bg: #0F172A; --surface: #1E293B; --primary: #10B981;
-            --text: #F8FAFC; --muted: #94A3B8; --danger: #EF4444;
+            --text: #F8FAFC; --muted: #94A3B8; --danger: #EF4444; --warn: #FCD34D;
         }
         body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; direction: rtl; }
         .container { max-width: 800px; margin: 0 auto; }
-        .card { background: var(--surface); border-radius: 16px; padding: 25px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .card { background: var(--surface); border-radius: 16px; padding: 25px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); margin-bottom: 20px; }
         h1 { color: var(--primary); text-align: center; font-weight: 900; margin-bottom: 30px; }
-        
+
         .form-group { margin-bottom: 15px; }
-        input { 
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; 
+        input {
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155;
             background: var(--bg); color: white; font-family: 'Heebo'; box-sizing: border-box;
         }
-        .btn { 
-            padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; 
+        .btn {
+            padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer;
             font-weight: bold; font-family: 'Heebo'; transition: 0.2s; width: 100%;
         }
+        .btn:disabled { opacity: 0.5; cursor: default; }
         .btn-primary { background: var(--primary); color: white; margin-top: 10px; }
+        .btn-google { background: #fff; color: #1F2937; margin-top: 10px; }
+        .btn-warn { background: rgba(252,211,77,0.15); color: var(--warn); border: 1px solid rgba(252,211,77,0.4); margin-top: 10px; }
         .btn-danger { background: var(--danger); color: white; width: auto; padding: 6px 12px; font-size: 0.85rem; }
+        .btn-small { background: rgba(255,255,255,0.08); color: var(--text); width: auto; padding: 6px 12px; font-size: 0.85rem; border: 1px solid #334155; }
         .btn-view { background: #3B82F6; color: white; width: auto; padding: 6px 12px; font-size: 0.85rem; text-decoration: none; border-radius: 8px; }
+        .divider { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 14px 0 4px; }
 
-        #loginOverlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; 
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
-        .group-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 15px; border-bottom: 1px solid #334155;
+        .group-row {
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            padding: 15px; border-bottom: 1px solid #334155; flex-wrap: wrap;
         }
         .group-row:last-child { border-bottom: none; }
-        .group-info { flex: 1; }
+        .group-info { flex: 1; min-width: 200px; }
         .group-name { font-weight: 800; font-size: 1.1rem; }
-        .group-meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
-        .actions { display: flex; gap: 8px; }
+        .group-meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+        .badge { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; margin-right: 6px; }
+        .badge-ok { background: rgba(16,185,129,0.15); color: var(--primary); border: 1px solid rgba(16,185,129,0.35); }
+        .badge-legacy { background: rgba(252,211,77,0.12); color: var(--warn); border: 1px solid rgba(252,211,77,0.35); }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .logout-link { color: var(--danger); cursor: pointer; font-size: 0.9rem; display: block; text-align: center; margin-top: 20px; }
+        #migrateStatus { font-size: 0.85rem; color: var(--muted); margin-top: 8px; min-height: 18px; }
     </style>
 </head>
 <body>
@@ -54,6 +64,8 @@
 <div id="loginOverlay">
     <div class="card" style="width: 100%; max-width: 400px;">
         <h2 style="text-align: center; margin-top: 0;">כניסת מנהל 🔒</h2>
+        <button class="btn btn-google" onclick="loginWithGoogle()">כניסה עם Google</button>
+        <div class="divider">או עם אימייל וסיסמה</div>
         <div class="form-group">
             <input type="email" id="adminEmail" placeholder="אימייל מנהל">
         </div>
@@ -61,14 +73,25 @@
             <input type="password" id="adminPass" placeholder="סיסמה">
         </div>
         <button class="btn btn-primary" onclick="loginWithEmail()">התחבר למערכת</button>
+        <p id="notSuperMsg" style="display:none; color: var(--danger); font-size: 0.85rem; text-align:center; margin-top: 12px;"></p>
     </div>
 </div>
 
 <div class="container" id="adminContent" style="display: none;">
     <h1>לוח בקרה גלובלי ⚽</h1>
-    
+
+    <div class="card" id="migrateCard">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🔐 אבטחת קבוצות ותיקות</h3>
+        <p style="font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin: 0;">
+            קבוצות שנוצרו בשיטת הסיסמה שומרות אותה במסמך שכל אחד יכול לקרוא.
+            הפעולה מעבירה את הסיסמאות לאחסון מוגן שאף משתמש לא יכול לקרוא. המנהלים ממשיכים להשתמש באותה סיסמה פעם אחת, כדי להעביר את הקבוצה לכניסת Google.
+        </p>
+        <button class="btn btn-warn" id="migrateBtn" onclick="migrateLegacyPasswords()">העבר סיסמאות לאחסון מוגן</button>
+        <div id="migrateStatus"></div>
+    </div>
+
     <div class="card">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">רשימת כל הקבוצות</h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">רשימת כל הקבוצות <span id="groupsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="groupsList">
             <p style="text-align: center; color: var(--muted);">טוען קבוצות... ⏳</p>
         </div>
@@ -93,22 +116,39 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    let groupsCache = [];
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
     // בדיקת מצב התחברות בטעינה
     auth.onAuthStateChanged(user => {
-        if (user && user.uid === "83rxsZbqtANkW6qoj3DlBPGNtNn1") {
+        const msg = document.getElementById('notSuperMsg');
+        if (user && user.uid === AdminAuth.SUPER_ADMIN_UID) {
+            msg.style.display = 'none';
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
             loadGroups();
         } else {
+            if (user && !user.isAnonymous) {
+                msg.textContent = `החשבון ${user.email || ''} אינו מנהל המערכת.`;
+                msg.style.display = 'block';
+            }
             document.getElementById('loginOverlay').style.display = 'flex';
             document.getElementById('adminContent').style.display = 'none';
         }
     });
 
+    async function loginWithGoogle() {
+        try { await AdminAuth.signInWithGoogle(); }
+        catch (e) { if (!AdminAuth.isCancel(e)) alert("שגיאה בהתחברות: " + AdminAuth.errorMessage(e)); }
+    }
+
     async function loginWithEmail() {
         const email = document.getElementById('adminEmail').value;
         const pass = document.getElementById('adminPass').value;
-        
+
         try {
             await auth.signInWithEmailAndPassword(email, pass);
         } catch (error) {
@@ -120,6 +160,14 @@
         const listDiv = document.getElementById('groupsList');
         try {
             const snapshot = await db.collection('groups').orderBy('createdAt', 'desc').get();
+            groupsCache = snapshot.docs;
+            document.getElementById('groupsCount').textContent = `(${snapshot.size})`;
+            const legacyWithPassword = snapshot.docs.filter(d => typeof d.data().password === 'string' && !d.data().ownerUid).length;
+            document.getElementById('migrateBtn').disabled = legacyWithPassword === 0;
+            document.getElementById('migrateStatus').textContent = legacyWithPassword
+                ? `${legacyWithPassword} קבוצות עדיין שומרות סיסמה גלויה.`
+                : '✅ אין סיסמאות גלויות.';
+
             if (snapshot.empty) {
                 listDiv.innerHTML = '<p style="text-align:center;">אין קבוצות רשומות.</p>';
                 return;
@@ -129,17 +177,25 @@
             snapshot.forEach(doc => {
                 const data = doc.data();
                 const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString('he-IL') : '---';
+                const admins = data.admins ? Object.values(data.admins) : [];
+                const status = data.ownerUid
+                    ? `<span class="badge badge-ok">Google</span> מנהלים: ${esc(admins.join(', '))}`
+                    : `<span class="badge badge-legacy">ממתינה להעברה</span>`;
+                const pwdBtn = !data.ownerUid
+                    ? `<button class="btn btn-small" onclick="showLegacyPassword('${doc.id}')">הצג סיסמה</button>`
+                    : '';
                 html += `
                     <div class="group-row">
                         <div class="group-info">
-                            <div class="group-name">${data.name}</div>
+                            <div class="group-name">${esc(data.name)}</div>
                             <div class="group-meta">
-                                נוצר: ${date} | סיסמה: <b>${data.password}</b><br>
+                                נוצר: ${date} | ${status}<br>
                                 ID: ${doc.id}
                             </div>
                         </div>
                         <div class="actions">
                             <a href="index.html?group=${doc.id}" target="_blank" class="btn-view">צפה</a>
+                            ${pwdBtn}
                             <button class="btn-danger" onclick="deleteFullGroup('${doc.id}')">מחק</button>
                         </div>
                     </div>
@@ -147,26 +203,70 @@
             });
             listDiv.innerHTML = html;
         } catch (e) {
-            listDiv.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + e.message + '</p>';
+            listDiv.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
         }
+    }
+
+    // לתמיכה: מנהל קבוצה ששכח את הסיסמה הישנה
+    async function showLegacyPassword(groupId) {
+        try {
+            const groupDoc = groupsCache.find(d => d.id === groupId);
+            let pwd = groupDoc && groupDoc.data().password;
+            if (!pwd) {
+                const priv = await db.collection('groups').doc(groupId).collection('private').doc('legacy').get();
+                pwd = priv.exists ? priv.data().password : null;
+            }
+            alert(pwd ? `הסיסמה הישנה: ${pwd}` : 'לא נמצאה סיסמה לקבוצה הזו.');
+        } catch (e) { alert('שגיאה: ' + e.message); }
+    }
+
+    // מעביר את הסיסמה מכל קבוצה ותיקה אל groups/{id}/private/legacy (לא קריא לאף משתמש)
+    async function migrateLegacyPasswords() {
+        const btn = document.getElementById('migrateBtn');
+        const status = document.getElementById('migrateStatus');
+        if (!confirm('להעביר את כל הסיסמאות הגלויות לאחסון מוגן?\nהמנהלים ימשיכו להשתמש באותה סיסמה פעם אחת כדי לעבור ל-Google.')) return;
+        btn.disabled = true;
+        let moved = 0, failed = 0;
+        try {
+            const snap = await db.collection('groups').get();
+            for (const doc of snap.docs) {
+                const d = doc.data();
+                if (typeof d.password !== 'string' || d.ownerUid) continue;
+                try {
+                    const batch = db.batch();
+                    batch.set(doc.ref.collection('private').doc('legacy'), {
+                        password: d.password,
+                        movedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    batch.update(doc.ref, { password: firebase.firestore.FieldValue.delete() });
+                    await batch.commit();
+                    moved++;
+                    status.textContent = `הועברו ${moved}...`;
+                } catch (e) { console.error(doc.id, e); failed++; }
+            }
+            status.textContent = `✅ הועברו ${moved} סיסמאות${failed ? `, ${failed} נכשלו (ראה קונסול)` : ''}.`;
+        } catch (e) {
+            status.textContent = 'שגיאה: ' + e.message;
+        }
+        await loadGroups();
     }
 
     async function deleteFullGroup(groupId) {
         if (!confirm("מחיקה סופית של הקבוצה וכל השחקנים? לא ניתן לשחזר!")) return;
-        
+
         try {
             const batch = db.batch();
-            
+
             // מחיקת שחקנים בתוך תת-קולקשן
             const players = await db.collection('groups').doc(groupId).collection('players').get();
             players.forEach(p => batch.delete(p.ref));
-            
+
             // מחיקת משחק
             batch.delete(db.collection('groups').doc(groupId).collection('game').doc('current'));
-            
+
             // מחיקת הקבוצה עצמה
             batch.delete(db.collection('groups').doc(groupId));
-            
+
             await batch.commit();
             alert("הקבוצה נמחקה.");
             loadGroups();
