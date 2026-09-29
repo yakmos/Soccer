@@ -1,0 +1,296 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ================= זהויות =================
+    function signedIn() { return request.auth != null; }
+
+    // משתמש אמיתי = לא אנונימי (Google או אימייל+סיסמה)
+    function isRealUser() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // מנהל-העל — אותו חשבון שבו נכנסים ל-admin.html
+    function isSuperAdmin() {
+      return signedIn() && request.auth.uid == '83rxsZbqtANkW6qoj3DlBPGNtNn1';
+    }
+
+    function groupPath(gid) { return /databases/$(database)/documents/groups/$(gid); }
+    function groupData(gid) { return get(groupPath(gid)).data; }
+
+    // מנהל קבוצה = מופיע במפת admins של הקבוצה (או מנהל-העל)
+    function isGroupAdmin(gid) {
+      return isSuperAdmin()
+        || (isRealUser() && request.auth.uid in groupData(gid).get('admins', {}));
+    }
+
+    function changedKeys() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    function validAdminName(m, uid) {
+      return m[uid] is string && m[uid].size() > 0 && m[uid].size() <= 60;
+    }
+
+    // ולידציה בסיסית לכרטיס שחקן — עוצרת זבל ומסמכי ענק
+    function validPlayer() {
+      let d = request.resource.data;
+      return d.name is string
+        && d.name.size() > 0
+        && d.name.size() < 80
+        && d.size() < 60;
+    }
+
+    // ================= קבוצה =================
+
+    // קבוצה חדשה: היוצר הוא הבעלים והמנהל היחיד, ואין סיסמה
+    function newGroupOk() {
+      let d = request.resource.data;
+      return d.ownerUid == request.auth.uid
+        && d.admins is map
+        && d.admins.keys().hasOnly([request.auth.uid])
+        && d.admins.size() == 1
+        && validAdminName(d.admins, request.auth.uid)
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && !('password' in d);
+    }
+
+    // עדכון רגיל של מנהל. רק הבעלים משנה את רשימת המנהלים, ולא ניתן להחזיר סיסמה
+    function adminUpdateOk() {
+      let d = request.resource.data;
+      let isOwner = resource.data.get('ownerUid', '') == request.auth.uid;
+      return !('password' in d)
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 100
+        && (!changedKeys().hasAny(['admins', 'ownerUid'])
+            || (isOwner && d.ownerUid == request.auth.uid && request.auth.uid in d.admins));
+    }
+
+    // העברת קבוצה ותיקה (סיסמה) לבעלות חשבון. הסיסמה נבדקת במסמך claims באותה פעולה
+    function legacyClaimOk(gid) {
+      let d = request.resource.data;
+      return isRealUser()
+        && !('ownerUid' in resource.data)
+        && !('admins' in resource.data)
+        && changedKeys().hasOnly(['ownerUid', 'admins', 'password'])
+        && d.ownerUid == request.auth.uid
+        && d.admins is map
+        && d.admins.keys().hasOnly([request.auth.uid])
+        && d.admins.size() == 1
+        && validAdminName(d.admins, request.auth.uid)
+        && !('password' in d)
+        && existsAfter(/databases/$(database)/documents/groups/$(gid)/claims/$(request.auth.uid));
+    }
+
+    // הצטרפות כמנהל עם קישור הזמנה — ההזמנה חייבת להימחק באותה פעולה (חד-פעמית)
+    function inviteJoinOk(gid) {
+      let d = request.resource.data;
+      return isRealUser()
+        && ('admins' in resource.data)
+        && !(request.auth.uid in resource.data.admins)
+        && changedKeys().hasOnly(['admins', 'joinedWithInvite'])
+        && d.admins.diff(resource.data.admins).affectedKeys().hasOnly([request.auth.uid])
+        && request.auth.uid in d.admins
+        && validAdminName(d.admins, request.auth.uid)
+        && d.joinedWithInvite is string
+        && d.joinedWithInvite.matches('^[a-f0-9]{32}$')
+        && inviteConsumed(gid, d.joinedWithInvite);
+    }
+
+    function inviteConsumed(gid, code) {
+      let p = /databases/$(database)/documents/groups/$(gid)/adminInvites/$(code);
+      return exists(p)
+        && get(p).data.expiresAt > request.time
+        && !existsAfter(p);
+    }
+
+    // הסיסמה הישנה: באחסון המוגן אם הועברה, אחרת עדיין במסמך הקבוצה
+    function legacyPassword(gid) {
+      let priv = /databases/$(database)/documents/groups/$(gid)/private/legacy;
+      return exists(priv) ? get(priv).data.get('password', '') : groupData(gid).get('password', '');
+    }
+
+    // ================= שחקנים =================
+
+    // הרשמה למשחק מעלה את מונה ההרשמות באחד
+    function registrationBumpOk() {
+      return changedKeys().hasOnly(['registrationCount'])
+        && request.resource.data.registrationCount == resource.data.get('registrationCount', 0) + 1;
+    }
+
+    // דירוג מפורטל ההצבעה: רק שדות הדירוג, ורק מי שמחזיק בקישור הצבעה ששויך אליו
+    function voterRatingOk(gid) {
+      let d = request.resource.data;
+      return signedIn()
+        && changedKeys().hasOnly([
+             'votesCount', 'attScore', 'defScore',
+             'atk', 'def', 'sta', 'pac', 'pas',
+             'sumAtk', 'sumDef', 'sumSta', 'sumPac', 'sumPas',
+             'customSums', 'customAvgs', 'customStats',
+             'gkSums', 'gkDiv', 'gkHan', 'gkKic', 'gkPos', 'gkRef', 'gkScore',
+             'lastVoteToken'])
+        && d.lastVoteToken is string
+        && d.lastVoteToken.matches('^[A-Za-z0-9_-]{8,64}$')
+        && voterOwns(gid, d.lastVoteToken);
+    }
+
+    function voterOwns(gid, token) {
+      return get(/databases/$(database)/documents/groups/$(gid)/voters/$(token)).data.get('uid', null) == request.auth.uid;
+    }
+
+    // ================= קישורי הצבעה =================
+    function voterClaimOk() {
+      return signedIn()
+        && resource.data.get('uid', null) == null
+        && request.resource.data.uid == request.auth.uid
+        && changedKeys().hasOnly(['uid', 'claimedAt', 'lastSeen']);
+    }
+
+    function voterTouchOk() {
+      return signedIn()
+        && resource.data.get('uid', null) == request.auth.uid
+        && changedKeys().hasOnly(['lastSeen', 'votedCount'])
+        && request.resource.data.get('votedCount', 0) <= resource.data.get('votedCount', 0) + 1;
+    }
+
+    // ================= MVP =================
+    function mvpVoteOk() {
+      return resource.data.get('votingOpen', true) != false
+        && changedKeys().hasOnly(['mvpVotes', 'mvpVoteCount', 'mvpWinner'])
+        && request.resource.data.mvpVotes is map
+        && request.resource.data.mvpVoteCount is number
+        && request.resource.data.mvpVoteCount <= resource.data.get('mvpVoteCount', 0) + 1;
+    }
+
+    // ================= הרשמה למשחק =================
+    function registrationOpen(gid, regId) {
+      return get(/databases/$(database)/documents/groups/$(gid)/registrations/$(regId)).data.get('open', false) == true;
+    }
+
+    function validEntry(gid, pid) {
+      let d = request.resource.data;
+      return d.playerId == pid
+        && d.name is string && d.name.size() < 80
+        && d.isWaiting is bool
+        && d.size() < 30
+        && exists(/databases/$(database)/documents/groups/$(gid)/players/$(pid));
+    }
+
+    // ================= נתיבים =================
+
+    match /groups/{gid} {
+      // כל מי שיש לו את הקישור רואה את הקבוצה; רשימת כל הקבוצות — למנהל-העל בלבד
+      allow get: if true;
+      allow list: if isSuperAdmin();
+
+      allow create: if isRealUser() && newGroupOk();
+      allow update: if isSuperAdmin()
+                    || (isGroupAdmin(gid) && adminUpdateOk())
+                    || legacyClaimOk(gid)
+                    || inviteJoinOk(gid);
+      allow delete: if isSuperAdmin();
+
+      // הסיסמה הישנה אחרי ההעברה — אף משתמש לא קורא אותה
+      match /private/{docId} {
+        allow read, write: if isSuperAdmin();
+      }
+
+      // הוכחת סיסמה בזמן העברת קבוצה ותיקה. לא קריא, לא ניתן לשינוי
+      match /claims/{uid} {
+        allow read, update, delete: if false;
+        allow create: if isRealUser()
+          && uid == request.auth.uid
+          && !('ownerUid' in groupData(gid))
+          && request.resource.data.keys().hasOnly(['password', 'at'])
+          && request.resource.data.password is string
+          && request.resource.data.password.size() > 0
+          && request.resource.data.password == legacyPassword(gid);
+      }
+
+      // קישורי הזמנה למנהל נוסף
+      match /adminInvites/{code} {
+        allow get, list: if isGroupAdmin(gid);
+        allow create: if isGroupAdmin(gid)
+          && code.matches('^[a-f0-9]{32}$')
+          && request.resource.data.keys().hasOnly(['createdBy', 'createdAt', 'expiresAt'])
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.expiresAt is timestamp
+          && request.resource.data.expiresAt < request.time + duration.value(8, 'd');
+        allow update: if false;
+        // המוזמן מוחק את ההזמנה באותה פעולה שבה הוא נכנס לרשימת המנהלים
+        allow delete: if isGroupAdmin(gid)
+          || (isRealUser() && request.auth.uid in getAfter(groupPath(gid)).data.get('admins', {}));
+      }
+
+      match /players/{playerId} {
+        allow read: if true;
+        allow create: if isGroupAdmin(gid) && validPlayer();
+        allow update: if (isGroupAdmin(gid) && validPlayer())
+                      || registrationBumpOk()
+                      || voterRatingOk(gid);
+        allow delete: if isGroupAdmin(gid);
+      }
+
+      match /game/{docId} {
+        allow read: if true;
+        allow write: if isGroupAdmin(gid);
+      }
+
+      match /history/{docId} {
+        allow read: if true;
+        allow write: if isGroupAdmin(gid);
+      }
+
+      match /history_games/{docId} {
+        allow read: if true;
+        allow create, delete: if isGroupAdmin(gid);
+        allow update: if isGroupAdmin(gid) || mvpVoteOk();
+      }
+
+      match /registrations/{regId} {
+        allow read: if true;
+        allow write: if isGroupAdmin(gid);
+
+        match /entries/{entryId} {
+          allow read: if true;
+          allow create: if isGroupAdmin(gid)
+                        || (registrationOpen(gid, regId) && validEntry(gid, entryId));
+          // שחקן שנרשם יכול רק להעביר שחקן אחר להמתנה (דחיקה לפי עדיפות)
+          allow update: if isGroupAdmin(gid)
+                        || (registrationOpen(gid, regId)
+                            && changedKeys().hasOnly(['isWaiting'])
+                            && request.resource.data.isWaiting == true);
+          allow delete: if isGroupAdmin(gid);
+        }
+        match /cancelled/{docId} {
+          allow read: if true;
+          allow write: if isGroupAdmin(gid);
+        }
+      }
+
+      // ===== קישורי הצבעה אישיים =====
+      match /voters/{token} {
+        // הטוקן הוא הסוד שבקישור; רשימת כל הטוקנים — למנהלים בלבד
+        allow get: if signedIn();
+        allow list: if isGroupAdmin(gid);
+        allow create: if isGroupAdmin(gid) && request.resource.data.get('uid', null) == null;
+        allow update: if isGroupAdmin(gid) || voterClaimOk() || voterTouchOk();
+        allow delete: if isGroupAdmin(gid);
+
+        // ההצבעות עצמן — הבעלים של הטוקן, או מנהלי הקבוצה לתחזוקה
+        match /votes/{playerId} {
+          allow read, write: if isGroupAdmin(gid) || voterOwns(gid, token);
+        }
+      }
+    }
+
+    // לוח "חסרים שחקנים" — מזהה הפוסט הוא מזהה הקבוצה
+    match /market_posts/{postId} {
+      allow read: if true;
+      allow create, update: if isGroupAdmin(postId) && request.resource.data.groupId == postId;
+      allow delete: if isGroupAdmin(postId);
+    }
+
+    // כל שאר הנתיבים חסומים
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
