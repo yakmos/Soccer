@@ -143,6 +143,11 @@
 
         .squad-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
         .squad-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .squad-item.just-saved { animation: squadSaved 2.5s ease-out both; }
+        @keyframes squadSaved {
+            0%, 45% { border-color: var(--primary-color); background: rgba(16,185,129,0.10); box-shadow: 0 0 0 2px rgba(16,185,129,0.30); }
+            100% { border-color: var(--border-color); background: var(--bg-color); box-shadow: none; }
+        }
         .squad-info { flex: 1; }
         .squad-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .squad-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;}
@@ -1633,9 +1638,44 @@ function calcGkScoreWithLocks(vals) {
 }
 
 // ========== Player Management ==========
+let savingPlayer = false;
+let justSaved = { id: null, at: 0 };
+const JUST_SAVED_MS = 2500;
+
+// השחקן שנשמר מודגש לרגע ברשימת הסגל. אחרי רינדור מחדש ההדגשה ממשיכה מאותה נקודה
+function justSavedAttrs(id) {
+    const elapsed = Date.now() - justSaved.at;
+    return (id && id === justSaved.id && elapsed < JUST_SAVED_MS)
+        ? { cls: ' just-saved', style: ` style="animation-delay:-${elapsed}ms"` }
+        : { cls: '', style: '' };
+}
+
+// גלילה בתוך רשימת הסגל בלבד (בלי להזיז את הדף), כדי שהשחקן שנשמר ייראה
+function revealSavedPlayer(id) {
+    const list = document.getElementById('squadList');
+    const el = list && list.querySelector(`.squad-item[data-pid="${id}"]`);
+    if (!el) return;
+    const lr = list.getBoundingClientRect(), er = el.getBoundingClientRect();
+    if (er.top < lr.top || er.bottom > lr.bottom) list.scrollTop += (er.top - lr.top) - (lr.height - er.height) / 2;
+}
+
+function setSaveBtn(text, busy) {
+    const btn = document.getElementById('saveBtn');
+    if (!btn) return;
+    btn.innerText = text;
+    btn.disabled = !!busy;
+    btn.style.opacity = busy ? '0.7' : '';
+}
+
 async function savePlayer() {
-    const name = document.getElementById('pName').value.trim();
-    if(!name) return;
+    if (savingPlayer) return;
+    const nameInput = document.getElementById('pName');
+    const name = nameInput.value.trim();
+    if (!name) {
+        showToast('✏️ נא להזין שם לשחקן', 'error');
+        nameInput.focus();
+        return;
+    }
 
     const isGk = document.getElementById('pIsGk').value === 'true';
     const isActive = document.getElementById('pIsActive').value === 'true';
@@ -1678,32 +1718,59 @@ async function savePlayer() {
         });
     }
 
-    let finalImgUrl = currentEditingImg;
-    const fileInput = document.getElementById('pImage');
-    if (fileInput.files.length > 0) {
-        document.getElementById('saveBtn').innerText = "מעלה תמונה... ⏳";
-        finalImgUrl = await resizeImage(fileInput.files[0]);
-    }
-    playerData.imgUrl = finalImgUrl;
-
-    if(editingId) {
-        const updateData = { ...playerData };
-        if (!hasLocked) {
-            updateData.lockedParams = firebase.firestore.FieldValue.delete();
+    savingPlayer = true;
+    const wasEditing = !!editingId;
+    setSaveBtn(wasEditing ? 'מעדכן... ⏳' : 'שומר... ⏳', true);
+    try {
+        let finalImgUrl = currentEditingImg;
+        const fileInput = document.getElementById('pImage');
+        if (fileInput.files.length > 0) {
+            setSaveBtn('מעלה תמונה... ⏳', true);
+            finalImgUrl = await resizeImage(fileInput.files[0]);
         }
-        await playersRef.doc(editingId).update(updateData);
-        cancelEdit();
-    } else {
-        playerData.inLineup = false;
-        playerData.goals = 0;
-        await playersRef.add(playerData);
-        document.getElementById('pName').value = '';
-        document.getElementById('pImage').value = '';
-        customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
-        document.getElementById('saveBtn').innerText = "שמור שחקן";
-        resetAllFlagButtons();
-        resetLockedParamsUI();
-        resetBirthdayField();
+        playerData.imgUrl = finalImgUrl;
+
+        if (wasEditing) {
+            const id = editingId;
+            const updateData = { ...playerData };
+            if (!hasLocked) {
+                updateData.lockedParams = firebase.firestore.FieldValue.delete();
+            }
+            justSaved = { id, at: Date.now() };
+            await playersRef.doc(id).update(updateData);
+            cancelEdit();
+            revealSavedPlayer(id);
+            showToast(`✅ הפרטים של ${name} עודכנו`);
+        } else {
+            playerData.inLineup = false;
+            playerData.goals = 0;
+            const ref = playersRef.doc();
+            justSaved = { id: ref.id, at: Date.now() };
+            await ref.set(playerData);
+            document.getElementById('pName').value = '';
+            document.getElementById('pImage').value = '';
+            customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
+            resetAllFlagButtons();
+            resetLockedParamsUI();
+            resetBirthdayField();
+            revealSavedPlayer(ref.id);
+            showToast(`✅ ${name} נוסף לסגל`);
+        }
+        setSaveBtn('✅ נשמר!', false);
+        setTimeout(() => {
+            const btn = document.getElementById('saveBtn');
+            if (btn && btn.innerText === '✅ נשמר!') setSaveBtn(editingId ? 'עדכן נתונים' : 'שמור שחקן', false);
+        }, 1500);
+    } catch (e) {
+        console.error('save player', e);
+        justSaved = { id: null, at: 0 };
+        const msg = e && e.message === 'image-unreadable'
+            ? 'לא הצלחנו לקרוא את התמונה. נסה תמונה אחרת (JPG או PNG).'
+            : AdminAuth.errorMessage(e);
+        showToast('❌ השחקן לא נשמר: ' + msg, 'error');
+        setSaveBtn(editingId ? 'עדכן נתונים' : 'שמור שחקן', false);
+    } finally {
+        savingPlayer = false;
     }
 }
 
@@ -2112,7 +2179,8 @@ function render() {
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
             const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
             const playerBadges = getPlayerBadgesHTML(p);
-            return `<div class="squad-item">
+            const saved = justSavedAttrs(p.id);
+            return `<div class="squad-item${saved.cls}" data-pid="${p.id}"${saved.style}>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
                 <div class="squad-info">
                     <div class="squad-name">
@@ -2203,10 +2271,12 @@ function getAvatarHTML(url, className, id) {
 
 // ========== Image Resize ==========
 async function resizeImage(file) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
+        reader.onerror = () => reject(new Error('image-unreadable'));
         reader.onload = (e) => {
             const img = new Image();
+            img.onerror = () => reject(new Error('image-unreadable'));
             img.onload = () => {
                 const canvas = document.createElement('canvas'); const MAX_SIZE = 150;
                 let w = img.width, h = img.height;
@@ -3378,20 +3448,32 @@ function resetBirthdayField() {
     fillBirthdayField(null);
 }
 
-    function showToast(msg, type='success') {
+let toastTimer = null;
+function showToast(msg, type='success') {
     let toast = document.getElementById('toast');
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast';
-        toast.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:#1E293B; border:1px solid #334155; border-radius:12px; padding:12px 20px; font-weight:800; font-size:0.95rem; z-index:9999; transition:transform 0.3s ease; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.5);`;
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(16px); opacity:0; pointer-events:none; background:#1E293B; border:1px solid #334155; border-radius:12px; padding:12px 20px; font-weight:800; font-size:0.95rem; z-index:9999; transition:transform 0.25s ease, opacity 0.25s ease; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; text-align:center; line-height:1.4; box-shadow:0 8px 24px rgba(0,0,0,0.5);`;
         document.body.appendChild(toast);
     }
+    // מעל סרגל הניהול התחתון כשהוא מוצג, כדי שלא יסתיר את ההודעה
+    const bar = document.getElementById('adminBottomBar');
+    const barH = bar ? bar.offsetHeight : 0;
+    toast.style.bottom = (barH ? barH + 16 : 30) + 'px';
     toast.textContent = msg;
     if (type === 'success') { toast.style.borderColor = 'rgba(16,185,129,0.35)'; toast.style.color = '#10B981'; }
     else if (type === 'error') { toast.style.borderColor = 'rgba(239,68,68,0.4)'; toast.style.color = '#F87171'; }
     else { toast.style.borderColor = 'rgba(99,102,241,0.4)'; toast.style.color = '#818CF8'; }
+    toast.style.opacity = '1';
     toast.style.transform = 'translateX(-50%) translateY(0)';
-    setTimeout(() => { toast.style.transform = 'translateX(-50%) translateY(80px)'; }, 3000);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(16px)';
+    }, type === 'error' ? 5000 : 3000);
 }
 </script>
 </body>
