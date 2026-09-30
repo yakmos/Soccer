@@ -16,7 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
-    <script src="admin-auth.js"></script>
+    <script src="admin-auth.js?v=20260930"></script>
     <script src="group-prefs.js?v=20260930"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -277,7 +277,7 @@
         .type-def { background: var(--def-bg); color: var(--def-text); border: 1px solid var(--def-border); }
         .param-delete-btn { width: 28px; height: 28px; border-radius: 6px; border: none; background: rgba(239,68,68,0.15); color: var(--danger); cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .add-param-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
-        .add-param-row input[type="text"] { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; }
+        .add-param-row input[type="text"] { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; }
         .add-param-row input[type="text"]:focus { border-color: var(--primary-color); outline: none; }
         .add-param-row select { padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.9rem; cursor: pointer; }
         .add-param-row select:focus { outline: none; border-color: var(--primary-color); }
@@ -1005,6 +1005,11 @@
                 <p style="color: var(--text-muted); font-size: 0.8rem; margin: 8px 0 0 0; line-height: 1.5;">קישור חד-פעמי, תקף ל-7 ימים. מי שפותח אותו מתחבר עם Google והופך למנהל.</p>
             </div>
             <button class="btn" onclick="saveGroupSettings()" style="margin-top: 20px;">שמור הגדרות</button>
+            <div id="dangerZone" style="display:none; text-align:right; margin-top:28px; padding:14px; border:1px solid rgba(239,68,68,0.45); border-radius:12px; background:rgba(239,68,68,0.06);">
+                <div style="font-weight:900; color:var(--danger); margin-bottom:6px;">⚠️ מחיקת הקבוצה</div>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 12px 0; line-height:1.5;">מוחק לצמיתות את הקבוצה, השחקנים, ההרשמות, ההיסטוריה, הדירוגים והמודעה ב"מצא משחק". אי אפשר לשחזר.</p>
+                <button type="button" id="deleteGroupBtn" class="btn" onclick="deleteThisGroup()" style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">🗑️ מחק את הקבוצה לצמיתות</button>
+            </div>
         </div>
     </div>
 
@@ -1319,6 +1324,10 @@ function startRealtimeListeners() {
                 const noticeInput = document.getElementById('regNoticeInput');
                 if (noticeInput && !noticeInput.value) noticeInput.value = data.lastRegNotice || '';
             }
+        } else if (!snap.metadata.fromCache && !deletingGroup) {
+            GroupPrefs.forgetGroup(currentGroupId);
+            alert('הקבוצה נמחקה. מעביר אותך לדף הבית.');
+            location.replace('home.html');
         }
     });
 
@@ -2318,9 +2327,40 @@ function openSettingsModal() {
     renderAdminsManager();
     const inviteOut = document.getElementById('adminInviteResult');
     if (inviteOut) inviteOut.innerHTML = '';
+    document.getElementById('dangerZone').style.display = isGroupOwner() ? 'block' : 'none';
     document.getElementById('settingsModalOverlay').style.display = 'flex';
 }
 function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
+
+// ========== Delete group (owner) ==========
+let deletingGroup = false;
+const DELETE_BTN_LABEL = '🗑️ מחק את הקבוצה לצמיתות';
+
+async function deleteThisGroup() {
+    if (deletingGroup || !isGroupOwner()) return;
+    const name = String((currentGroupData && currentGroupData.name) || '').trim();
+    const typed = prompt(`מחיקת "${name}" היא סופית: השחקנים, ההרשמות, ההיסטוריה והדירוגים יימחקו, ואי אפשר לשחזר.\n\nכדי לאשר, הקלד את שם הקבוצה:`);
+    if (typed === null) return;
+    if (typed.trim() !== name) return alert('השם שהוקלד לא תואם לשם הקבוצה. הקבוצה לא נמחקה.');
+    const btn = document.getElementById('deleteGroupBtn');
+    deletingGroup = true;
+    btn.disabled = true;
+    btn.textContent = 'מוחק… ⏳';
+    try {
+        await AdminAuth.deleteGroup(db, currentGroupId, (done, total) => {
+            btn.textContent = `מוחק… ${done.toLocaleString('he-IL')} מתוך ${total.toLocaleString('he-IL')}`;
+        });
+        GroupPrefs.forgetGroup(currentGroupId);
+        alert(`✅ הקבוצה "${name}" נמחקה.`);
+        location.replace('home.html');
+    } catch (e) {
+        console.error('delete group', e);
+        deletingGroup = false;
+        btn.disabled = false;
+        btn.textContent = DELETE_BTN_LABEL;
+        alert('המחיקה נכשלה: ' + AdminAuth.errorMessage(e) + '\nאפשר לנסות שוב.');
+    }
+}
 
 // ========== Group details & publishing ==========
 let listingCache = null;   // המודעה של הקבוצה ב"מצא משחק", אם יש
