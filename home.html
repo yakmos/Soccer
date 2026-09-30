@@ -17,7 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="admin-auth.js"></script>
-<script src="group-prefs.js"></script>
+<script src="group-prefs.js?v=20260930"></script>
 <style>
     :root {
         --bg: #0F172A; --bg-deep: #0B1220; --surface: #1E293B; --surface-2: #273449;
@@ -132,7 +132,7 @@
     .group-list { display: grid; gap: 10px; }
     .group-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; transition: border-color .15s, background .15s; }
     .group-card:hover { border-color: var(--primary-line); background: #22304A; }
-    .gc-icon { width: 42px; height: 42px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--primary-soft); font-size: 1.25rem; }
+    .gc-icon { width: 42px; height: 42px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--primary-soft); font-size: 1.25rem; overflow: hidden; }
     .gc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
     .gc-name { font-weight: 800; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .gc-meta { color: var(--muted); font-size: .85rem; }
@@ -164,8 +164,9 @@
     .listing-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
     .listing-list .empty { grid-column: 1 / -1; }
     .listing { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 6px; }
-    .listing-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-    .listing h3 { font-size: 1.12rem; font-weight: 800; }
+    .listing-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .listing h3 { font-size: 1.12rem; font-weight: 800; flex: 1; min-width: 0; }
+    .listing-icon { width: 40px; height: 40px; flex: none; border-radius: 11px; display: grid; place-items: center; background: var(--primary-soft); font-size: 1.2rem; overflow: hidden; }
     .chip { font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); white-space: nowrap; }
     .listing .meta { color: #CBD5E1; font-size: .92rem; }
     .listing .desc { color: var(--muted); font-size: .92rem; margin: 4px 0 6px; }
@@ -401,6 +402,7 @@
         <p>אפשר לשנות הכל אחר כך בהגדרות הקבוצה.</p>
         <form id="createForm" onsubmit="createGroup(event)" novalidate>
             <label class="field"><span>שם הקבוצה *</span><input id="cName" maxlength="60" autocomplete="off" placeholder="לדוגמה: שישי בשכונה" required></label>
+            <div class="field"><span>סמל הקבוצה</span><div id="cIcon"></div></div>
             <div class="field-row">
                 <label class="field"><span>עיר / יישוב *</span><input id="cCity" maxlength="40" list="cityList" autocomplete="off" placeholder="לדוגמה: חיפה" required></label>
                 <label class="field"><span>מגרש</span><input id="cVenue" maxlength="60" autocomplete="off" placeholder="לא חובה"></label>
@@ -447,6 +449,7 @@
     let myGroups;            // undefined = טוען, null = שגיאה, מערך = נטען
     let listings = null;
     let currentView = 'viewLanding';
+    let recentChecked = false;   // הקבוצות האחרונות מוצגות רק אחרי שווידאנו שהן עדיין קיימות
 
     const $ = id => document.getElementById(id);
     const IN_APP = /FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|MicroMessenger/i.test(navigator.userAgent);
@@ -546,7 +549,7 @@
             badges += g.visibility === 'public' ? '<span class="badge badge-public">🌍 ציבורית</span>' : '<span class="badge">🔒 פרטית</span>';
         }
         return `<a class="group-card" href="${groupUrl(g.id)}">
-            <span class="gc-icon" aria-hidden="true">⚽</span>
+            <span class="gc-icon" aria-hidden="true">${G.iconHTML(g.icon, true)}</span>
             <span class="gc-body"><span class="gc-name">${esc(g.name || 'קבוצה')}</span>${meta ? `<span class="gc-meta">${meta}</span>` : ''}</span>
             ${badges ? `<span class="gc-badges">${badges}</span>` : ''}
             <span class="gc-go">${CHEVRON}</span>
@@ -554,9 +557,32 @@
     }
 
     function renderRecent(listEl, wrapEl, excludeIds) {
-        const items = G.getRecentGroups().filter(g => !excludeIds.has(g.id)).slice(0, 6);
+        const items = recentChecked ? G.getRecentGroups().filter(g => !excludeIds.has(g.id)).slice(0, 6) : [];
         wrapEl.hidden = !items.length;
-        listEl.innerHTML = items.map(g => groupCardHTML({ id: g.id, name: g.name, location: { city: g.city } })).join('');
+        listEl.innerHTML = items.map(g => groupCardHTML({ id: g.id, name: g.name, icon: g.icon, location: { city: g.city } })).join('');
+    }
+
+    function refreshRecentViews() {
+        if (currentView === 'viewLanding') renderRecent($('recentList'), $('recentStrip'), new Set());
+        else if (currentView === 'viewDashboard') renderDashboard();
+    }
+
+    // קבוצות שנמחקו יוצאות מהרשימה, ושם/עיר/סמל מתעדכנים לפי מה שיש היום
+    async function refreshRecentGroups() {
+        const list = G.getRecentGroups();
+        const reveal = () => { if (!recentChecked) { recentChecked = true; refreshRecentViews(); } };
+        if (!list.length) return reveal();
+        const slow = setTimeout(reveal, 2500);   // רשת איטית: מציגים את מה ששמור, ומעדכנים כשהתשובות מגיעות
+        const snaps = await Promise.all(list.map(r => db.collection('groups').doc(r.id).get().catch(() => null)));
+        clearTimeout(slow);
+        snaps.forEach((snap, i) => {
+            if (!snap) return;                                   // שגיאת רשת — משאירים כמו שהוא
+            if (!snap.exists) { G.forgetGroup(list[i].id); return; }
+            const d = snap.data();
+            G.updateRecentGroup(list[i].id, d.name, (d.location || {}).city, d.icon);
+        });
+        recentChecked = true;
+        refreshRecentViews();
     }
 
     function renderDashboard() {
@@ -605,7 +631,7 @@
         const msg = `היי, ראיתי את "${l.name}" ב-Soccer Manager. אפשר להצטרף למשחק?`;
         const wa = phone ? `https://wa.me/${G.phoneToIntl(phone)}?text=${encodeURIComponent(msg)}` : '';
         return `<article class="listing">
-            <div class="listing-top"><h3>${esc(l.name)}</h3>${level ? `<span class="chip">${esc(level)}</span>` : ''}</div>
+            <div class="listing-top"><span class="listing-icon" aria-hidden="true">${G.iconHTML(l.icon, true)}</span><h3>${esc(l.name)}</h3>${level ? `<span class="chip">${esc(level)}</span>` : ''}</div>
             <div class="meta">📍 ${esc(l.city)}${l.venue ? ' · ' + esc(l.venue) : ''}</div>
             ${when ? `<div class="meta">📅 ${esc(when)}</div>` : ''}
             ${l.description ? `<p class="desc">${esc(l.description)}</p>` : ''}
@@ -649,6 +675,7 @@
 
     function openCreate() {
         $('createForm').reset();
+        G.renderIconPicker($('cIcon'), G.DEFAULT_ICON);
         G.renderDayChips($('cDays'), []);
         $('cLevel').innerHTML = G.levelOptionsHTML('');
         toggleCreatePublic();
@@ -676,12 +703,14 @@
         const visibility = document.querySelector('input[name="cVis"]:checked').value;
         if (!name) { alert('נא להזין שם לקבוצה.'); $('cName').focus(); return; }
         if (!city) { alert('נא להזין עיר או יישוב.'); $('cCity').focus(); return; }
+        if (G.iconPickerBusy($('cIcon'))) { alert('רגע, התמונה עדיין בהכנה. נסה שוב בעוד שנייה.'); return; }
+        const icon = G.readIconPicker($('cIcon'));
 
         let listing = null;
         if (visibility === 'public') {
             const phone = G.normalizePhone($('cPhone').value);
             if (!phone) { alert('נא להזין מספר טלפון תקין לפניות, לדוגמה 050-1234567.'); $('cPhone').focus(); return; }
-            listing = G.buildListing({ ownerUid: u.uid, name, city, venue, days, time, level: $('cLevel').value, description: $('cDesc').value, phone });
+            listing = G.buildListing({ ownerUid: u.uid, name, city, venue, days, time, level: $('cLevel').value, description: $('cDesc').value, phone, icon });
         }
 
         const btn = $('cSubmit');
@@ -700,7 +729,8 @@
                 createdAt: ts,
                 location: { city: city.slice(0, 40), venue: venue.slice(0, 60) },
                 schedule: { days, time },
-                visibility
+                visibility,
+                icon
             };
             const batch = db.batch();
             if (listing) {
@@ -710,7 +740,7 @@
             }
             batch.set(groupRef, group);
             await batch.commit();
-            G.rememberGroup(groupRef.id, group.name, city);
+            G.rememberGroup(groupRef.id, group.name, city, icon);
             location.href = groupUrl(groupRef.id) + '&welcome=1';
         } catch (e) {
             console.error('create group', e);
@@ -726,6 +756,7 @@
     G.fillCityList($('cityList'));
     if (IN_APP) $('inAppBanner').hidden = false;
     route();
+    refreshRecentGroups();
 </script>
 </body>
 </html>
