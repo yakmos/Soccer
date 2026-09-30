@@ -23,6 +23,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
     <script src="group-prefs.js?v=20260930"></script>
+    <script src="reg-auto.js?v=1"></script>
 
     <style>
         :root {
@@ -267,6 +268,24 @@
         .closed-banner h2 { font-size:1.4rem; font-weight:900; margin-bottom:8px; }
         .closed-banner p { color:var(--muted); font-size:0.9rem; }
 
+        /* ההרשמה עוד לא נפתחה / בחירת משחק (הקישור הקבוע) */
+        .soon-card { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:26px 20px 22px; text-align:center; margin:20px 0; }
+        .soon-group { font-size:1.15rem; font-weight:900; margin-bottom:14px; }
+        .soon-icon { font-size:2.6rem; margin-bottom:8px; }
+        .soon-card h2 { font-size:1.3rem; font-weight:900; margin-bottom:14px; }
+        .soon-game { display:inline-block; background:var(--primary-dim); border:1px solid var(--primary-border); color:var(--primary); border-radius:20px; padding:6px 14px; font-weight:800; font-size:0.92rem; margin-bottom:14px; }
+        .soon-open { font-size:1rem; font-weight:800; line-height:1.5; }
+        .soon-count { font-size:1.6rem; font-weight:900; color:var(--primary); margin:10px 0 6px; font-variant-numeric:tabular-nums; }
+        .soon-note { color:var(--muted); font-size:0.85rem; line-height:1.5; }
+        .soon-skipped { background:var(--danger-dim); border:1px solid rgba(239,68,68,0.3); color:#FCA5A5; border-radius:12px; padding:8px 12px; font-size:0.85rem; font-weight:700; margin-bottom:14px; }
+        .soon-notice { background:var(--surface2); border-radius:12px; padding:12px 14px; margin-top:16px; font-size:0.88rem; line-height:1.55; text-align:right; white-space:pre-wrap; }
+        .choice-list { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+        .choice { display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; padding:14px 16px; color:var(--text); text-decoration:none; font-weight:800; }
+        .choice:active { transform:scale(0.98); }
+        .choice > span:first-child { min-width:0; line-height:1.4; }
+        .choice .nw { white-space:nowrap; }
+        .choice .go { flex:none; background:var(--primary); color:#052E22; border-radius:10px; padding:6px 10px; font-size:0.82rem; white-space:nowrap; }
+
         .toast {
             position:fixed; bottom:30px; left:50%;
             transform:translateX(-50%) translateY(80px);
@@ -389,9 +408,33 @@
 
     <div id="closedView" style="display:none;">
         <div class="closed-banner">
-            <div class="icon">🔒</div>
-            <h2>ההרשמה סגורה</h2>
-            <p>המשחק הזה כבר לא פתוח להרשמה.<br>פנה למנהל הקבוצה לפרטים.</p>
+            <div class="icon" id="closedIcon">🔒</div>
+            <h2 id="closedTitle">ההרשמה סגורה</h2>
+            <p id="closedText">המשחק הזה כבר לא פתוח להרשמה.<br>פנה למנהל הקבוצה לפרטים.</p>
+        </div>
+    </div>
+
+    <!-- ההרשמה עוד לא נפתחה: ספירה לאחור, והדף מתרענן לבד ברגע הפתיחה -->
+    <div id="soonView" style="display:none;">
+        <div class="soon-card">
+            <div class="soon-group" id="soonGroup"></div>
+            <div class="soon-icon" aria-hidden="true">⏳</div>
+            <h2>ההרשמה עוד לא נפתחה</h2>
+            <div class="soon-skipped" id="soonSkipped" style="display:none;"></div>
+            <div class="soon-game" id="soonGame"></div>
+            <div class="soon-open" id="soonOpen"></div>
+            <div class="soon-count" id="soonCountdown" aria-live="polite"></div>
+            <div class="soon-note">הדף יתעדכן לבד ברגע שההרשמה נפתחת.<br>אפשר לשמור את הקישור: הוא עובד כל שבוע.</div>
+            <div class="soon-notice" id="soonNotice" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- כמה משחקים פתוחים להרשמה במקביל -->
+    <div id="chooserView" style="display:none;">
+        <div class="soon-card">
+            <div class="soon-group" id="chooserGroup"></div>
+            <h2>לאיזה משחק נרשמים?</h2>
+            <div class="choice-list" id="choiceList"></div>
         </div>
     </div>
 
@@ -477,7 +520,8 @@ const db = firebase.firestore();
 
 const urlParams      = new URLSearchParams(window.location.search);
 const groupId        = urlParams.get('group');
-const registrationId = urlParams.get('reg');
+// בלי reg זה הקישור הקבוע של הקבוצה: ההרשמה הנוכחית נמצאת לבד (ראה resolveCurrentRegistration)
+let   registrationId = urlParams.get('reg');
 
 let groupData      = null;
 let allPlayers     = [];
@@ -491,7 +535,7 @@ let cancelled      = [];
 let customParams   = [];
 
 window.onload = async () => {
-    if (!groupId || !registrationId) { showClosed(); return; }
+    if (!groupId) { showClosed(); return; }
 
     try {
         const groupDoc = await db.collection('groups').doc(groupId).get();
@@ -503,12 +547,19 @@ window.onload = async () => {
         customParams = groupData.customParams || [];
         priorityLabel = GroupPrefs.priorityLabel(groupId, groupData);
 
+        if (!registrationId) {
+            registrationId = await resolveCurrentRegistration();
+            if (!registrationId) return;   // מוצג כבר מסך "עוד לא נפתחה" / בחירת משחק / אין הרשמה
+        }
+
         const regRef = db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId);
         const regDoc = await regRef.get();
         if (!regDoc.exists) { showClosed(); return; }
         gameData = regDoc.data();
         if (!gameData.open) { showClosed(); return; }
+        // הרשמה אוטומטית שמועד הפתיחה שלה עוד לא הגיע
+        if (RegAuto.status(gameData) === 'soon') { showSoon(Object.assign({ id: registrationId }, gameData)); return; }
 
         // מצב מנהל לפי חשבון Google המחובר (משותף לכל דפי האתר)
         try {
@@ -574,9 +625,107 @@ window.onload = async () => {
     }
 };
 
-function showClosed() {
+function showClosed(stableLink) {
+    if (stableLink) {
+        document.getElementById('closedIcon').textContent  = '🗓️';
+        document.getElementById('closedTitle').textContent = 'אין הרשמה פתוחה כרגע';
+        document.getElementById('closedText').textContent  = 'כשתיפתח הרשמה למשחק הבא, היא תופיע כאן, באותו קישור.';
+    }
     document.getElementById('loadingView').style.display = 'none';
     document.getElementById('closedView').style.display  = 'block';
+}
+
+// ===== הקישור הקבוע: registration.html?group=X =====
+// מוצא את ההרשמה הפתוחה עכשיו: הרשמות אוטומטיות לפי שעת הפתיחה שלהן, והרשמה שנפתחה ידנית
+async function resolveCurrentRegistration() {
+    const gRef = db.collection('groups').doc(groupId);
+    let regs = [];
+    if (RegAuto.active(groupData)) {
+        try { regs = await RegAuto.fetchUpcoming(gRef); }
+        catch (e) { console.warn('auto registrations', e); }
+    }
+    const activeId = groupData.activeRegistrationId;
+    if (activeId && !regs.some(r => r.id === activeId)) {
+        try {
+            const d = await gRef.collection('registrations').doc(activeId).get();
+            if (d.exists) regs.push(Object.assign({ id: d.id }, d.data()));
+        } catch (e) { console.warn('active registration', e); }
+    }
+    const now = Date.now();
+    const { open, next } = RegAuto.split(regs, now);
+    if (open.length === 1) return open[0].id;
+    if (open.length > 1) { showChooser(open); return null; }
+    if (next) { showSoon(next, regs); return null; }
+    showClosed(true);
+    return null;
+}
+
+function groupTitleHTML() {
+    const name = document.createElement('span');
+    name.textContent = groupData.name || 'קבוצה';
+    return GroupPrefs.iconHTML(groupData.icon) + ' ' + name.innerHTML;
+}
+
+// ההרשמה עוד לא נפתחה: ספירה לאחור, ורענון אוטומטי ברגע הפתיחה
+let soonTimer = null;
+function showSoon(reg, allRegs) {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('soonView').style.display = 'block';
+    document.getElementById('soonGroup').innerHTML = groupTitleHTML();
+    document.getElementById('soonGame').textContent = '⚽ המשחק ' + RegAuto.gamePhrase(reg);
+    document.getElementById('soonOpen').textContent = 'ההרשמה תיפתח ' + RegAuto.whenPhrase(reg.opensAt);
+    const notice = document.getElementById('soonNotice');
+    if (reg.noticeText && reg.noticeText.trim()) { notice.textContent = reg.noticeText; notice.style.display = 'block'; }
+    // משחק שבוטל השבוע (לפני המשחק שההרשמה אליו תיפתח)
+    const nextAt = RegAuto.toMs(reg.gameAt);
+    const skipped = (allRegs || []).filter(r => RegAuto.status(r) === 'off' && RegAuto.toMs(r.gameAt) < nextAt);
+    if (skipped.length) {
+        const box = document.getElementById('soonSkipped');
+        box.textContent = '⛔ אין משחק ' + skipped.map(r => RegAuto.gamePhrase(r)).join(', ');
+        box.style.display = 'block';
+    }
+    const opensMs = RegAuto.toMs(reg.opensAt);
+    const tick = () => {
+        clearTimeout(soonTimer);
+        const left = opensMs - Date.now();
+        if (left <= 0) { location.reload(); return; }
+        document.getElementById('soonCountdown').textContent = RegAuto.countdown(left);
+        soonTimer = setTimeout(tick, left > 15 * 60 * 1000 ? 20000 : 1000);
+    };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+    tick();
+}
+
+// כמה משחקים פתוחים להרשמה במקביל
+function showChooser(regs) {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('chooserView').style.display = 'block';
+    document.getElementById('chooserGroup').innerHTML = groupTitleHTML();
+    const list = document.getElementById('choiceList');
+    list.innerHTML = '';
+    regs.slice().sort((a, b) => (RegAuto.toMs(a.gameAt) || 0) - (RegAuto.toMs(b.gameAt) || 0)).forEach(r => {
+        const a = document.createElement('a');
+        a.className = 'choice';
+        a.href = `registration.html?group=${encodeURIComponent(groupId)}&reg=${encodeURIComponent(r.id)}`;
+        // יום ושעה נשברים לשורה חדשה רק ביניהם, לא באמצע
+        const [dayPart, timePart] = RegAuto.gameLabel(r).split(' · ');
+        const label = document.createElement('span');
+        const day = document.createElement('span');
+        day.className = 'nw';
+        day.textContent = '⚽ ' + dayPart;
+        label.append(day);
+        if (timePart) {
+            const time = document.createElement('span');
+            time.className = 'nw';
+            time.textContent = '· ' + timePart;
+            label.append(' ', time);
+        }
+        const go = document.createElement('span');
+        go.className = 'go';
+        go.textContent = 'להרשמה ←';
+        a.append(label, go);
+        list.appendChild(a);
+    });
 }
 
 function showNoticeBox(text) {
@@ -642,16 +791,8 @@ function startDateEdit() {
     if (!isAdmin) return;
     const dateInput = document.getElementById('dateEditInput');
     const timeInput = document.getElementById('timeEditInput');
-    if (gameData.gameDate) {
-        try {
-            let iso;
-            if (gameData.gameDate.includes('/')) {
-                const [d, m, y] = gameData.gameDate.split('/');
-                iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-            } else { iso = gameData.gameDate; }
-            dateInput.value = iso;
-        } catch(e) { dateInput.value = ''; }
-    } else { dateInput.value = ''; }
+    const at = RegAuto.gameAtOf(gameData, '20:00');   // כל פורמטי התאריך שנשמרו אי פעם
+    dateInput.value = at ? RegAuto.ymd(at) : '';
     timeInput.value = gameData.gameTime || '';
     document.getElementById('gameDateBadge').style.display = 'none';
     document.getElementById('dateEditWrap').classList.add('visible');
@@ -668,13 +809,18 @@ async function saveDateEdit() {
     const rawTime = document.getElementById('timeEditInput').value;
     if (!rawDate) { showToast('יש לבחור תאריך', 'error'); return; }
     const [y, m, d] = rawDate.split('-');
-    const displayDate = `${d}/${m}/${y}`;
+    const displayDate = `${d}-${m}-${y}`;   // אותו פורמט כמו בפתיחת הרשמה מדף הקבוצה
+    const update = { gameDate: displayDate, gameDateRaw: rawDate, gameTime: rawTime || '' };
+    // הרשמה אוטומטית: גם שעת המשחק המדויקת, שלפיה הקישור הקבוע מוצא אותה
+    if (gameData.gameAt) {
+        const at = RegAuto.gameAtOf({ gameDateRaw: rawDate, gameTime: rawTime }, gameData.gameTime || '20:00');
+        if (at) update.gameAt = firebase.firestore.Timestamp.fromDate(at);
+    }
     try {
         await db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
-            .update({ gameDate: displayDate, gameTime: rawTime || '' });
-        gameData.gameDate = displayDate;
-        gameData.gameTime = rawTime || '';
+            .update(update);
+        Object.assign(gameData, update);
         cancelDateEdit();
         updateDateBadge(gameData);
         showToast('התאריך עודכן ✅', 'success');
@@ -810,19 +956,12 @@ async function registerPlayer() {
         const confirmedCount  = registrations.filter(r => !r.isWaiting).length;
         const isFullBeforeAdd = confirmedCount >= maxPlayers;
 
+        // ב-4 השעות שלפני המשחק אין דחיקה לפי עדיפות: מי שמגיע מאוחר נכנס להמתנה
         const isWithin4Hours = (() => {
-            if (!gameData.gameDate || !gameData.gameTime) return false;
-            try {
-                let gameDateTime;
-                if (gameData.gameDate.includes('/')) {
-                    const [d,m,y] = gameData.gameDate.split('/');
-                    gameDateTime = new Date(`${y}-${m}-${d}T${gameData.gameTime}:00`);
-                } else {
-                    gameDateTime = new Date(`${gameData.gameDate}T${gameData.gameTime}:00`);
-                }
-                const diffMs = gameDateTime - new Date();
-                return diffMs >= 0 && diffMs <= 4*60*60*1000;
-            } catch(e) { return false; }
+            const gameDateTime = RegAuto.gameAtOf(gameData);   // gameAt, או תאריך + שעה בכל הפורמטים
+            if (!gameDateTime) return false;
+            const diffMs = gameDateTime - new Date();
+            return diffMs >= 0 && diffMs <= 4*60*60*1000;
         })();
 
         // bumpedPlayerDocId = ה-document ID (= r.id) של השחקן שנדחק להמתנה
@@ -883,7 +1022,13 @@ async function registerPlayer() {
 
     } catch(e) {
         console.error(e);
-        showToast('שגיאה ברישום, נסה שוב', 'error');
+        // השעון בטלפון מקדים: ההרשמה עוד לא נפתחה בשרת
+        const opensMs = RegAuto.toMs(gameData.opensAt);
+        if (e && e.code === 'permission-denied' && opensMs && Math.abs(Date.now() - opensMs) < 15 * 60 * 1000) {
+            showToast('ההרשמה נפתחת ממש עכשיו, נסה שוב בעוד רגע ⏳', 'info');
+        } else {
+            showToast('שגיאה ברישום, נסה שוב', 'error');
+        }
         btn.textContent = 'הירשם למשחק ⚽';
         btn.disabled = false;
     }
