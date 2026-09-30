@@ -25,6 +25,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20260930"></script>
     <script src="group-prefs.js?v=20260930"></script>
+    <script src="reg-auto.js?v=1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -432,6 +433,36 @@
         .reg-stat-chip { padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 800; background: rgba(16,185,129,0.12); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); }
         .reg-stat-chip.waiting-chip { background: rgba(249,115,22,0.1); color: #F97316; border-color: rgba(249,115,22,0.3); }
 
+        /* הרשמה אוטומטית כל שבוע */
+        .reg-mode { display: flex; gap: 4px; padding: 4px; margin-bottom: 14px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; }
+        .reg-mode-btn { flex: 1; padding: 9px 6px; border: none; border-radius: 9px; background: transparent; color: var(--text-muted); font-family: 'Heebo', sans-serif; font-size: 0.88rem; font-weight: 800; cursor: pointer; }
+        .reg-mode-btn[aria-pressed="true"] { background: rgba(16,185,129,0.15); color: var(--primary-color); }
+        .ra-rule { display: flex; align-items: flex-start; gap: 10px; }
+        .ra-rule-main { flex: 1; min-width: 0; line-height: 1.5; }
+        .ra-rule-title { font-weight: 900; }
+        .ra-rule-text { color: var(--text-muted); font-size: 0.86rem; }
+        .ra-edit-btn, .ra-act { background: none; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; padding: 6px 10px; font-family: 'Heebo', sans-serif; font-size: 0.8rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+        .ra-act.danger { border-color: rgba(239,68,68,0.45); color: #F87171; }
+        .ra-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; margin-top: 6px; }
+        .ra-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+        .ra-list-title { color: var(--text-muted); font-size: 0.8rem; font-weight: 800; }
+        .ra-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; }
+        .ra-item-main { flex: 1; min-width: 0; }
+        .ra-when { font-size: 0.9rem; font-weight: 800; }
+        .ra-state { margin-top: 2px; color: var(--text-muted); font-size: 0.78rem; font-weight: 700; }
+        .ra-state.open { color: var(--primary-color); }
+        .ra-state.off, .ra-state.closed { color: #F87171; }
+        .ra-field { margin-bottom: 14px; }
+        .ra-label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 0.85rem; font-weight: 800; }
+        .ra-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .ra-input { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-family: 'Heebo', sans-serif; font-size: 0.95rem; outline: none; color-scheme: dark; }
+        .ra-input:focus { border-color: var(--primary-color); }
+        .ra-preview { margin-bottom: 12px; padding: 10px 12px; border: 1px dashed rgba(16,185,129,0.35); border-radius: 10px; background: rgba(16,185,129,0.08); font-size: 0.85rem; line-height: 1.55; }
+        .ra-preview.err { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); color: #FCA5A5; }
+        .ra-cancel-btn { width: 100%; margin-top: 8px; padding: 10px; background: none; border: none; color: var(--text-muted); font-family: 'Heebo', sans-serif; font-weight: 700; cursor: pointer; }
+        .reg-banner.soon .reg-banner-title { color: #FBBF24; }
+        .reg-banner.soon .reg-banner-counts { display: none; }
+
         .time-preset-btn {
             padding: 7px 4px;
             border-radius: 8px;
@@ -601,6 +632,62 @@
 
                     <div class="reg-admin-card admin-only" id="regAdminCard">
                         <div class="reg-admin-title">📋 ניהול הרשמה למשחק</div>
+                        <div class="reg-mode" role="group" aria-label="איך נפתחת ההרשמה">
+                            <button type="button" class="reg-mode-btn" id="regModeManualBtn" aria-pressed="true" onclick="setRegMode('manual')">פתיחה ידנית</button>
+                            <button type="button" class="reg-mode-btn" id="regModeAutoBtn" aria-pressed="false" onclick="setRegMode('auto')">🔁 אוטומטית כל שבוע</button>
+                        </div>
+
+                        <!-- הרשמה אוטומטית: נפתחת לבד כל שבוע, בקישור קבוע -->
+                        <div id="regAutoWrap" style="display:none;">
+                            <div id="raSummary" style="display:none;">
+                                <div class="ra-rule">
+                                    <div class="ra-rule-main">
+                                        <div class="ra-rule-title">🔁 ההרשמה נפתחת לבד כל שבוע</div>
+                                        <div class="ra-rule-text" id="raRuleText"></div>
+                                    </div>
+                                    <button type="button" class="ra-edit-btn" onclick="openAutoEditor()">✏️ עריכה</button>
+                                </div>
+                                <div class="reg-share-link-row">
+                                    <div class="reg-share-link-text" id="raLinkDisplay"></div>
+                                    <button class="reg-copy-btn" onclick="copyAutoLink()">העתק</button>
+                                    <button class="reg-wa-btn" onclick="shareAutoLink()">📤 שתף</button>
+                                </div>
+                                <div class="ra-hint">קישור אחד שעובד כל שבוע. שלחו אותו לקבוצה פעם אחת ונעצו את ההודעה 📌</div>
+                                <div class="ra-list" id="raList"></div>
+                            </div>
+                            <div id="raEditor" style="display:none;">
+                                <div class="ra-field">
+                                    <span class="ra-label">ימי משחק</span>
+                                    <div class="day-chips" id="raDays"></div>
+                                </div>
+                                <div class="ra-field">
+                                    <label class="ra-label" for="raTime">שעת המשחק</label>
+                                    <input type="time" id="raTime" class="ra-input" oninput="updateAutoPreview()">
+                                </div>
+                                <div class="ra-field">
+                                    <label class="ra-label" for="raOpenDays">ההרשמה נפתחת</label>
+                                    <div class="ra-inline">
+                                        <select id="raOpenDays" class="ra-input" onchange="updateAutoPreview()">
+                                            <option value="0">ביום המשחק</option>
+                                            <option value="1">יום לפני</option>
+                                            <option value="2">יומיים לפני</option>
+                                            <option value="3">3 ימים לפני</option>
+                                            <option value="4">4 ימים לפני</option>
+                                            <option value="5">5 ימים לפני</option>
+                                            <option value="6">6 ימים לפני</option>
+                                        </select>
+                                        <span>בשעה</span>
+                                        <input type="time" id="raOpenTime" class="ra-input" aria-label="שעת פתיחת ההרשמה" oninput="updateAutoPreview()">
+                                    </div>
+                                </div>
+                                <div class="ra-preview" id="raPreview" aria-live="polite"></div>
+                                <textarea class="reg-textarea" id="raNotice" maxlength="300" placeholder="הודעה קבועה לשחקנים (אופציונלי), תופיע בכל הרשמה"></textarea>
+                                <button type="button" class="reg-open-game-btn" id="raSaveBtn" onclick="saveAutoSchedule()">💾 שמור והפעל</button>
+                                <button type="button" class="ra-cancel-btn" onclick="closeAutoEditor()">ביטול</button>
+                            </div>
+                        </div>
+
+                        <div id="regManualWrap">
                         <div id="regOpenForm">
                             <div class="reg-field-row">
                                 <div style="flex:1; position:relative;">
@@ -674,6 +761,7 @@
                                 <button class="reg-wa-btn" onclick="shareRegWhatsApp()">📤 שתף</button>
                             </div>
                             <button class="reg-close-btn" onclick="closeRegistration()">🔒 סגור הרשמה</button>
+                        </div>
                         </div>
                     </div>
 
@@ -1141,6 +1229,7 @@ function setAdminMode(on) {
         if (bottomBar && (!mainTab || mainTab.classList.contains('active'))) bottomBar.style.display = 'block';
         ensureAdminUids();
         migrateCareerStats();
+        maybeSyncAutoRegs();
     } else {
         document.body.classList.remove('is-admin');
         if (btn) { btn.innerText = 'ניהול 🔒'; btn.style.color = ''; }
@@ -3226,14 +3315,33 @@ function renderMarket() {
 // ========== REGISTRATION SYSTEM ==========
 let currentRegId = null;
 let regEntriesUnsubscribe = null;
+// הרשמה אוטומטית כל שבוע (reg-auto.js): ההגדרות הפעילות, ההרשמות הקרובות, וטיימר לרגע השינוי הבא
+let regAutoSched = null, regAutoKey = null, autoRegs = [], autoRegTimer = null, autoRefreshSeq = 0;
+let autoEditorOpen = false, autoSyncedThisVisit = false, lastRegCounts = null, lastActiveRegSeen;
 
 function startRegistrationListener() {
     groupRef.onSnapshot(snap => {
         if (!snap.exists) return;
         const data = snap.data();
-        const activeRegId = data.activeRegistrationId || null;
 
-        if (activeRegId !== currentRegId) {
+        const sched = RegAuto.active(data);
+        const key = sched ? JSON.stringify(sched) : '';
+        if (key !== regAutoKey) {
+            const first = regAutoKey === null;
+            regAutoKey = key;
+            regAutoSched = sched;
+            // מעבר בין ידני לאוטומטי: מתחילים מחדש את המעקב אחרי ההרשמה הנוכחית
+            if (!first) resetCurrentReg();
+            renderRegMode();
+            if (sched) { refreshAutoReg(); maybeSyncAutoRegs(); }
+            else { clearTimeout(autoRegTimer); autoRegs = []; }
+        }
+
+        const activeRegId = data.activeRegistrationId || null;
+        if (regAutoSched) {
+            // הרשמה שנפתחה ידנית לפני המעבר לאוטומטי נשארת ברשימה עד שנסגרת
+            if (lastActiveRegSeen !== undefined && activeRegId !== lastActiveRegSeen) refreshAutoReg();
+        } else if (activeRegId !== currentRegId) {
             currentRegId = activeRegId;
             if (regEntriesUnsubscribe) { regEntriesUnsubscribe(); regEntriesUnsubscribe = null; }
             if (activeRegId) {
@@ -3243,6 +3351,7 @@ function startRegistrationListener() {
                 showRegOpenForm();
             }
         }
+        lastActiveRegSeen = activeRegId;
 
         if (data.lastRegNotice !== undefined) {
             const noticeInput = document.getElementById('regNoticeInput');
@@ -3281,15 +3390,34 @@ function updateRegCounts(confirmed, waiting) {
     if (bw) { bw.style.display = waiting > 0 ? 'block' : 'none'; bw.textContent = `${waiting} ממתינים`; }
     if (sc) sc.textContent = `${confirmed} / ${maxP} נרשמו`;
     if (sw) { sw.style.display = waiting > 0 ? 'block' : 'none'; sw.textContent = `${waiting} ממתינים`; }
+    // השורה של ההרשמה הפתוחה ברשימת ההרשמה האוטומטית
+    lastRegCounts = { confirmed, waiting, max: maxP };
+    const cs = document.getElementById('raCurState');
+    if (cs) cs.textContent = autoOpenStateText();
 }
 
 function showRegBanner(regId, regData) {
     const banner = document.getElementById('regBanner'); if (!banner) return;
     banner.classList.add('visible');
+    banner.classList.remove('soon');
+    const title = banner.querySelector('.reg-banner-title');
+    if (title) title.textContent = '🟢 הרשמה פתוחה למשחק!';
     const dateEl = document.getElementById('regBannerDate');
     if (dateEl && regData.gameDate) dateEl.textContent = `${regData.gameDate}${regData.gameTime ? ' • ' + regData.gameTime : ''}`;
     const link = document.getElementById('regBannerLink');
-    if (link) link.href = buildRegUrl(regId);
+    if (link) { link.href = buildRegUrl(regId); link.textContent = 'להרשמה →'; }
+}
+
+// הרשמה אוטומטית שעוד לא נפתחה: מתי היא נפתחת, וקישור לדף ההרשמה הקבוע
+function showSoonBanner(reg) {
+    const banner = document.getElementById('regBanner'); if (!banner) return;
+    banner.classList.add('visible', 'soon');
+    const title = banner.querySelector('.reg-banner-title');
+    if (title) title.textContent = '⏰ ההרשמה תיפתח ' + RegAuto.whenPhrase(reg.opensAt);
+    const dateEl = document.getElementById('regBannerDate');
+    if (dateEl) dateEl.textContent = 'למשחק ' + RegAuto.gamePhrase(reg);
+    const link = document.getElementById('regBannerLink');
+    if (link) { link.href = RegAuto.stableLink(currentGroupId); link.textContent = 'לדף ההרשמה →'; }
 }
 
 function hideRegBanner() {
@@ -3361,6 +3489,304 @@ function shareRegWhatsApp() {
         const msg = `⚽ *${groupName} — הרשמה למשחק${dateStr}${timeStr}*\n\nלחצו להירשם:\n${link}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     });
+}
+
+// ========== הרשמה אוטומטית כל שבוע ==========
+// המנהל קובע ימי משחק, שעה ומתי ההרשמה נפתחת. כשמנהל נכנס לדף נוצרות מראש ההרשמות
+// ל-4 השבועות הקרובים, והקישור הקבוע registration.html?group=X תמיד מוביל להרשמה הנוכחית.
+
+function resetCurrentReg() {
+    clearTimeout(autoRegTimer);
+    currentRegId = undefined;   // מכריח טעינה מחדש בשני המצבים
+    lastRegCounts = null;
+    if (regEntriesUnsubscribe) { regEntriesUnsubscribe(); regEntriesUnsubscribe = null; }
+    hideRegBanner();
+}
+
+function renderRegMode() {
+    const auto = !!regAutoSched || autoEditorOpen;
+    document.getElementById('regModeManualBtn').setAttribute('aria-pressed', String(!auto));
+    document.getElementById('regModeAutoBtn').setAttribute('aria-pressed', String(auto));
+    document.getElementById('regManualWrap').style.display = auto ? 'none' : 'block';
+    document.getElementById('regAutoWrap').style.display = auto ? 'block' : 'none';
+    document.getElementById('raEditor').style.display = autoEditorOpen ? 'block' : 'none';
+    document.getElementById('raSummary').style.display = (regAutoSched && !autoEditorOpen) ? 'block' : 'none';
+    if (regAutoSched) {
+        const d = RegAuto.describe(regAutoSched);
+        document.getElementById('raRuleText').textContent = `${d.game}. ${d.open}.`;
+        document.getElementById('raLinkDisplay').textContent = RegAuto.stableLink(currentGroupId);
+    }
+}
+
+async function setRegMode(mode) {
+    if (mode === 'auto') {
+        if (regAutoSched) { autoEditorOpen = false; renderRegMode(); }
+        else openAutoEditor();
+        return;
+    }
+    if (!regAutoSched) { autoEditorOpen = false; renderRegMode(); return; }
+    if (!confirm('לכבות את ההרשמה האוטומטית?\nהרשמות שעוד לא נפתחו יימחקו. הרשמה שכבר פתוחה תישאר פתוחה.')) return;
+    try {
+        await disableAutoSchedule();
+        autoEditorOpen = false;
+        showToast('ההרשמה האוטומטית כובתה', 'info');
+    } catch (e) {
+        console.error('disable auto registration', e);
+        alert('שגיאה בכיבוי: ' + AdminAuth.errorMessage(e));
+    }
+}
+
+function openAutoEditor() {
+    const saved = (currentGroupData && currentGroupData.regSchedule) || {};
+    const sch = (currentGroupData && currentGroupData.schedule) || {};
+    const v = RegAuto.validate(saved).sched;
+    const daysBox = document.getElementById('raDays');
+    GroupPrefs.renderDayChips(daysBox, v.days.length ? v.days : GroupPrefs.cleanDays(sch.days));
+    daysBox.onclick = () => updateAutoPreview();
+    document.getElementById('raTime').value = v.time || GroupPrefs.cleanTime(sch.time) || '20:00';
+    const odb = Number.isInteger(v.openDaysBefore) && v.openDaysBefore >= 0 && v.openDaysBefore <= 6 ? v.openDaysBefore : 3;
+    document.getElementById('raOpenDays').value = String(odb);
+    document.getElementById('raOpenTime').value = v.openTime || '12:00';
+    document.getElementById('raNotice').value = v.notice || (currentGroupData && currentGroupData.lastRegNotice) || '';
+    autoEditorOpen = true;
+    renderRegMode();
+    updateAutoPreview();
+}
+
+function closeAutoEditor() {
+    autoEditorOpen = false;
+    renderRegMode();
+}
+
+function readAutoForm() {
+    return {
+        enabled: true,
+        days: GroupPrefs.readDayChips(document.getElementById('raDays')),
+        time: document.getElementById('raTime').value,
+        openDaysBefore: Number(document.getElementById('raOpenDays').value),
+        openTime: document.getElementById('raOpenTime').value,
+        notice: document.getElementById('raNotice').value
+    };
+}
+
+// "לדוגמה: למשחק ביום חמישי 8.10 · 20:00, ההרשמה תיפתח ביום שני 5.10 ב-12:00."
+function updateAutoPreview() {
+    const box = document.getElementById('raPreview');
+    const v = RegAuto.validate(readAutoForm());
+    if (!v.ok) { box.textContent = v.error; box.classList.add('err'); return; }
+    box.classList.remove('err');
+    const now = Date.now();
+    const occ = RegAuto.occurrences(v.sched, new Date(now), 14);
+    const ex = occ.find(o => o.opensAt.getTime() > now) || occ[0];
+    box.textContent = ex
+        ? `לדוגמה: למשחק ${RegAuto.gamePhrase({ gameAt: ex.gameAt })}, ההרשמה תיפתח ${RegAuto.whenPhrase(ex.opensAt, now)}.`
+        : '';
+}
+
+async function saveAutoSchedule() {
+    const v = RegAuto.validate(readAutoForm());
+    if (!v.ok) { updateAutoPreview(); return alert(v.error); }
+    const btn = document.getElementById('raSaveBtn');
+    btn.disabled = true; btn.textContent = 'שומר... ⏳';
+    autoSyncedThisVisit = true;   // הסנכרון נעשה כאן, לא בעדכון של מסמך הקבוצה
+    try {
+        await groupRef.update({ regSchedule: v.sched });
+        await syncAutoRegs(v.sched, true);
+        autoEditorOpen = false;
+        renderRegMode();
+        await refreshAutoReg();
+        showToast('ההרשמה האוטומטית פעילה ✅', 'success');
+    } catch (e) {
+        console.error('save auto registration', e);
+        alert('שגיאה בשמירה: ' + AdminAuth.errorMessage(e));
+    } finally {
+        btn.disabled = false; btn.textContent = '💾 שמור והפעל';
+    }
+}
+
+// מנהל שנכנס לדף משלים את ההרשמות לשבועות הקרובים (פעם אחת בכל כניסה)
+function maybeSyncAutoRegs() {
+    if (!regAutoSched || autoSyncedThisVisit || !document.body.classList.contains('is-admin')) return;
+    autoSyncedThisVisit = true;
+    syncAutoRegs(regAutoSched, false)
+        .then(n => { if (n) refreshAutoReg(); })
+        .catch(e => { autoSyncedThisVisit = false; console.warn('auto registrations sync', e); });
+}
+
+// יוצר את ההרשמות החסרות ל-4 השבועות הקרובים. reschedule (אחרי שינוי הגדרות): מעדכן או מוחק
+// הרשמות אוטומטיות שעוד לא נפתחו. בהרשמה שכבר נפתחה, או שנפתחה ידנית, לא נוגעים.
+async function syncAutoRegs(sched, reschedule) {
+    const nowMs = Date.now();
+    const TS = firebase.firestore.Timestamp;
+    const occ = RegAuto.occurrences(sched, new Date(nowMs), RegAuto.HORIZON_DAYS);
+    const regsCol = groupRef.collection('registrations');
+    const existing = await RegAuto.fetchUpcoming(groupRef, 40);
+    // תאריך שכבר נפתחה אליו הרשמה ידנית (פתוחה או סגורה) — לא פותחים אותו שוב
+    const dates = Array.from(new Set(occ.map(o => o.gameDateRaw)));
+    const manualDates = new Set();
+    for (let i = 0; i < dates.length; i += 10) {
+        const snap = await regsCol.where('gameDateRaw', 'in', dates.slice(i, i + 10)).get();
+        snap.forEach(d => { const x = d.data(); if (!x.gameAt) manualDates.add(x.gameDateRaw); });
+    }
+    const occByKey = new Map(occ.map(o => [o.key, o]));
+    const haveKeys = new Set(), haveIds = new Set();
+    const batch = db.batch();
+    let ops = 0;
+    for (const r of existing) {
+        haveIds.add(r.id);
+        const key = RegAuto.keyOf(r);
+        const o = occByKey.get(key);
+        if (reschedule && r.auto && RegAuto.toMs(r.opensAt) > nowMs) {
+            if (!o) { batch.delete(regsCol.doc(r.id)); ops++; continue; }   // המשחק כבר לא בלוח
+            const upd = {};
+            if (RegAuto.toMs(r.opensAt) !== o.opensAt.getTime()) upd.opensAt = TS.fromDate(o.opensAt);
+            if ((r.noticeText || '') !== sched.notice) upd.noticeText = sched.notice;
+            if (Object.keys(upd).length) { batch.update(regsCol.doc(r.id), upd); ops++; }
+        }
+        haveKeys.add(key);
+    }
+    for (const o of occ) {
+        if (haveKeys.has(o.key) || haveIds.has(o.id) || manualDates.has(o.gameDateRaw)) continue;
+        batch.set(regsCol.doc(o.id), {
+            gameDate: o.gameDate, gameDateRaw: o.gameDateRaw, gameTime: o.gameTime,
+            gameAt: TS.fromDate(o.gameAt), opensAt: TS.fromDate(o.opensAt),
+            noticeText: sched.notice || '', open: true, auto: true,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            groupId: currentGroupId
+        });
+        ops++;
+    }
+    if (ops) await batch.commit();
+    return ops;
+}
+
+// כיבוי: הרשמות שעוד לא נפתחו נמחקות; הרשמה שכבר פתוחה ממשיכה כהרשמה ידנית רגילה
+async function disableAutoSchedule() {
+    const nowMs = Date.now();
+    const regs = await RegAuto.fetchUpcoming(groupRef, 40);
+    const batch = db.batch();
+    let keepOpen = null;
+    for (const r of regs) {
+        const st = RegAuto.status(r, nowMs);
+        if (r.auto && (st === 'soon' || st === 'off')) batch.delete(groupRef.collection('registrations').doc(r.id));
+        else if (st === 'open' && !keepOpen) keepOpen = r;
+    }
+    const saved = RegAuto.validate((currentGroupData && currentGroupData.regSchedule) || {}).sched;
+    const activeId = (currentGroupData && currentGroupData.activeRegistrationId) || null;
+    batch.update(groupRef, {
+        regSchedule: Object.assign({}, saved, { enabled: false }),
+        activeRegistrationId: keepOpen ? keepOpen.id : (activeId || firebase.firestore.FieldValue.delete())
+    });
+    await batch.commit();
+}
+
+// ההרשמות הקרובות: איזו פתוחה עכשיו (באנר + מונה), ומתי לבדוק שוב
+async function refreshAutoReg() {
+    if (!regAutoSched || !groupRef) return;
+    const seq = ++autoRefreshSeq;
+    clearTimeout(autoRegTimer);
+    let regs;
+    try { regs = await RegAuto.fetchUpcoming(groupRef, 8); }
+    catch (e) { console.warn('auto registrations', e); return; }
+    const activeId = currentGroupData && currentGroupData.activeRegistrationId;
+    if (activeId && !regs.some(r => r.id === activeId)) {
+        try {
+            const d = await groupRef.collection('registrations').doc(activeId).get();
+            if (d.exists) regs.push(Object.assign({ id: d.id }, d.data()));
+        } catch (e) { console.warn('active registration', e); }
+    }
+    if (seq !== autoRefreshSeq || !regAutoSched) return;
+    const now = Date.now();
+    const at = r => { const d = RegAuto.gameAtOf(r, '23:59'); return d ? d.getTime() : 0; };
+    autoRegs = regs.filter(r => RegAuto.status(r, now) !== 'done').sort((a, b) => at(a) - at(b));
+    const { open, next } = RegAuto.split(autoRegs, now);
+    const cur = open[0] || null;
+    if ((cur ? cur.id : null) !== currentRegId) {
+        currentRegId = cur ? cur.id : null;
+        lastRegCounts = null;
+        if (regEntriesUnsubscribe) { regEntriesUnsubscribe(); regEntriesUnsubscribe = null; }
+        if (cur) listenToRegistration(cur.id);
+    }
+    if (!cur) { if (next) showSoonBanner(next); else hideRegBanner(); }
+    renderAutoPanel();
+    const t = RegAuto.nextChange(autoRegs, now);
+    if (t) autoRegTimer = setTimeout(refreshAutoReg, Math.min(t - now + 1500, 6 * 60 * 60 * 1000));
+}
+
+function autoOpenStateText() {
+    const c = lastRegCounts;
+    return '🟢 פתוחה עכשיו' + (c ? ` · ${c.confirmed}/${c.max} נרשמו${c.waiting ? ` + ${c.waiting} ממתינים` : ''}` : '');
+}
+
+function renderAutoPanel() {
+    const box = document.getElementById('raList');
+    if (!box) return;
+    const now = Date.now();
+    const rows = autoRegs.slice(0, 4);
+    if (!rows.length) {
+        box.innerHTML = '<div class="ra-hint">אין עדיין משחקים מתוזמנים. הם נוצרים אוטומטית כשמנהל נכנס לדף.</div>';
+        return;
+    }
+    box.innerHTML = '<div class="ra-list-title">המשחקים הקרובים</div>' + rows.map(r => {
+        const st = RegAuto.status(r, now);
+        const id = escAdminText(r.id);
+        const when = escAdminText(RegAuto.gameLabel(r));
+        const label = (st === 'open' || st === 'closed')
+            ? `<a class="ra-when" href="${escAdminText(buildRegUrl(r.id))}" target="_blank" style="color:inherit;">${when}</a>`
+            : `<div class="ra-when">${when}</div>`;
+        let state, act;
+        if (st === 'open') {
+            state = `<div class="ra-state open"${r.id === currentRegId ? ' id="raCurState"' : ''}>${escAdminText(r.id === currentRegId ? autoOpenStateText() : '🟢 פתוחה עכשיו')}</div>`;
+            act = `<button type="button" class="ra-act danger" onclick="toggleAutoReg('${id}', false)">סגור</button>`;
+        } else if (st === 'soon') {
+            state = `<div class="ra-state">⏰ תיפתח ${escAdminText(RegAuto.whenPhrase(r.opensAt, now))}</div>`;
+            act = `<button type="button" class="ra-act" onclick="toggleAutoReg('${id}', false)">אין משחק</button>`;
+        } else if (st === 'off') {
+            state = '<div class="ra-state off">⛔ לא מתקיים</div>';
+            act = `<button type="button" class="ra-act" onclick="toggleAutoReg('${id}', true)">החזר</button>`;
+        } else {
+            state = '<div class="ra-state closed">🔒 ההרשמה נסגרה</div>';
+            act = `<button type="button" class="ra-act" onclick="toggleAutoReg('${id}', true)">פתח שוב</button>`;
+        }
+        return `<div class="ra-item"><div class="ra-item-main">${label}${state}</div>${act}</div>`;
+    }).join('');
+}
+
+// סגירה / ביטול משחק / החזרה — רק השדה open של אותה הרשמה
+async function toggleAutoReg(regId, open) {
+    const r = autoRegs.find(x => x.id === regId);
+    const label = r ? RegAuto.gamePhrase(r) : '';
+    if (!open) {
+        const st = r ? RegAuto.status(r) : 'open';
+        const q = st === 'open'
+            ? `לסגור את ההרשמה למשחק ${label}?\nשחקנים לא יוכלו להירשם יותר.`
+            : `אין משחק ${label}?\nההרשמה אליו לא תיפתח.`;
+        if (!confirm(q)) return;
+    }
+    try {
+        await groupRef.collection('registrations').doc(regId).update({ open });
+        if (!open && (currentGroupData && currentGroupData.activeRegistrationId) === regId) {
+            await groupRef.update({ activeRegistrationId: firebase.firestore.FieldValue.delete() });
+        }
+        showToast(open ? 'ההרשמה חזרה ✅' : 'עודכן ✅', 'success');
+        refreshAutoReg();
+    } catch (e) {
+        console.error('toggle registration', e);
+        alert('שגיאה בעדכון: ' + AdminAuth.errorMessage(e));
+    }
+}
+
+function copyAutoLink() {
+    navigator.clipboard.writeText(RegAuto.stableLink(currentGroupId))
+        .then(() => showToast('הקישור הועתק 📋', 'success'));
+}
+
+function shareAutoLink() {
+    if (!regAutoSched) return;
+    const d = RegAuto.describe(regAutoSched);
+    const link = RegAuto.stableLink(currentGroupId);
+    const msg = `⚽ *${currentGroupName()} — הרשמה למשחקים*\n🗓️ ${d.game}\n⏰ ${d.open}\n\nנרשמים תמיד באותו קישור:\n${link}\n\n📌 כדאי לנעוץ את ההודעה`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ========== REG CALENDAR ==========
