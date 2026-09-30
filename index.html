@@ -902,6 +902,7 @@
                         
                         <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
                         <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
+                        <a class="btn activity-link" href="activity.html" style="margin-top:10px; display:block; text-align:center; text-decoration:none; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.45); color:#C4B5FD;">📊 פעילות שחקנים: מי מגיע ומי לא</a>
                         <button class="btn" onclick="publishToMarket()" style="margin-top:10px; background: #3B82F6;">📢 פרסם גיוס שחקנים לשוק</button>
                     </div>
 
@@ -975,6 +976,7 @@
                 <div class="card" style="border-top-width: 4px; border-top-color: #8B5CF6;">
                     <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">📅 היסטוריית משחקים</h2>
                     <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">כל ערב משחק שנסכם נשמר כאן עם כל הפרטים</p>
+                    <a class="admin-only activity-link" href="activity.html" style="text-align:center; margin:-10px 0 18px; color:#C4B5FD; font-weight:800; font-size:0.9rem; text-decoration:none;">📊 מי מגיע הכי הרבה? לדף פעילות השחקנים ←</a>
                     <div id="historyList">
                         <div class="history-empty">טוען היסטוריה... ⏳</div>
                     </div>
@@ -1145,6 +1147,8 @@ function updateGroupLinkUI() {
     const url = window.location.origin + window.location.pathname + '?group=' + currentGroupId;
     const el = document.getElementById('groupLinkDisplay');
     if (el) el.innerText = url;
+    // דף הפעילות (למנהלים): מי מגיע, אחוזי נוכחות ומי לא נראה לאחרונה
+    document.querySelectorAll('.activity-link').forEach(a => { a.href = 'activity.html?group=' + encodeURIComponent(currentGroupId); });
 }
 function copyGroupLink() {
     navigator.clipboard.writeText(document.getElementById('groupLinkDisplay').innerText)
