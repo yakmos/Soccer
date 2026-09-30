@@ -7,6 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="admin-auth.js?v=20260930"></script>
+    <script src="group-prefs.js?v=20260930"></script>
     <style>
         :root {
             --bg-color: #0F172A;
@@ -111,6 +114,16 @@
         }
         .inactive-chip small { color: var(--text-muted); font-weight: 400; }
 
+        .back-link { display: inline-block; color: var(--text-muted); text-decoration: none; font-weight: 700; font-size: .88rem; margin-bottom: 10px; }
+        .back-link:hover { color: var(--text-main); }
+
+        /* למנהלי הקבוצה בלבד */
+        .lock-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px 20px; text-align: center; margin-top: 10px; }
+        .lock-card .lock-icon { font-size: 2.4rem; margin-bottom: 8px; }
+        .lock-card h2 { font-size: 1.15rem; font-weight: 900; margin: 0 0 8px; }
+        .lock-card p { color: var(--text-muted); font-size: .9rem; line-height: 1.55; margin: 0 0 16px; }
+        .lock-btn { background: var(--primary-color); color: #fff; border: none; border-radius: 12px; padding: 12px 20px; font-family: 'Heebo'; font-weight: 900; font-size: .95rem; cursor: pointer; }
+
         .loading, .empty-state { text-align: center; color: var(--text-muted); padding: 50px 20px; }
         .spinner {
             width: 36px; height: 36px; border: 4px solid var(--border-color); border-top-color: var(--primary-color);
@@ -123,10 +136,18 @@
 </head>
 <body>
 <div class="container">
+    <a class="back-link" id="backLink" href="home.html">→ חזרה לקבוצה</a>
     <h1>📊 פעילות שחקנים</h1>
     <div class="subtitle" id="groupName">טוען...</div>
 
-    <div class="range-bar" role="group" aria-label="טווח תאריכים">
+    <div id="locked" class="lock-card hidden">
+        <div class="lock-icon" aria-hidden="true">🔒</div>
+        <h2>הדף הזה מיועד למנהלי הקבוצה</h2>
+        <p>כאן רואים מי מגיע הכי הרבה, אחוזי נוכחות, שערים והרשמות, ומי לא נראה לאחרונה.</p>
+        <button class="lock-btn" id="loginBtn" type="button">כניסת מנהל עם Google</button>
+    </div>
+
+    <div class="range-bar hidden" id="rangeBar" role="group" aria-label="טווח תאריכים">
         <button class="range-btn" data-days="30">חודש</button>
         <button class="range-btn active" data-days="60">חודשיים</button>
         <button class="range-btn" data-days="90">3 חודשים</button>
@@ -182,6 +203,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const groupId = new URLSearchParams(location.search).get('group');
+let groupData = null;
 let rangeDays = 60;
 let players = [];          // full roster
 let games = [];            // history_games in range (oldest -> newest)
@@ -204,17 +226,14 @@ async function loadData() {
     const cutoffTs = firebase.firestore.Timestamp.fromDate(cutoff);
     const groupRef = db.collection('groups').doc(groupId);
 
-    // 1 read: group doc | 1 query: players | 1 query: games in range | 1 query: regs in range (+entries per reg)
-    const [groupDoc, playersSnap, gamesSnap, regsSnap] = await Promise.all([
-        groupRef.get(),
+    // 1 query: players | 1 query: games in range | 1 query: regs in range (+entries per reg)
+    const [playersSnap, gamesSnap, regsSnap] = await Promise.all([
         groupRef.collection('players').get(),
         groupRef.collection('history_games').where('date', '>=', cutoffTs).orderBy('date', 'asc').get(),
         groupRef.collection('registrations').where('createdAt', '>=', cutoffTs).get()
     ]);
 
-    document.getElementById('groupName').textContent =
-        (groupDoc.exists && (groupDoc.data().groupName || groupDoc.data().name) || 'הקבוצה שלי') +
-        ` • ${rangeDays} הימים האחרונים`;
+    setSubtitle(` • ${rangeDays} הימים האחרונים`);
 
     players = playersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     games = gamesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -327,9 +346,9 @@ function render() {
         return `
         <div class="player-card">
             <div class="p-head">
-                <div class="avatar">${s.imgUrl?`<img src="${s.imgUrl}" alt="">`:initials}</div>
+                <div class="avatar">${s.imgUrl?`<img src="${esc(s.imgUrl)}" alt="">`:esc(initials)}</div>
                 <div>
-                    <div class="p-name">${s.name||'ללא שם'} ${s.mvps?` <span style="color:var(--gold)">★${s.mvps}</span>`:''}</div>
+                    <div class="p-name">${esc(s.name||'ללא שם')} ${s.mvps?` <span style="color:var(--gold)">★${s.mvps}</span>`:''}</div>
                     <div class="p-sub">משחק אחרון: ${last}</div>
                 </div>
                 <div class="p-pct"><div class="big ${pctCls}">${pct}%</div><div class="sml">${s.games}/${totalGames} משחקים</div></div>
@@ -346,7 +365,7 @@ function render() {
 
     // inactive
     document.getElementById('inactiveList').innerHTML = inactive.length
-        ? inactive.map(s => `<div class="inactive-chip">${s.name||'ללא שם'}</div>`).join('')
+        ? inactive.map(s => `<div class="inactive-chip">${esc(s.name||'ללא שם')}</div>`).join('')
         : `<span style="color:var(--text-muted);font-size:.85rem">כולם היו פעילים בתקופה 💪</span>`;
 }
 
@@ -362,15 +381,52 @@ document.getElementById('sortSelect').addEventListener('change', e => { sortKey 
 
 function showErr(e) {
     console.error(e);
-    document.getElementById('loading').innerHTML = `⚠️ שגיאה בטעינת נתונים:<br><small dir="ltr">${e.message}</small>`;
+    document.getElementById('loading').innerHTML = `⚠️ שגיאה בטעינת נתונים:<br><small dir="ltr">${esc(e.message)}</small>`;
 }
 
-if (!groupId) {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('noGroup').classList.remove('hidden');
-} else {
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// "⚽ מגדים • 60 הימים האחרונים"
+function setSubtitle(extra) {
+    const name = (groupData && (groupData.name || groupData.groupName)) || 'הקבוצה שלי';
+    document.getElementById('groupName').innerHTML = GroupPrefs.iconHTML(groupData && groupData.icon) + ' ' + esc(name) + esc(extra || '');
+}
+
+function showData() {
+    document.getElementById('locked').classList.add('hidden');
+    document.getElementById('rangeBar').classList.remove('hidden');
     loadData().catch(showErr);
 }
+
+// הנתונים מיועדים למנהלי הקבוצה (חשבון Google שמופיע ברשימת המנהלים)
+async function init() {
+    if (!groupId) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('noGroup').classList.remove('hidden');
+        return;
+    }
+    document.getElementById('backLink').href = 'index.html?group=' + encodeURIComponent(groupId);
+    const groupDoc = await db.collection('groups').doc(groupId).get();
+    if (!groupDoc.exists) { showErr(new Error('הקבוצה לא נמצאה')); return; }
+    groupData = groupDoc.data();
+    setSubtitle('');
+    const user = await AdminAuth.getUser();
+    if (AdminAuth.isAdminOf(groupData, user, true)) { showData(); return; }
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('locked').classList.remove('hidden');
+}
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+    const res = await AdminAuth.loginAsAdmin(db, groupId, groupData);
+    if (!res.ok) return;
+    try { const fresh = await db.collection('groups').doc(groupId).get(); if (fresh.exists) groupData = fresh.data(); } catch (e) {}
+    if (AdminAuth.isAdminOf(groupData, firebase.auth().currentUser, true)) showData();
+    else alert('החשבון הזה לא מופיע ברשימת המנהלים של הקבוצה.');
+});
+
+init().catch(showErr);
 </script>
 </body>
 </html>
