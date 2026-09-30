@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js"></script>
+    <script src="group-prefs.js?v=20260930"></script>
 
     <style>
         :root {
@@ -522,7 +522,9 @@ window.onload = async () => {
         });
 
         document.getElementById('gameHeader').style.display = 'block';
-        document.getElementById('groupNameEl').textContent  = '⚽ ' + (groupData.name || 'קבוצה');
+        const groupNameEl = document.getElementById('groupNameEl');
+        groupNameEl.innerHTML = GroupPrefs.iconHTML(groupData.icon) + ' ';
+        groupNameEl.appendChild(document.createTextNode(groupData.name || 'קבוצה'));
         updateDateBadge(gameData);
 
         if (isAdmin) {
