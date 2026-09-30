@@ -1133,6 +1133,7 @@ function setAdminMode(on) {
         if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
         if (bottomBar && (!mainTab || mainTab.classList.contains('active'))) bottomBar.style.display = 'block';
         ensureAdminUids();
+        migrateCareerStats();
     } else {
         document.body.classList.remove('is-admin');
         if (btn) { btn.innerText = 'ניהול 🔒'; btn.style.color = ''; }
@@ -1261,11 +1262,96 @@ async function removeCoAdmin(uid) {
     } catch (e) { alert('שגיאה: ' + AdminAuth.errorMessage(e)); }
 }
 
+// ========== Career stats (goals & wins) ==========
+// כל שער וניצחון נשמרים גם ביומן history, אבל הקריאה שלו מלא בכל כניסה עלתה אלפי קריאות.
+// לכן סך השערים והניצחונות נשמר על השחקן עצמו (careerGoals / careerWins).
+// קבוצה ותיקה עוברת פעם אחת, כשמנהל נכנס (statsVersion: 1). עד אז — קוראים את היומן כמו קודם.
+let playersLoaded = false, historyLoaded = false;
+let historyUnsubscribe = null;
+let migratingStats = false;
+
+function careerStatsReady() {
+    return !!(currentGroupData && currentGroupData.statsVersion >= 1);
+}
+
+function countHistory(events) {
+    const goals = {}, wins = {};
+    events.forEach(h => {
+        if (h.type === 'goal') goals[h.playerId] = (goals[h.playerId] || 0) + 1;
+        else if (h.type === 'goal_adjustment') goals[h.playerId] = (goals[h.playerId] || 0) + (h.count || 0);
+        else if (h.type === 'win') wins[h.playerId] = (wins[h.playerId] || 0) + 1;
+    });
+    return { goals, wins };
+}
+
+// { goals: {playerId: n}, wins: {playerId: n} }
+function careerTotals() {
+    if (!careerStatsReady()) return countHistory(historyCache);
+    const goals = {}, wins = {};
+    players.forEach(p => { goals[p.id] = p.careerGoals || 0; wins[p.id] = p.careerWins || 0; });
+    return { goals, wins };
+}
+
+function syncHistoryListener() {
+    if (!groupRef) return;
+    const needLog = !careerStatsReady();
+    if (needLog && !historyUnsubscribe) {
+        historyUnsubscribe = groupRef.collection('history').onSnapshot(snap => {
+            historyCache = snap.docs.map(doc => doc.data());
+            historyLoaded = true;
+            renderTopScorers();
+        });
+    } else if (!needLog && historyUnsubscribe) {
+        historyUnsubscribe();
+        historyUnsubscribe = null;
+        historyCache = [];
+        renderTopScorers();
+    }
+}
+
+function waitFor(check, timeoutMs) {
+    return new Promise((resolve, reject) => {
+        const start = Date.now();
+        (function poll() {
+            if (check()) return resolve();
+            if (Date.now() - start > timeoutMs) return reject(new Error('timeout'));
+            setTimeout(poll, 200);
+        })();
+    });
+}
+
+// מעבר חד-פעמי: סופרים את היומן שכבר נטען וכותבים את הסיכום על כל שחקן
+async function migrateCareerStats() {
+    if (migratingStats || careerStatsReady() || !groupRef) return;
+    migratingStats = true;
+    try {
+        await waitFor(() => playersLoaded && historyLoaded, 30000);
+        if (careerStatsReady()) return;
+        const { goals, wins } = countHistory(historyCache);
+        const list = players.slice();
+        for (let i = 0; i < list.length; i += 400) {
+            const batch = db.batch();
+            list.slice(i, i + 400).forEach(p => batch.update(playersRef.doc(p.id), {
+                careerGoals: goals[p.id] || 0,
+                careerWins: wins[p.id] || 0
+            }));
+            await batch.commit();
+        }
+        await groupRef.update({ statsVersion: 1 });
+    } catch (e) {
+        console.warn('career stats migration', e);
+    } finally {
+        migratingStats = false;
+    }
+}
+
 // ========== Realtime Listeners ==========
 function startRealtimeListeners() {
     playersRef.orderBy("name").onSnapshot(snap => {
         players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        playersLoaded = true;
         render();
+        if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
     });
 
@@ -1288,10 +1374,7 @@ function startRealtimeListeners() {
         }
     });
 
-    groupRef.collection('history').onSnapshot(snap => {
-        historyCache = snap.docs.map(doc => doc.data());
-        renderTopScorers();
-    });
+    syncHistoryListener();
 
     groupRef.collection('history_games').orderBy('date', 'desc').limit(30).onSnapshot(snap => {
         gamesHistoryCache = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1308,6 +1391,7 @@ function startRealtimeListeners() {
             }
             const newPriorityLabel = GroupPrefs.priorityLabel(currentGroupId, data);
             if (newPriorityLabel !== priorityLabel) { priorityLabel = newPriorityLabel; applyPriorityLabelUI(); render(); }
+            syncHistoryListener();
             customParams = data.customParams || [];
             renderCustomParamsManagerList();
             renderCustomParamsFormInputs();
@@ -1894,11 +1978,19 @@ async function updatePlayerGoal(id, delta) {
     try {
         const pRef = playersRef.doc(id);
         const pDoc = await pRef.get();
-        if(pDoc.exists) {
-            let newGoals = Math.max(0, (pDoc.data().goals || 0) + delta);
-            await pRef.update({ goals: newGoals });
-            if (delta > 0) await groupRef.collection('history').add({ playerId: id, type: 'goal', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-        }
+        if (!pDoc.exists) return;
+        const oldGoals = pDoc.data().goals || 0;
+        const newGoals = Math.max(0, oldGoals + delta);
+        const change = newGoals - oldGoals;
+        if (!change) return;
+        // גול שבוטל (לחיצה על מינוס) יורד גם מגולי הקריירה
+        const ts = firebase.firestore.FieldValue.serverTimestamp();
+        const batch = db.batch();
+        batch.update(pRef, { goals: newGoals, careerGoals: firebase.firestore.FieldValue.increment(change) });
+        batch.set(groupRef.collection('history').doc(), change > 0
+            ? { playerId: id, type: 'goal', timestamp: ts }
+            : { playerId: id, type: 'goal_adjustment', count: change, timestamp: ts });
+        await batch.commit();
     } catch(e) { console.error("שגיאה בעדכון גול:", e); }
 }
 
@@ -1956,10 +2048,15 @@ async function finishGame() {
             });
         });
         const playedIds = new Set(allPlayersFlat.map(fp => fp.id));
+        const winsByPlayer = {};
+        activeWins.forEach((wins, index) => {
+            if (wins > 0) activeTeams[index].forEach(player => { winsByPlayer[player.id] = (winsByPlayer[player.id] || 0) + wins; });
+        });
         players.forEach(p => {
             const wasInGame = playedIds.has(p.id);
             const updateData = { attendanceHistory: firebase.firestore.FieldValue.arrayUnion(wasInGame) };
             if (p.goals > 0 || p.inLineup) updateData.goals = 0;
+            if (winsByPlayer[p.id]) updateData.careerWins = firebase.firestore.FieldValue.increment(winsByPlayer[p.id]);
             batch.update(playersRef.doc(p.id), updateData);
         });
         batch.delete(gameRef);
@@ -1974,15 +2071,22 @@ async function finishGame() {
     }
 }
 
+// תיקון ידני של גולי קריירה: רישום ביומן + עדכון הסיכום על השחקן, באותה פעולה
+async function writeGoalAdjustment(playerId, delta) {
+    const batch = db.batch();
+    batch.set(groupRef.collection('history').doc(), { playerId, type: 'goal_adjustment', count: delta, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.update(playersRef.doc(playerId), { careerGoals: firebase.firestore.FieldValue.increment(delta) });
+    await batch.commit();
+}
+
 async function adjustCareerGoal(playerId, delta) {
     try {
-        await groupRef.collection('history').add({ playerId, type: 'goal_adjustment', count: delta, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        await writeGoalAdjustment(playerId, delta);
     } catch(e) { console.error(e); alert("שגיאה בעדכון."); }
 }
 
 async function editCareerGoals(playerId) {
-    const currentGoals = historyCache.filter(h => h.playerId === playerId && h.type === 'goal').length +
-        historyCache.filter(h => h.playerId === playerId && h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
+    const currentGoals = careerTotals().goals[playerId] || 0;
     const newValStr = prompt(`עריכת גולי קריירה:\nהזן את הכמות הכוללת הרצויה (נוכחי: ${currentGoals})`, currentGoals);
     if (newValStr === null) return;
     const newVal = parseInt(newValStr);
@@ -1990,7 +2094,7 @@ async function editCareerGoals(playerId) {
     const diff = newVal - currentGoals;
     if (diff === 0) return;
     try {
-        await groupRef.collection('history').add({ playerId, type: 'goal_adjustment', count: diff, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+        await writeGoalAdjustment(playerId, diff);
         setTimeout(() => showPlayerCard(playerId), 500);
     } catch(e) { console.error(e); alert("שגיאה בעדכון."); }
 }
@@ -1998,11 +2102,10 @@ async function editCareerGoals(playerId) {
 // ========== Player Card Modal ==========
 function showPlayerCard(id) {
     const p = players.find(x => x.id === id); if(!p) return;
-    const pHistory = historyCache.filter(h => h.playerId === id);
-    const totalWins = pHistory.filter(h => h.type === 'win').length;
-    const totalGoals = pHistory.filter(h => h.type === 'goal').length +
-        pHistory.filter(h => h.type === 'goal_adjustment').reduce((sum,h) => sum + (h.count||0), 0);
-    const formaHTML = pHistory.filter(h => h.type === 'win').slice(0,5).map(() => `<span style="color:#10B981; font-weight:900;">W</span>`).join(' ') || '<span style="color:var(--text-muted);">אין נתונים</span>';
+    const totals = careerTotals();
+    const totalWins = totals.wins[id] || 0;
+    const totalGoals = totals.goals[id] || 0;
+    const formaHTML = Array.from({ length: Math.min(5, totalWins) }, () => `<span style="color:#10B981; font-weight:900;">W</span>`).join(' ') || '<span style="color:var(--text-muted);">אין נתונים</span>';
     const isAdmin = document.body.classList.contains('is-admin');
     const editBtn = isAdmin ? `<button onclick="editCareerGoals('${p.id}')" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:14px;" title="ערוך גולי קריירה">✏️</button>` : '';
     const isGk = !!p.isGk;
@@ -2085,11 +2188,7 @@ function closePlayerCard() { document.getElementById('playerModalOverlay').style
 // ========== Scorers ==========
 function renderTopScorers() {
     const container = document.getElementById('topScorersList'); if (!container) return;
-    const goalsMap = {};
-    historyCache.forEach(h => {
-        if (h.type === 'goal') goalsMap[h.playerId] = (goalsMap[h.playerId] || 0) + 1;
-        else if (h.type === 'goal_adjustment') goalsMap[h.playerId] = (goalsMap[h.playerId] || 0) + (h.count || 0);
-    });
+    const goalsMap = careerTotals().goals;
     const scorers = players.map(p => ({ ...p, careerGoals: goalsMap[p.id] || 0 }))
         .filter(p => p.careerGoals > 0).sort((a,b) => b.careerGoals - a.careerGoals);
     if (scorers.length === 0) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">עוד לא נכבשו שערים העונה ⚽</div>`; return; }
