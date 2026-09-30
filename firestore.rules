@@ -46,7 +46,8 @@ service cloud.firestore {
         && (!('location' in d) || (d.location is map && d.location.size() <= 4))
         && (!('schedule' in d) || (d.schedule is map && d.schedule.size() <= 4))
         && (!('listingId' in d) || (d.listingId is string && d.listingId.size() <= 40))
-        && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40000));
+        && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40000))
+        && (!('regSchedule' in d) || (d.regSchedule is map && d.regSchedule.size() <= 8));
     }
 
     // ולידציה בסיסית לכרטיס שחקן — עוצרת זבל ומסמכי ענק
@@ -185,8 +186,11 @@ service cloud.firestore {
     }
 
     // ================= הרשמה למשחק =================
+    // פתוחה = open, ובהרשמה אוטומטית גם אחרי מועד הפתיחה (opensAt) לפי שעון השרת
     function registrationOpen(gid, regId) {
-      return get(/databases/$(database)/documents/groups/$(gid)/registrations/$(regId)).data.get('open', false) == true;
+      let r = get(/databases/$(database)/documents/groups/$(gid)/registrations/$(regId)).data;
+      return r.get('open', false) == true
+        && (r.get('opensAt', null) == null || request.time >= r.opensAt);
     }
 
     function validEntry(gid, pid) {
