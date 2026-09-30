@@ -260,11 +260,74 @@
 
     async function signOut() { await auth().signOut(); }
 
+    // ===== מחיקת קבוצה =====
+    // מוחק את כל תתי-האוספים, את המודעה ב"מצא משחק" ואת הפוסט בשוק, ובסוף את מסמך הקבוצה.
+    // מסמך הקבוצה נמחק אחרון: חוקי האבטחה בודקים דרכו שהמוחק מנהל בקבוצה.
+    // onProgress(done, total) — להצגת התקדמות במסך
+    const GROUP_SUBCOLLECTIONS = ['players', 'game', 'history', 'history_games', 'adminInvites'];
+    const DELETE_CHUNK = 400;        // פחות מהמגבלה של 500 פעולות ב-batch
+
+    async function deleteGroup(db, groupId, onProgress) {
+        const groupRef = db.collection('groups').doc(groupId);
+        const snap = await groupRef.get();
+        if (!snap.exists) return { deleted: 0 };
+        const data = snap.data() || {};
+
+        // רק הבעלים או מנהל-העל. בודקים לפני שמוחקים משהו, כדי לא להשאיר קבוצה ריקה
+        const u = auth().currentUser;
+        if (!isSuperAdmin(u) && !isOwnerOf(data, u)) {
+            const err = new Error('only the owner can delete the group');
+            err.code = 'permission-denied';
+            throw err;
+        }
+
+        const refs = [];
+        const collect = async col => { const s = await col.get(); s.forEach(d => refs.push(d.ref)); return s; };
+        for (const name of GROUP_SUBCOLLECTIONS) await collect(groupRef.collection(name));
+        const regs = await groupRef.collection('registrations').get();
+        for (const r of regs.docs) {
+            await collect(r.ref.collection('entries'));
+            await collect(r.ref.collection('cancelled'));
+            refs.push(r.ref);
+        }
+        const voters = await groupRef.collection('voters').get();
+        for (const v of voters.docs) {
+            await collect(v.ref.collection('votes'));
+            refs.push(v.ref);
+        }
+        // הסיסמה הישנה של קבוצות ותיקות — רק מנהל-העל רשאי לקרוא ולמחוק אותה
+        if (isSuperAdmin(u)) await collect(groupRef.collection('private')).catch(() => null);
+
+        let listingRef = null;
+        if (data.listingId) {
+            const l = await db.collection('listings').doc(data.listingId).get().catch(() => null);
+            if (l && l.exists) listingRef = l.ref;
+        }
+
+        const total = refs.length + 1;
+        const report = n => { if (onProgress) { try { onProgress(n, total); } catch (e) { /* תצוגה בלבד */ } } };
+        report(0);
+        for (let i = 0; i < refs.length; i += DELETE_CHUNK) {
+            const batch = db.batch();
+            refs.slice(i, i + DELETE_CHUNK).forEach(ref => batch.delete(ref));
+            await batch.commit();
+            report(Math.min(i + DELETE_CHUNK, refs.length));
+        }
+        const last = db.batch();
+        last.delete(db.collection('market_posts').doc(groupId));
+        if (listingRef) last.delete(listingRef);
+        last.delete(groupRef);
+        await last.commit();
+        report(total);
+        return { deleted: total };
+    }
+
     window.AdminAuth = {
         SUPER_ADMIN_UID,
         getUser, isRealUser, isSuperAdmin, isAdminOf, isOwnerOf, isLegacyGroup,
         displayName, errorMessage, isCancel,
         signInWithGoogle, ensureGoogleUser, loginAsAdmin,
-        createInvite, inviteLink, acceptInvite, removeAdmin, signOut
+        createInvite, inviteLink, acceptInvite, removeAdmin, signOut,
+        deleteGroup
     };
 })();
