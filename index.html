@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js"></script>
+    <script src="group-prefs.js?v=20260930"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
@@ -524,7 +524,7 @@
 <body id="mainBody">
 
     <header>
-        <h1 id="headerTitle">⚽ SOCCER MANAGER</h1>
+        <h1 id="headerTitle"><span id="headerIcon" aria-hidden="true">⚽</span> <span id="headerName">SOCCER MANAGER</span></h1>
         <div style="display:flex; gap:10px;">
             <a href="home.html" class="admin-btn" title="הקבוצות שלי" aria-label="הקבוצות שלי">🏠</a>
             <button id="settingsBtnHeader" class="admin-btn admin-only" onclick="openSettingsModal()" title="הגדרות קבוצה">⚙️</button>
@@ -944,6 +944,8 @@
             <div id="groupDetailsSection" style="text-align: right; margin-bottom:20px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
                 <div style="color:var(--text-main); font-weight:bold; margin-bottom:8px;">📋 פרטי הקבוצה</div>
                 <input type="text" id="setGroupName" class="form-input" maxlength="60" placeholder="שם הקבוצה" style="margin-bottom:10px;">
+                <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:6px;">סמל הקבוצה</div>
+                <div id="setIcon" style="margin-bottom:12px;"></div>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="setCity" class="form-input" maxlength="40" list="cityList" placeholder="עיר / יישוב" style="margin-bottom:10px;">
                     <input type="text" id="setVenue" class="form-input" maxlength="60" placeholder="מגרש" style="margin-bottom:10px;">
@@ -1070,14 +1072,15 @@ window.onload = async () => {
                 currentGroupData = groupData;
                 priorityLabel = GroupPrefs.priorityLabel(currentGroupId, groupData);
                 applyPriorityLabelUI();
-                GroupPrefs.rememberGroup(currentGroupId, groupData.name, (groupData.location || {}).city);
-                document.getElementById('headerTitle').innerText = `⚽ ${groupData.name}`;
+                GroupPrefs.rememberGroup(currentGroupId, groupData.name, (groupData.location || {}).city, groupData.icon);
+                setHeaderGroup(groupData.name, groupData.icon);
                 if (groupData.settings) {
                     groupSettings.numTeams = groupData.settings.numTeams || 3;
                     groupSettings.playersPerTeam = groupData.settings.playersPerTeam || 6;
                 }
                 customParams = groupData.customParams || [];
             } else {
+                GroupPrefs.forgetGroup(currentGroupId);
                 alert('הקבוצה לא נמצאה! מעביר אותך לדף הבית.');
                 location.href = 'home.html';
                 return;
@@ -1103,6 +1106,17 @@ window.onload = async () => {
         if (urlParams.get('welcome')) showWelcomeBanner();
     }
 };
+
+// ========== Group header ==========
+function setHeaderGroup(name, icon) {
+    document.getElementById('headerIcon').innerHTML = GroupPrefs.iconHTML(icon);
+    document.getElementById('headerName').textContent = name || 'SOCCER MANAGER';
+}
+
+// שם הקבוצה להודעות ולקישורים (בכותרת יש גם סמל, ולכן לא קוראים אותו משם)
+function currentGroupName() {
+    return (currentGroupData && currentGroupData.name) || document.getElementById('headerName').textContent;
+}
 
 // ========== Admin mode (Google) ==========
 function setAdminMode(on) {
@@ -1283,7 +1297,10 @@ function startRealtimeListeners() {
         if (snap.exists) {
             const data = snap.data();
             currentGroupData = data;
-            if (data.name) document.getElementById('headerTitle').innerText = `⚽ ${data.name}`;
+            if (data.name) {
+                setHeaderGroup(data.name, data.icon);
+                GroupPrefs.updateRecentGroup(currentGroupId, data.name, (data.location || {}).city, data.icon);
+            }
             const newPriorityLabel = GroupPrefs.priorityLabel(currentGroupId, data);
             if (newPriorityLabel !== priorityLabel) { priorityLabel = newPriorityLabel; applyPriorityLabelUI(); render(); }
             customParams = data.customParams || [];
@@ -2323,6 +2340,7 @@ async function fillGroupDetailsForm() {
     const loc = d.location || {};
     const sch = d.schedule || {};
     document.getElementById('setGroupName').value = d.name || '';
+    GroupPrefs.renderIconPicker(document.getElementById('setIcon'), d.icon);
     document.getElementById('setCity').value = loc.city || '';
     document.getElementById('setVenue').value = loc.venue || '';
     document.getElementById('setTime').value = GroupPrefs.cleanTime(sch.time);
@@ -2360,7 +2378,7 @@ async function saveGroupSettings() {
     const teamsChanged = numTeams !== Number(groupSettings.numTeams) || playersPerTeam !== Number(groupSettings.playersPerTeam);
     const update = { settings: { numTeams, playersPerTeam, priorityLabel: newPriorityLabel } };
     const batch = db.batch();
-    let savedName = null, savedCity = null;
+    let savedName = null, savedCity = null, savedIcon = null;
 
     // פרטי הקבוצה והפרסום — לבעלים בלבד (נאכף גם בחוקי האבטחה)
     if (isGroupOwner()) {
@@ -2372,7 +2390,10 @@ async function saveGroupSettings() {
         const visEl = document.querySelector('input[name="setVis"]:checked');
         const vis = visEl && visEl.value === 'public' ? 'public' : 'private';
         if (!name) return alert('לקבוצה חייב להיות שם.');
+        const iconBox = document.getElementById('setIcon');
+        if (GroupPrefs.iconPickerBusy(iconBox)) return alert('רגע, התמונה עדיין בהכנה. נסה שוב בעוד שנייה.');
         update.name = name;
+        update.icon = savedIcon = GroupPrefs.readIconPicker(iconBox);
         update.location = { city, venue };
         update.schedule = { days, time };
         update.visibility = vis;
@@ -2384,7 +2405,7 @@ async function saveGroupSettings() {
             if (!phone) return alert('כדי לפרסם את הקבוצה צריך טלפון תקין לפניות, לדוגמה 050-1234567.');
             const u = firebase.auth().currentUser;
             const listing = GroupPrefs.buildListing({
-                ownerUid: u.uid, name, city, venue, days, time, phone,
+                ownerUid: u.uid, name, city, venue, days, time, phone, icon: savedIcon,
                 level: document.getElementById('setLevel').value,
                 description: document.getElementById('setDesc').value
             });
@@ -2407,8 +2428,8 @@ async function saveGroupSettings() {
         priorityLabel = newPriorityLabel;
         applyPriorityLabelUI();
         if (savedName) {
-            document.getElementById('headerTitle').innerText = `⚽ ${savedName}`;
-            GroupPrefs.rememberGroup(currentGroupId, savedName, savedCity);
+            setHeaderGroup(savedName, savedIcon);
+            GroupPrefs.rememberGroup(currentGroupId, savedName, savedCity, savedIcon);
         }
         if (teamsChanged) await gameRef.delete();
         closeSettingsModal();
@@ -2921,7 +2942,7 @@ async function shareImageToWhatsApp() {
 }
 
 function shareGlobalVoteLink() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${document.getElementById('headerTitle').innerText} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html','')}vote.html?group=${currentGroupId}`)}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${currentGroupName()} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html','')}vote.html?group=${currentGroupId}`)}`, '_blank');
 }
 
 // ========== History ==========
@@ -2949,7 +2970,7 @@ function shareMvpLink(gameId, event) {
     if (event) event.stopPropagation();
     const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
     const url = `${base}mvp.html?group=${currentGroupId}&game=${gameId}`;
-    const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ','');
+    const groupName = currentGroupName();
     window.open(`https://wa.me/?text=${encodeURIComponent(`🌟 *בחרו את שחקן המצטיין של הערב!* 🌟\n\nקבוצת ${groupName}\nלחצו להצביע:\n${url}`)}`, '_blank');
 }
 
@@ -3032,7 +3053,7 @@ async function publishToMarket() {
     if (!phone || phone.length < 10) return alert("חובה להזין מספר טלפון תקין.");
     const location = prompt("איפה המשחק מתקיים?");
     if (!location) return alert("חובה להזין מיקום.");
-    const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ','');
+    const groupName = currentGroupName();
     try {
         await db.collection('market_posts').doc(currentGroupId).set({ groupName, groupId: currentGroupId, location, phone, missing, timestamp: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: Date.now()+(24*60*60*1000) });
         alert("המודעה פורסמה בהצלחה! 🎉");
@@ -3188,7 +3209,7 @@ function shareRegWhatsApp() {
     const link = buildRegUrl(currentRegId);
     groupRef.collection('registrations').doc(currentRegId).get().then(doc => {
         const d = doc.data() || {};
-        const groupName = document.getElementById('headerTitle').innerText.replace('⚽ ', '');
+        const groupName = currentGroupName();
         const dateStr = d.gameDate ? ` — ${d.gameDate}` : '';
         const timeStr = d.gameTime ? ` בשעה ${d.gameTime}` : '';
         const msg = `⚽ *${groupName} — הרשמה למשחק${dateStr}${timeStr}*\n\nלחצו להירשם:\n${link}`;
