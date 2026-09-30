@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="admin-auth.js"></script>
+    <script src="admin-auth.js?v=20260930"></script>
 
     <style>
         :root {
@@ -299,27 +299,10 @@
     }
 
     async function deleteFullGroup(groupId) {
-        if (!confirm("מחיקה סופית של הקבוצה וכל השחקנים? לא ניתן לשחזר!")) return;
-
+        if (!confirm("מחיקה סופית של הקבוצה וכל הנתונים שלה (שחקנים, הרשמות, היסטוריה, דירוגים, מודעה)? לא ניתן לשחזר!")) return;
         try {
-            const batch = db.batch();
-
-            // מחיקת שחקנים בתוך תת-קולקשן
-            const players = await db.collection('groups').doc(groupId).collection('players').get();
-            players.forEach(p => batch.delete(p.ref));
-
-            // מחיקת משחק
-            batch.delete(db.collection('groups').doc(groupId).collection('game').doc('current'));
-
-            // מחיקת המודעה ב"מצא משחק", אם הקבוצה פורסמה
-            const groupSnap = await db.collection('groups').doc(groupId).get();
-            const listingId = groupSnap.exists ? groupSnap.data().listingId : null;
-            if (listingId) batch.delete(db.collection('listings').doc(listingId));
-
-            // מחיקת הקבוצה עצמה
-            batch.delete(db.collection('groups').doc(groupId));
-
-            await batch.commit();
+            // אותה מחיקה מלאה שהבעלים עושים מההגדרות — כולל תתי-האוספים, המודעה והפוסט בשוק
+            await AdminAuth.deleteGroup(db, groupId);
             alert("הקבוצה נמחקה.");
             loadGroups();
             loadListingsAdmin();
