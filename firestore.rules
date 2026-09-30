@@ -211,7 +211,9 @@ service cloud.firestore {
                     || (isGroupAdmin(gid) && adminUpdateOk())
                     || legacyClaimOk(gid)
                     || inviteJoinOk(gid);
-      allow delete: if isSuperAdmin();
+      // מחיקה: מנהל-העל, או הבעלים של הקבוצה (תתי-האוספים נמחקים לפני כן מהאפליקציה)
+      allow delete: if isSuperAdmin()
+                    || (isRealUser() && resource.data.get('ownerUid', '') == request.auth.uid);
 
       // הסיסמה הישנה אחרי ההעברה — אף משתמש לא קורא אותה
       match /private/{docId} {
