@@ -81,7 +81,8 @@
             time: cleanTime(f.time),
             level: LEVELS[f.level] ? f.level : '',
             description: String(f.description || '').trim().slice(0, 300),
-            phone: f.phone
+            phone: f.phone,
+            icon: cleanIcon(f.icon)
         };
     }
 
@@ -123,13 +124,189 @@
         } catch (e) { return []; }
     }
 
-    function rememberGroup(id, name, city) {
+    function saveRecent(list) {
+        try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 12))); }
+        catch (e) { /* מצב גלישה פרטית, או שהאחסון מלא — לא קריטי */ }
+    }
+
+    function recentEntry(id, name, city, icon, t) {
+        const e = { id, name: String(name || '').slice(0, 60), city: String(city || '').slice(0, 40), t: t || Date.now() };
+        const ic = cleanIcon(icon);
+        if (ic !== DEFAULT_ICON) e.icon = ic;
+        return e;
+    }
+
+    function rememberGroup(id, name, city, icon) {
         if (!id) return;
-        try {
-            const list = getRecentGroups().filter(g => g.id !== id);
-            list.unshift({ id, name: String(name || '').slice(0, 60), city: String(city || '').slice(0, 40), t: Date.now() });
-            localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 12)));
-        } catch (e) { /* מצב גלישה פרטית וכו' — לא קריטי */ }
+        const list = getRecentGroups().filter(g => g.id !== id);
+        list.unshift(recentEntry(id, name, city, icon));
+        saveRecent(list);
+    }
+
+    // עדכון שם/עיר/סמל של קבוצה שכבר ברשימה, בלי לשנות את הסדר
+    function updateRecentGroup(id, name, city, icon) {
+        const list = getRecentGroups();
+        const i = list.findIndex(g => g.id === id);
+        if (i < 0) return false;
+        const next = recentEntry(id, name || list[i].name, city, icon, list[i].t);
+        if (JSON.stringify(next) === JSON.stringify(list[i])) return false;
+        list[i] = next;
+        saveRecent(list);
+        return true;
+    }
+
+    // קבוצה שנמחקה יוצאת מהרשימה
+    function forgetGroup(id) {
+        const list = getRecentGroups();
+        const next = list.filter(g => g.id !== id);
+        if (next.length !== list.length) saveRecent(next);
+    }
+
+    // ===== סמל הקבוצה: אימוג'י מהרשימה, או תמונה קטנה שהמנהל העלה =====
+    const DEFAULT_ICON = '⚽';
+    const GROUP_ICONS = ['⚽', '🏀', '🥅', '🏆', '⭐', '🔥', '⚡', '👑', '🚀', '💪', '🎯', '🦁', '🐯', '🦅', '🐺', '🦈', '🐉', '🐂', '🐻', '🐝'];
+    const IMG_ICON_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/]+=*$/;
+    const ICON_SIZE = 128;           // פיקסלים — מספיק לתצוגה חדה, וקטן מספיק לשמירה במסמך הקבוצה
+    const ICON_MAX_CHARS = 30000;    // התמונה נשמרת גם במודעה ב"מצא משחק". חוקי האבטחה מגבילים ל-40,000
+
+    function isImageIcon(icon) {
+        return typeof icon === 'string' && icon.length <= 40000 && IMG_ICON_RE.test(icon);
+    }
+
+    function cleanIcon(icon) {
+        if (isImageIcon(icon)) return icon;
+        return GROUP_ICONS.includes(icon) ? icon : DEFAULT_ICON;
+    }
+
+    // fill=true: התמונה ממלאת את הריבוע של הכרטיס. אחרת: בגודל השורה, ליד שם הקבוצה
+    function iconHTML(icon, fill) {
+        const ic = cleanIcon(icon);
+        if (!isImageIcon(ic)) return `<span class="gp-icon-emoji">${ic}</span>`;
+        const style = fill
+            ? 'width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;'
+            : 'width:1.35em;height:1.35em;object-fit:cover;border-radius:24%;display:inline-block;vertical-align:-0.3em;';
+        return `<img class="gp-icon-img" src="${ic}" alt="" style="${style}">`;
+    }
+
+    // תמונה מהמחשב/הטלפון → ריבוע קטן מהמרכז, JPEG. נכשל (ולא נתקע) אם הדפדפן לא יודע לקרוא את הקובץ
+    function resizeIcon(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) return reject(new Error('image-unreadable'));
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image-unreadable')); };
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const w = img.naturalWidth, h = img.naturalHeight, side = Math.min(w, h);
+                if (!side) return reject(new Error('image-unreadable'));
+                const encode = (size, quality) => {
+                    const c = document.createElement('canvas');
+                    c.width = c.height = size;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#1E293B';          // רקע לתמונות שקופות (לוגו PNG)
+                    ctx.fillRect(0, 0, size, size);
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+                    return c.toDataURL('image/jpeg', quality);
+                };
+                // תמונה עמוסה בפרטים יוצאת גדולה — מורידים איכות ואז גודל, עד שהיא נכנסת במגבלה
+                let out = encode(ICON_SIZE, 0.85);
+                if (out.length > ICON_MAX_CHARS) out = encode(ICON_SIZE, 0.7);
+                if (out.length > ICON_MAX_CHARS) out = encode(96, 0.7);
+                if (out.length > ICON_MAX_CHARS) out = encode(64, 0.6);
+                if (!isImageIcon(out)) return reject(new Error('image-unreadable'));
+                resolve(out);
+            };
+            img.src = url;
+        });
+    }
+
+    function injectIconPickerCSS() {
+        if (document.getElementById('gp-icon-css')) return;
+        const st = document.createElement('style');
+        st.id = 'gp-icon-css';
+        st.textContent = `
+            .gp-icons { display: flex; flex-wrap: wrap; gap: 6px; }
+            .gp-icon-opt { width: 38px; height: 38px; padding: 0; border-radius: 10px; display: grid; place-items: center; overflow: hidden;
+                font-size: 1.2rem; line-height: 1; cursor: pointer; font-family: inherit; color: var(--muted, var(--text-muted, #94A3B8));
+                border: 1px solid var(--border, var(--border-color, #334155)); background: var(--bg, var(--bg-color, #0F172A)); }
+            .gp-icon-opt[aria-pressed="true"] { border-color: var(--primary, var(--primary-color, #10B981)); background: rgba(16,185,129,0.15);
+                box-shadow: 0 0 0 2px rgba(16,185,129,0.25); }
+            .gp-icon-opt:disabled { opacity: 0.5; cursor: default; }
+            .gp-icon-upload { font-size: 1.05rem; }
+            .gp-icon-upload img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .gp-icon-msg { font-size: 0.8rem; color: var(--muted, var(--text-muted, #94A3B8)); margin-top: 6px; min-height: 1em; }
+            .gp-icon-msg.err { color: #F87171; }`;
+        document.head.appendChild(st);
+    }
+
+    // בוחר סמל: אימוג'ים + אריח "העלה תמונה". הערך הנבחר נשמר על האלמנט עצמו
+    function renderIconPicker(container, selected) {
+        injectIconPickerCSS();
+        const sel = cleanIcon(selected);
+        container._gpIcon = sel;
+        container._gpBusy = false;
+        container._gpUpload = isImageIcon(sel) ? sel : '';
+        container.innerHTML = `<div class="gp-icons" role="group" aria-label="סמל הקבוצה">${
+            GROUP_ICONS.map(ic => `<button type="button" class="gp-icon-opt" data-icon="${ic}" aria-pressed="${ic === sel}">${ic}</button>`).join('')
+        }<button type="button" class="gp-icon-opt gp-icon-upload" data-upload="1" aria-pressed="${isImageIcon(sel)}" title="העלאת תמונה" aria-label="העלאת תמונה"></button></div>
+        <input type="file" accept="image/*" hidden>
+        <div class="gp-icon-msg" aria-live="polite"></div>`;
+        const uploadBtn = container.querySelector('.gp-icon-upload');
+        const fileInput = container.querySelector('input[type="file"]');
+        const msg = container.querySelector('.gp-icon-msg');
+        const hint = () => {
+            msg.classList.remove('err');
+            if (!container._gpUpload) msg.textContent = 'או העלה תמונה (לוגו של הקבוצה)';
+            else msg.textContent = isImageIcon(container._gpIcon) ? 'לחץ על התמונה כדי להחליף אותה' : 'לחץ על התמונה כדי לבחור בה';
+        };
+        const paintUpload = () => {
+            uploadBtn.innerHTML = container._gpUpload ? `<img src="${container._gpUpload}" alt="">` : '📷';
+            hint();
+        };
+        const select = value => {
+            container._gpIcon = value;
+            container.querySelectorAll('.gp-icon-opt').forEach(b => {
+                const on = b.dataset.upload ? isImageIcon(value) : b.dataset.icon === value;
+                b.setAttribute('aria-pressed', String(on));
+            });
+            hint();
+        };
+        paintUpload();
+        container.querySelectorAll('.gp-icon-opt[data-icon]').forEach(b => b.addEventListener('click', () => select(b.dataset.icon)));
+        uploadBtn.addEventListener('click', () => {
+            // תמונה שכבר הועלתה ולא נבחרה — לחיצה בוחרת בה. אחרת פותחים בחירת קובץ
+            if (container._gpUpload && !isImageIcon(container._gpIcon)) return select(container._gpUpload);
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files && fileInput.files[0];
+            fileInput.value = '';
+            if (!file) return;
+            container._gpBusy = true;
+            uploadBtn.textContent = '⏳';
+            msg.classList.remove('err');
+            msg.textContent = 'מכין את התמונה…';
+            try {
+                container._gpUpload = await resizeIcon(file);
+                paintUpload();
+                select(container._gpUpload);
+            } catch (e) {
+                paintUpload();
+                msg.classList.add('err');
+                msg.textContent = 'לא הצלחנו לקרוא את התמונה. נסה תמונה אחרת (JPG או PNG).';
+            } finally {
+                container._gpBusy = false;
+            }
+        });
+    }
+
+    function readIconPicker(container) {
+        return cleanIcon(container && container._gpIcon);
+    }
+
+    function iconPickerBusy(container) {
+        return !!(container && container._gpBusy);
     }
 
     window.GroupPrefs = {
@@ -137,6 +314,8 @@
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
         cleanDays, cleanTime, formatSchedule, normalizePhone, phoneToIntl, buildListing,
         renderDayChips, readDayChips, fillCityList, levelOptionsHTML,
-        getRecentGroups, rememberGroup
+        getRecentGroups, rememberGroup, updateRecentGroup, forgetGroup,
+        DEFAULT_ICON, GROUP_ICONS, cleanIcon, isImageIcon, iconHTML, resizeIcon,
+        renderIconPicker, readIconPicker, iconPickerBusy
     };
 })();
