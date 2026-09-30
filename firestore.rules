@@ -45,7 +45,8 @@ service cloud.firestore {
         && (!('visibility' in d) || d.visibility in ['public', 'private'])
         && (!('location' in d) || (d.location is map && d.location.size() <= 4))
         && (!('schedule' in d) || (d.schedule is map && d.schedule.size() <= 4))
-        && (!('listingId' in d) || (d.listingId is string && d.listingId.size() <= 40));
+        && (!('listingId' in d) || (d.listingId is string && d.listingId.size() <= 40))
+        && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40000));
     }
 
     // ולידציה בסיסית לכרטיס שחקן — עוצרת זבל ומסמכי ענק
@@ -317,7 +318,7 @@ service cloud.firestore {
     // המודעה לא כוללת את מזהה הקבוצה, כדי שהקישור לקבוצה יישאר אצל המארגן
     function listingOk() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['ownerUid', 'name', 'city', 'venue', 'days', 'time', 'level', 'description', 'phone', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['ownerUid', 'name', 'city', 'venue', 'days', 'time', 'level', 'description', 'phone', 'icon', 'createdAt', 'updatedAt'])
         && d.ownerUid == request.auth.uid
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.city is string && d.city.size() > 0 && d.city.size() <= 40
@@ -326,6 +327,7 @@ service cloud.firestore {
         && (!('time' in d) || (d.time is string && d.time.size() <= 5))
         && (!('level' in d) || (d.level is string && d.level.size() <= 20))
         && (!('description' in d) || (d.description is string && d.description.size() <= 300))
+        && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40000))
         && d.phone is string && d.phone.matches('^0[0-9]{8,9}$');
     }
 
