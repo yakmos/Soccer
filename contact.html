@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>יצירת קשר — Soccer Manager</title>
+<meta name="description" content="שאלה, בקשה או משהו שלא עובד? כתבו לצוות של Soccer Manager.">
+<meta property="og:title" content="יצירת קשר — Soccer Manager">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="he_IL">
+<meta property="og:site_name" content="Soccer Manager">
+<meta property="og:image" content="https://yakmos.github.io/Soccer/og-image.jpg">
+<meta name="theme-color" content="#0F172A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;800;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+    :root {
+        --bg: #0F172A; --surface: #1E293B; --surface-2: #273449; --border: #334155;
+        --text: #F8FAFC; --body: #CBD5E1; --muted: #94A3B8;
+        --primary: #10B981; --primary-ink: #03140D; --primary-soft: rgba(16,185,129,0.12); --primary-line: rgba(16,185,129,0.4);
+        --danger: #F87171;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Heebo', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    a { color: var(--primary); text-underline-offset: 3px; }
+    a:hover { color: #34D399; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+    .nav { position: sticky; top: 0; z-index: 10; background: rgba(15,23,42,0.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(51,65,85,0.7); }
+    .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 12px; max-width: 760px; }
+    .brand { color: var(--text); text-decoration: none; font-weight: 900; font-size: 1.05rem; white-space: nowrap; }
+    .brand:hover { color: var(--text); }
+    .nav-link { color: var(--muted); text-decoration: none; font-weight: 700; font-size: .92rem; padding: 6px 10px; border-radius: 10px; white-space: nowrap; }
+    .nav-link:hover { color: var(--text); background: var(--surface); }
+    main { padding: 36px 0 56px; }
+    h1 { font-size: clamp(1.8rem, 5vw, 2.3rem); font-weight: 900; line-height: 1.2; margin: 0 0 6px; }
+    .lead { color: var(--body); font-size: 1.05rem; margin: 0 0 22px; }
+    .card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; }
+    .field { display: block; margin-bottom: 14px; }
+    .field > span { display: block; font-weight: 700; font-size: .9rem; margin-bottom: 6px; color: var(--body); }
+    .field input, .field select, .field textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; color: var(--text); font: inherit; font-size: 1rem; }
+    .field select option { background: var(--bg); color: var(--text); }
+    .field textarea { resize: vertical; min-height: 140px; line-height: 1.55; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--primary-soft); }
+    .field input::placeholder, .field textarea::placeholder { color: #64748B; }
+    .count { display: block; text-align: left; color: var(--muted); font-size: .8rem; margin-top: 4px; direction: ltr; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .topic-hint { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.28); color: #BFDBFE; border-radius: 12px; padding: 10px 14px; font-size: .9rem; margin: -4px 0 14px; }
+    .group-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--primary-soft); border: 1px solid var(--primary-line); border-radius: 12px; padding: 8px 8px 8px 14px; margin-bottom: 14px; font-size: .92rem; color: var(--body); }
+    .group-note b { color: var(--text); }
+    .group-note button { flex: none; width: 30px; height: 30px; border-radius: 8px; border: none; background: rgba(255,255,255,0.06); color: var(--muted); cursor: pointer; font-size: .9rem; }
+    .hp { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.35); color: #FECACA; border-radius: 12px; padding: 10px 14px; font-size: .92rem; margin: 0 0 14px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 1px solid transparent; border-radius: 12px; padding: 14px 20px; font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer; background: var(--primary); color: var(--primary-ink); }
+    .btn:hover { background: #34D399; }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover { background: var(--surface-2); }
+    .fine { color: var(--muted); font-size: .84rem; margin: 12px 0 0; }
+    .done { text-align: center; padding: 30px 22px; }
+    .done-ic { font-size: 2.4rem; line-height: 1; margin-bottom: 10px; }
+    .done h2 { font-size: 1.35rem; font-weight: 900; margin: 0 0 6px; }
+    .done p { color: var(--body); margin: 0 0 18px; }
+    .done .home-link { display: inline-block; margin-top: 14px; font-weight: 700; }
+    .aside { color: var(--muted); font-size: .9rem; margin: 18px 4px 0; }
+    footer { border-top: 1px solid rgba(51,65,85,0.6); padding: 22px 0 36px; color: var(--muted); font-size: .88rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; max-width: 760px; }
+    footer nav { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover, footer a[aria-current="page"] { color: var(--text); }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; gap: 0; } .card { padding: 18px 16px; } main { padding-top: 26px; } }
+</style>
+</head>
+<body>
+
+<header class="nav">
+    <div class="wrap">
+        <a class="brand" href="home.html">⚽ Soccer Manager</a>
+        <a class="nav-link" href="home.html">לדף הבית</a>
+    </div>
+</header>
+
+<main class="wrap">
+    <h1>יצירת קשר</h1>
+    <p class="lead">שאלה, בקשה או משהו שלא עובד? כתבו לנו כאן ונחזור אליכם.</p>
+
+    <form class="card" id="contactForm" novalidate>
+        <div class="group-note" id="groupNote" hidden>
+            <span>בנוגע לקבוצה: <b id="groupName"></b></span>
+            <button type="button" id="groupClear" aria-label="הסירו את הקבוצה מהפנייה" title="הסירו">✕</button>
+        </div>
+        <label class="field"><span>נושא</span>
+            <select id="topic">
+                <option value="question">שאלה או עזרה בשימוש</option>
+                <option value="privacy">פרטיות: עיון, תיקון או מחיקה של מידע</option>
+                <option value="abuse">דיווח על תוכן פוגעני או שימוש לרעה</option>
+                <option value="bug">משהו לא עובד</option>
+                <option value="idea">רעיון לשיפור</option>
+                <option value="other">אחר</option>
+            </select>
+        </label>
+        <p class="topic-hint" id="topicHint" hidden></p>
+        <label class="field"><span>ההודעה *</span>
+            <textarea id="message" rows="6" maxlength="1000" required placeholder="כתבו כאן. אם הפנייה על קבוצה מסוימת, ציינו את השם שלה או הדביקו את הקישור אליה."></textarea>
+            <small class="count" id="count">0/1000</small>
+        </label>
+        <div class="row">
+            <label class="field"><span>השם שלכם</span><input id="name" maxlength="60" autocomplete="name" placeholder="לא חובה"></label>
+            <label class="field"><span>איך לחזור אליכם</span><input id="replyTo" maxlength="100" autocomplete="email" placeholder="אימייל או טלפון (לא חובה)"></label>
+        </div>
+        <label class="hp" aria-hidden="true">אל תמלאו את השדה הזה<input id="website" tabindex="-1" autocomplete="off"></label>
+        <p class="error" id="error" role="alert" hidden></p>
+        <button class="btn" id="submitBtn" type="submit">שליחה</button>
+        <p class="fine">בלי פרטים לחזרה לא נוכל לענות, אבל נקרא כל פנייה. הפרטים משמשים רק לטיפול בפנייה, כמו שמפורט ב<a href="privacy.html">מדיניות הפרטיות</a>.</p>
+    </form>
+
+    <div class="card done" id="done" hidden>
+        <div class="done-ic" aria-hidden="true">✅</div>
+        <h2>הפנייה נשלחה, תודה!</h2>
+        <p id="doneText"></p>
+        <button class="btn btn-ghost" type="button" id="againBtn">שליחת פנייה נוספת</button>
+        <a class="home-link" href="home.html">לדף הבית</a>
+    </div>
+
+    <p class="aside">מנהלים קבוצה? רוב ההגדרות, כולל עריכה ומחיקה של שחקנים, נמצאות בדף הקבוצה במצב ניהול.</p>
+</main>
+
+<footer>
+    <div class="wrap">
+        <span>⚽ Soccer Manager</span>
+        <nav aria-label="קישורים">
+            <a href="home.html">דף הבית</a>
+            <a href="privacy.html">מדיניות פרטיות</a>
+            <a href="terms.html">תנאי שימוש</a>
+            <a href="contact.html" aria-current="page">יצירת קשר</a>
+        </nav>
+    </div>
+</footer>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyABePxlQnnjbmFWIlzR91kuYZQkpVFuELY",
+        authDomain: "soccer-b30a6.firebaseapp.com",
+        projectId: "soccer-b30a6",
+        storageBucket: "soccer-b30a6.firebasestorage.app",
+        messagingSenderId: "295483280442",
+        appId: "1:295483280442:web:0633390394600eb6357903",
+        measurementId: "G-425XRT1EVL"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const $ = id => document.getElementById(id);
+
+    const TOPICS = ['question', 'privacy', 'abuse', 'bug', 'idea', 'other'];
+    const HINTS = {
+        privacy: 'תיקון או מחיקה של פרטי שחקן: הכי מהיר לבקש ממנהל הקבוצה. אם זה לא עוזר, כתבו כאן את שם הקבוצה, שם השחקן ומה לתקן או למחוק.',
+        abuse: 'כתבו איפה ראיתם את התוכן (שם הקבוצה או המודעה) ומה הבעיה.',
+        bug: 'כתבו באיזה דף זה קרה, מה עשיתם ומה ראיתם. גם סוג הטלפון או הדפדפן עוזר.'
+    };
+    const MIN_GAP_MS = 60 * 1000;          // פנייה אחת בדקה מאותו דפדפן
+    const LAST_KEY = 'sm_contact_last';
+
+    const params = new URLSearchParams(location.search);
+    const from = /^[a-z]{1,20}$/.test(params.get('from') || '') ? params.get('from') : '';
+    let groupId = /^[A-Za-z0-9]{1,40}$/.test(params.get('group') || '') ? params.get('group') : '';
+
+    // מצב ההתחברות נטען מהדפדפן פעם אחת. מי שלא מחובר מקבל מזהה אנונימי רק כשהוא שולח
+    const authReady = new Promise(resolve => { const off = auth.onAuthStateChanged(u => { off(); resolve(u); }); });
+
+    function showHint() {
+        const hint = HINTS[$('topic').value];
+        $('topicHint').textContent = hint || '';
+        $('topicHint').hidden = !hint;
+    }
+
+    function updateCount() {
+        $('count').textContent = `${$('message').value.length}/1000`;
+    }
+
+    function showError(msg) { $('error').textContent = msg; $('error').hidden = false; }
+    function hideError() { $('error').hidden = true; }
+
+    async function loadGroupName() {
+        try {
+            const snap = await db.collection('groups').doc(groupId).get();
+            if (!snap.exists) { groupId = ''; return; }
+            $('groupName').textContent = (snap.data() || {}).name || 'קבוצה';
+            $('groupNote').hidden = false;
+        } catch (e) { console.warn('group name', e); }
+    }
+
+    function withTimeout(promise, ms) {
+        return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject({ code: 'timeout' }), ms))]);
+    }
+
+    async function submitForm(ev) {
+        ev.preventDefault();
+        hideError();
+        const message = $('message').value.trim();
+        if (message.length < 5) { showError('כתבו כמה מילים על הפנייה.'); $('message').focus(); return; }
+        const replyTo = $('replyTo').value.trim().slice(0, 100);
+        if ($('website').value) { showDone(!!replyTo); return; }   // בוט: השדה הנסתר מולא
+        let last = 0;
+        try { last = Number(localStorage.getItem(LAST_KEY)) || 0; } catch (e) {}
+        if (Date.now() - last < MIN_GAP_MS) { showError('שלחתם פנייה לפני פחות מדקה. נסו שוב בעוד רגע.'); return; }
+
+        const btn = $('submitBtn');
+        btn.disabled = true;
+        btn.textContent = 'שולח…';
+        try {
+            let user = await authReady;
+            if (!user) user = auth.currentUser || (await auth.signInAnonymously()).user;
+            const doc = {
+                topic: TOPICS.includes($('topic').value) ? $('topic').value : 'other',
+                message: message.slice(0, 1000),
+                uid: user.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            const name = $('name').value.trim().slice(0, 60);
+            if (name) doc.name = name;
+            if (replyTo) doc.replyTo = replyTo;
+            if (groupId) doc.groupId = groupId;
+            if (from) doc.page = from;
+            await withTimeout(db.collection('contact_messages').add(doc), 20000);
+            try { localStorage.setItem(LAST_KEY, String(Date.now())); } catch (e) {}
+            showDone(!!replyTo);
+        } catch (e) {
+            console.error('contact', e);
+            if (e && e.code === 'timeout') {
+                // הכתיבה עוד עשויה להגיע לשרת כשהחיבור יחזור, ולכן לא שולחים שוב מיד
+                try { localStorage.setItem(LAST_KEY, String(Date.now())); } catch (err) {}
+                showError('החיבור איטי, וייתכן שהפנייה תישלח כשהוא יחזור. אם לא קיבלתם אישור, נסו שוב בעוד דקה.');
+            } else {
+                showError('השליחה נכשלה. נסו שוב בעוד רגע.');
+            }
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'שליחה';
+        }
+    }
+
+    function showDone(canReply) {
+        $('doneText').textContent = canReply
+            ? 'נחזור אליכם בהקדם.'
+            : 'לא השארתם פרטים לחזרה, אז לא נוכל לענות, אבל נקרא את הפנייה.';
+        $('contactForm').hidden = true;
+        $('done').hidden = false;
+        window.scrollTo(0, 0);
+    }
+
+    function again() {
+        $('contactForm').reset();
+        showHint();
+        updateCount();
+        hideError();
+        $('done').hidden = true;
+        $('contactForm').hidden = false;
+        $('message').focus();
+    }
+
+    $('contactForm').addEventListener('submit', submitForm);
+    $('topic').addEventListener('change', showHint);
+    $('message').addEventListener('input', updateCount);
+    $('againBtn').addEventListener('click', again);
+    $('groupClear').addEventListener('click', () => { groupId = ''; $('groupNote').hidden = true; });
+
+    if (TOPICS.includes(params.get('topic'))) $('topic').value = params.get('topic');
+    showHint();
+    if (groupId) loadGroupName();
+</script>
+</body>
+</html>
