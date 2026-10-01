@@ -44,8 +44,9 @@
         return !!groupData && !groupData.ownerUid && !groupData.admins;
     }
 
+    // השם נשמר במסמך הקבוצה, שכל מי שיש לו את הקישור רואה — לכן לא נופלים לכתובת האימייל
     function displayName(u) {
-        return String((u && (u.displayName || u.email)) || 'מנהל').slice(0, 40);
+        return String((u && u.displayName) || 'מנהל').trim().slice(0, 40) || 'מנהל';
     }
 
     function randomHex(bytes) {
@@ -303,6 +304,9 @@
             const l = await db.collection('listings').doc(data.listingId).get().catch(() => null);
             if (l && l.exists) listingRef = l.ref;
         }
+
+        // מודעת "מחפשים שחקן" של הקבוצה (מזהה אקראי). אם מנהל אחר פרסם אותה, היא תרד מהלוח לבד אחרי 24 שעות
+        if (data.marketPostId) await db.collection('market_posts').doc(data.marketPostId).delete().catch(() => null);
 
         const total = refs.length + 1;
         const report = n => { if (onProgress) { try { onProgress(n, total); } catch (e) { /* תצוגה בלבד */ } } };
