@@ -1,5 +1,6 @@
-// promo.js — שורת "פתחו קבוצה משלכם" בתחתית הדפים שהשחקנים רואים (הרשמה, דירוגים, MVP, דף הקבוצה).
-// כל שחקן שנכנס מהוואטסאפ רואה אותה; מי שמארגן משחק משלו יכול לפתוח קבוצה בחינם.
+// promo.js — תחתית הדפים שהשחקנים רואים (הרשמה, דירוגים, MVP, דף הקבוצה):
+// 1. שורת "פתחו קבוצה משלכם": כל שחקן שנכנס מהוואטסאפ רואה אותה; מי שמארגן משחק משלו יכול לפתוח קבוצה בחינם.
+// 2. קישורים למדיניות הפרטיות, לתנאי השימוש ולטופס יצירת הקשר (מוצגים גם למנהלים).
 // <script src="promo.js" data-from="registration" defer></script>  —  data-from מסמן מאיזה דף הגיעו
 (function () {
     'use strict';
@@ -23,7 +24,12 @@
             #smPromo .sm-tx b { display: block; color: #F8FAFC; font-size: .98rem; font-weight: 800; }
             #smPromo .sm-nw { white-space: nowrap; }
             #smPromo .sm-go { flex: none; background: #10B981; color: #052E22; font-weight: 800; font-size: .85rem;
-                padding: 8px 12px; border-radius: 10px; white-space: nowrap; }`;
+                padding: 8px 12px; border-radius: 10px; white-space: nowrap; }
+            .sm-legal { max-width: 540px; margin: 12px auto 28px; padding: 0 16px; text-align: center; direction: rtl;
+                font-family: 'Heebo', system-ui, sans-serif; font-size: .8rem; line-height: 1.8; color: #64748B; }
+            .sm-legal a { color: #94A3B8; text-decoration: none; }
+            .sm-legal a:hover, .sm-legal a:focus-visible { color: #F8FAFC; text-decoration: underline; }
+            .sm-legal span { margin: 0 8px; }`;
         document.head.appendChild(style);
 
         const wrap = document.createElement('div');
@@ -34,6 +40,15 @@
             <span class="sm-go">פתחו קבוצה</span>
         </a>`;
         document.body.appendChild(wrap);
+
+        // בפנייה מדף של קבוצה, מזהה הקבוצה מצורף לטופס (למשל לבקשה למחוק פרטי שחקן)
+        const gid = new URLSearchParams(location.search).get('group');
+        const groupParam = gid && /^[A-Za-z0-9]{1,40}$/.test(gid) ? '&group=' + gid : '';
+        const legal = document.createElement('nav');
+        legal.className = 'sm-legal';
+        legal.setAttribute('aria-label', 'מידע על האתר');
+        legal.innerHTML = `<a href="privacy.html">מדיניות פרטיות</a><span aria-hidden="true">·</span><a href="terms.html">תנאי שימוש</a><span aria-hidden="true">·</span><a href="contact.html?from=${encodeURIComponent(from)}${groupParam}">יצירת קשר</a>`;
+        document.body.appendChild(legal);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
