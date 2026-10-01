@@ -308,7 +308,8 @@
             console.error(error);
             if (error && error.code === 'VOTE_TOKEN_INVALID') {
                 showError("הקישור הזה לא מוכר במערכת. 🤔\nבקש קישור אישי חדש מהמנהל.");
-            } else if (error && error.code === 'VOTE_TOKEN_CLAIMED') {
+            } else if (error && (error.code === 'VOTE_TOKEN_CLAIMED' || error.code === 'permission-denied')) {
+                // קישור שכבר שויך למכשיר אחר: חוקי האבטחה לא מאפשרים אפילו לקרוא אותו
                 showError("הקישור הזה כבר שויך למכשיר אחר. 🔒\nכל קישור הצבעה הוא אישי וניתן לשימוש ממכשיר אחד בלבד.\nאם החלפת טלפון או ניקית נתונים — בקש מהמנהל לשחרר את הקישור.");
             } else {
                 showError("שגיאה בהתחברות לשרת: " + (error && error.message ? error.message : error));
@@ -341,9 +342,15 @@
         el.innerText = msg; el.style.display = 'block';
     }
 
+    // ציונים ומונים נכתבים גם על ידי מדרגים אחרים — מוצגים רק כמספרים
+    const SHOWN_NUMBERS = ['votesCount', 'attScore', 'defScore', 'gkScore', 'atk', 'def', 'sta', 'pac', 'pas', 'gkDiv', 'gkHan', 'gkKic', 'gkPos', 'gkRef'];
     async function fetchPlayers() {
         const snap = await playersRef.orderBy("name").get();
-        playersData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        playersData = snap.docs.map(doc => {
+            const p = { id: doc.id, ...doc.data() };
+            SHOWN_NUMBERS.forEach(k => { if (p[k] != null && typeof p[k] !== 'number') p[k] = Number(p[k]) || 0; });
+            return p;
+        });
     }
 
     async function fetchMyVotes() {
@@ -456,7 +463,7 @@
         const lockedParams = p.lockedParams || {};
         const lockedCount = Object.keys(lockedParams).length;
 
-        logEvt('select_player_to_vote', { player_name: p.name, group_name: groupName, is_edit: hasVote(p) });
+        logEvt('select_player_to_vote', { is_edit: hasVote(p) });   // בלי שמות: לא שולחים מידע אישי לסטטיסטיקה
 
         document.getElementById('displayPlayerName').innerText = p.name;
         const borderColor = currentPlayerIsGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
@@ -685,7 +692,7 @@
                 savedVoteData = { ...newVotes, customStats: newCustomVotes, isGk: false };
             }
 
-            logEvt('submit_player_vote', { player_name: p.name, group_name: groupName, is_gk: currentPlayerIsGk, is_edit: wasEditing });
+            logEvt('submit_player_vote', { is_gk: currentPlayerIsGk, is_edit: wasEditing });
 
             // עדכון מקומי — בלי לקרוא שוב את כל הסגל מה-DB
             myVotes[currentPlayerId] = savedVoteData;
