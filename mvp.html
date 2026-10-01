@@ -234,6 +234,17 @@ let mvpVotes = {};
 let selectedPlayerId = null;
 let hasVoted = false;
 let myVotedPlayerId = null;
+let reVoting = false;   // "שנה את הצבעתי": הקול הקודם נשאר שמור עד שההצבעה החדשה נקלטת
+
+// הנתונים נכתבים גם על ידי מצביעים, ולכן מוצגים רק אחרי escape / המרה למספר
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function cleanVotes(v) {
+    const out = {};
+    if (v && typeof v === 'object') Object.keys(v).forEach(k => { const n = Number(v[k]); if (Number.isFinite(n) && n > 0) out[k] = Math.floor(n); });
+    return out;
+}
 
 // LocalStorage key — unique per game so past votes don't bleed
 function getVoteKey() { return `mvp_vote_${groupId}_${gameId}`; }
@@ -259,12 +270,12 @@ window.onload = async () => {
         gameRef.onSnapshot(snap => {
             if (!snap.exists) return showError("המשחק לא נמצא.");
             gameData = { id: snap.id, ...snap.data() };
-            mvpVotes = gameData.mvpVotes || {};
+            mvpVotes = cleanVotes(gameData.mvpVotes);
             allPlayers = (gameData.teams || []).flatMap(t => t.players || []);
 
             // Check localStorage for prior vote
             const savedVote = localStorage.getItem(getVoteKey());
-            if (savedVote) { hasVoted = true; myVotedPlayerId = savedVote; }
+            if (savedVote && !reVoting) { hasVoted = true; myVotedPlayerId = savedVote; }
 
             renderPage();
         });
@@ -337,14 +348,14 @@ function renderGrid(isClosed) {
         const isSelected = selectedPlayerId === p.id;
         const voteCount = mvpVotes[p.id] || 0;
         const avatarHTML = p.imgUrl
-            ? `<img src="${p.imgUrl}" class="player-avatar">`
+            ? `<img src="${esc(p.imgUrl)}" class="player-avatar">`
             : `<div class="player-avatar">👤</div>`;
 
         return `<div class="player-option ${isMyVote ? 'voted-for-me' : ''} ${isSelected && !hasVoted ? 'selected' : ''}"
                      onclick="selectPlayer('${p.id}')">
             <div class="selected-check">✓</div>
             ${avatarHTML}
-            <div class="player-name">${p.name}</div>
+            <div class="player-name">${esc(p.name)}</div>
             ${voteCount > 0 ? `<div class="player-votes-mini">🗳️ ${voteCount}</div>` : ''}
         </div>`;
     }).join('');
@@ -385,7 +396,7 @@ function renderResults(totalVotes) {
         const isLeader = i === 0;
         return `<div class="result-row">
             <div class="result-header">
-                <div class="result-name ${isLeader ? 'leader' : ''}">${isLeader ? '🌟 ' : ''}${p.name}</div>
+                <div class="result-name ${isLeader ? 'leader' : ''}">${isLeader ? '🌟 ' : ''}${esc(p.name)}</div>
                 <div class="result-stats">${p.votes} קולות • ${pct}%</div>
             </div>
             <div class="result-bar-bg">
@@ -407,7 +418,7 @@ function enableReVote() {
     hasVoted = false;
     myVotedPlayerId = null;
     selectedPlayerId = null;
-    localStorage.removeItem(getVoteKey());
+    reVoting = true;   // הקול הקודם נשאר ב-localStorage, כדי שההצבעה החדשה תוריד אותו ולא תיספר פעמיים
     document.getElementById('votedBanner').classList.remove('show');
     renderGrid(false);
     // Decrement the old vote in Firebase
@@ -426,7 +437,7 @@ async function submitVote() {
             const doc = await tx.get(gameRef);
             if (!doc.exists) throw new Error('Game not found');
             const data = doc.data();
-            const currentVotes = data.mvpVotes || {};
+            const currentVotes = cleanVotes(data.mvpVotes);
 
             // If user is changing vote — decrement old
             const oldVote = localStorage.getItem(getVoteKey());
@@ -453,6 +464,7 @@ async function submitVote() {
 
         // Save locally
         localStorage.setItem(getVoteKey(), selectedPlayerId);
+        reVoting = false;
         hasVoted = true;
         myVotedPlayerId = selectedPlayerId;
 
