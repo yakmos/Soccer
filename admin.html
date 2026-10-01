@@ -57,6 +57,28 @@
         .actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .logout-link { color: var(--danger); cursor: pointer; font-size: 0.9rem; display: block; text-align: center; margin-top: 20px; }
         #migrateStatus { font-size: 0.85rem; color: var(--muted); margin-top: 8px; min-height: 18px; }
+        .badge-topic { background: rgba(96,165,250,0.12); color: #93C5FD; border: 1px solid rgba(96,165,250,0.35); margin-right: 0; margin-left: 6px; }
+        .badge-old { background: rgba(239,68,68,0.12); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.35); }
+        .msg-meta a { color: #93C5FD; }
+        .msg-text { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: 0.95rem; line-height: 1.6; }
+        .card-note { font-size: 0.8rem; color: var(--muted); margin: 10px 0 0; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .stat { background: var(--bg); border: 1px solid #334155; border-radius: 12px; padding: 12px 6px; text-align: center; }
+        .stat b { display: block; font-size: 1.7rem; font-weight: 900; color: var(--primary); line-height: 1.2; }
+        .stat span { font-size: 0.8rem; color: var(--muted); }
+        .stats-sub { font-size: 0.85rem; color: var(--muted); margin: 10px 0 0; text-align: center; }
+        .stats-label { font-size: 0.85rem; font-weight: 700; color: var(--text); margin: 20px 0 6px; }
+        .weeks { display: flex; align-items: stretch; gap: 4px; height: 110px; direction: ltr; }
+        .wk { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-width: 0; }
+        .wk span { font-size: 0.75rem; font-weight: 800; color: var(--text); min-height: 1.1em; }
+        .wk i { display: block; width: 100%; max-width: 28px; min-height: 2px; background: var(--primary); border-radius: 4px 4px 0 0; }
+        .wk em { font-style: normal; font-size: 0.65rem; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+        .src-title { font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin-bottom: 6px; }
+        .src-title b { color: var(--primary); }
+        .src-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 8px; font-size: 0.9rem; }
+        .src-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
+        .act { color: var(--muted); }
+        @media (max-width: 560px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .wk em { font-size: 0.55rem; } }
     </style>
 </head>
 <body>
@@ -80,6 +102,30 @@
 <div class="container" id="adminContent" style="display: none;">
     <h1>לוח בקרה גלובלי ⚽</h1>
 
+    <div class="card" id="statsCard">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">📈 מספרים</h3>
+        <div class="stats-grid">
+            <div class="stat"><b id="stTotal">–</b><span>קבוצות</span></div>
+            <div class="stat"><b id="stWeek">–</b><span>נפתחו השבוע</span></div>
+            <div class="stat"><b id="stMonth">–</b><span>נפתחו ב-30 יום</span></div>
+            <div class="stat"><b id="stActive">–</b><span>פעילות ב-14 יום</span></div>
+        </div>
+        <p class="stats-sub" id="stSub"></p>
+        <div class="stats-label">קבוצות חדשות בכל שבוע (12 שבועות)</div>
+        <div class="weeks" id="stWeeks"></div>
+        <div class="stats-label">מאיפה הגיעו קבוצות חדשות</div>
+        <div id="stSources"></div>
+        <p class="card-note">קבוצה פעילה = נפתחה בה הרשמה או נשמר בה משחק ב-14 הימים האחרונים.</p>
+    </div>
+
+    <div class="card" id="inboxCard">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">📬 פניות מטופס יצירת הקשר <span id="inboxCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <div id="inboxList">
+            <p style="text-align: center; color: var(--muted);">טוען פניות... ⏳</p>
+        </div>
+        <p class="card-note">לפי מדיניות הפרטיות, פנייה נמחקת אחרי שהטיפול בה הסתיים, ולכל המאוחר אחרי שנה.</p>
+    </div>
+
     <div class="card" id="migrateCard">
         <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🔐 אבטחת קבוצות ותיקות</h3>
         <p style="font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin: 0;">
@@ -95,6 +141,13 @@
         <div id="listingsList">
             <p style="text-align: center; color: var(--muted);">טוען מודעות... ⏳</p>
         </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🤝 מודעות "מחפשים שחקן" <span id="marketCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <p id="marketStatus" style="font-size: 0.9rem; color: var(--muted); margin: 0;">טוען... ⏳</p>
+        <button class="btn btn-warn" id="marketCleanBtn" onclick="cleanupMarket()" disabled>מחק מודעות ישנות</button>
+        <p class="card-note">מודעה מוצגת 24 שעות. אחר כך היא נמחקת כאן, יחד עם מספר הטלפון שבה. מודעות בפורמט הישן כללו את מזהה הקבוצה, ולכן גם הן נמחקות.</p>
     </div>
 
     <div class="card">
@@ -136,8 +189,9 @@
             msg.style.display = 'none';
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
-            loadGroups();
+            loadGroups().then(loadInbox);   // שמות הקבוצות בפניות נלקחים מרשימת הקבוצות
             loadListingsAdmin();
+            loadMarketAdmin();
         } else {
             if (user && !user.isAnonymous) {
                 msg.textContent = `החשבון ${user.email || ''} אינו מנהל המערכת.`;
@@ -167,9 +221,11 @@
     async function loadGroups() {
         const listDiv = document.getElementById('groupsList');
         try {
-            const snapshot = await db.collection('groups').orderBy('createdAt', 'desc').get();
-            groupsCache = snapshot.docs;
+            // כל הקבוצות, כולל ותיקות בלי createdAt (מיון בשרת היה מסנן אותן). מיון לפי תאריך הפתיחה, החדשות קודם
+            const snapshot = await db.collection('groups').get();
+            groupsCache = snapshot.docs.slice().sort((a, b) => (createdMs(b) || 0) - (createdMs(a) || 0));
             document.getElementById('groupsCount').textContent = `(${snapshot.size})`;
+            renderStats();
             const legacyWithPassword = snapshot.docs.filter(d => typeof d.data().password === 'string' && !d.data().ownerUid).length;
             document.getElementById('migrateBtn').disabled = legacyWithPassword === 0;
             document.getElementById('migrateStatus').textContent = legacyWithPassword
@@ -178,11 +234,12 @@
 
             if (snapshot.empty) {
                 listDiv.innerHTML = '<p style="text-align:center;">אין קבוצות רשומות.</p>';
+                document.getElementById('stActive').textContent = '0';
                 return;
             }
 
             let html = '';
-            snapshot.forEach(doc => {
+            groupsCache.forEach(doc => {
                 const data = doc.data();
                 const date = data.createdAt ? data.createdAt.toDate().toLocaleDateString('he-IL') : '---';
                 const admins = data.admins ? Object.values(data.admins) : [];
@@ -198,6 +255,7 @@
                             <div class="group-name">${esc(data.name)}</div>
                             <div class="group-meta">
                                 נוצר: ${date} | ${status}<br>
+                                <span class="act" id="act_${doc.id}">בודק פעילות…</span><br>
                                 ID: ${doc.id}
                             </div>
                         </div>
@@ -210,9 +268,90 @@
                 `;
             });
             listDiv.innerHTML = html;
+            loadActivity();
         } catch (e) {
             listDiv.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
         }
+    }
+
+    // ===== מספרים =====
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const ACTIVE_DAYS = 14;
+    const SOURCE_SINCE = new Date(2026, 9, 1).getTime();   // מ-1.10.2026 קבוצה חדשה שומרת מאיפה הגיעו (source)
+    const SOURCE_LABELS = { registration: 'דף ההרשמה', group: 'דף הקבוצה', vote: 'דף הדירוג', mvp: 'הצבעת MVP' };
+
+    function createdMs(doc) { const c = doc.data().createdAt; return c && c.toMillis ? c.toMillis() : null; }
+
+    function renderStats() {
+        const now = Date.now();
+        const created = groupsCache.map(createdMs);
+        document.getElementById('stTotal').textContent = groupsCache.length;
+        document.getElementById('stWeek').textContent = created.filter(t => t && t > now - 7 * DAY_MS).length;
+        document.getElementById('stMonth').textContent = created.filter(t => t && t > now - 30 * DAY_MS).length;
+        const admins = new Set();
+        groupsCache.forEach(d => Object.keys(d.data().admins || {}).forEach(uid => admins.add(uid)));
+        const pub = groupsCache.filter(d => d.data().visibility === 'public').length;
+        document.getElementById('stSub').textContent = `${admins.size} מנהלים · ${pub} קבוצות ציבוריות ב"מצא משחק"`;
+
+        // קבוצות חדשות בכל אחד מ-12 השבועות האחרונים (הימני = השבוע הנוכחי)
+        const W = 12, buckets = Array(W).fill(0);
+        created.forEach(t => { if (!t) return; const i = Math.floor((now - t) / (7 * DAY_MS)); if (i >= 0 && i < W) buckets[W - 1 - i]++; });
+        const max = Math.max(1, ...buckets);
+        document.getElementById('stWeeks').innerHTML = buckets.map((n, i) => {
+            const start = new Date(now - (W - i) * 7 * DAY_MS + DAY_MS);
+            const label = `${start.getDate()}.${start.getMonth() + 1}`;
+            return `<div class="wk" title="${n} קבוצות חדשות בשבוע שמתחיל ב-${label}"><span>${n || ''}</span><i style="height:${Math.round(n / max * 80)}%"></i><em>${label}</em></div>`;
+        }).join('');
+
+        // מאיפה הגיעו: הכרטיס "מארגנים משחק קבוע?" בדפי השחקנים מקשר ל-home.html?from=...
+        const since = groupsCache.filter(d => (createdMs(d) || 0) >= SOURCE_SINCE);
+        const counts = {};
+        since.forEach(d => { const src = d.data().source || ''; counts[src] = (counts[src] || 0) + 1; });
+        const fromCard = since.filter(d => d.data().source).length;
+        const sinceLabel = new Date(SOURCE_SINCE).toLocaleDateString('he-IL');
+        const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+            .map(([src, n]) => `<div class="src-row"><span>${esc(src ? (SOURCE_LABELS[src] || src) : 'ישירות / לא ידוע')}</span><b>${n}</b></div>`).join('');
+        document.getElementById('stSources').innerHTML = since.length
+            ? `<div class="src-title">מאז ${sinceLabel} נפתחו ${since.length} קבוצות. <b>${fromCard}</b> מהן (${Math.round(fromCard / since.length * 100)}%) הגיעו מהכרטיס "מארגנים משחק קבוע?" בדפי השחקנים.</div>${rows}`
+            : `<div class="src-title">מאז ${sinceLabel} עוד לא נפתחו קבוצות חדשות. כשייפתחו, יופיע כאן כמה מהן הגיעו מהכרטיס בדפי השחקנים.</div>`;
+    }
+
+    // פעילות אחרונה = ההרשמה האחרונה שנפתחה או המשחק האחרון שנשמר (שתי שאילתות קטנות לכל קבוצה)
+    async function lastActivity(groupId) {
+        const ref = db.collection('groups').doc(groupId);
+        const [r, h] = await Promise.all([
+            ref.collection('registrations').orderBy('createdAt', 'desc').limit(1).get().catch(() => null),
+            ref.collection('history_games').orderBy('date', 'desc').limit(1).get().catch(() => null)
+        ]);
+        const times = [];
+        if (r && !r.empty) { const c = r.docs[0].data().createdAt; if (c && c.toMillis) times.push(c.toMillis()); }
+        if (h && !h.empty) { const d = h.docs[0].data().date; if (d && d.toMillis) times.push(d.toMillis()); }
+        return times.length ? Math.max(...times) : null;
+    }
+
+    let activityRun = 0;
+    async function loadActivity() {
+        const run = ++activityRun;
+        const activeEl = document.getElementById('stActive');
+        activeEl.textContent = '…';
+        const ids = groupsCache.map(d => d.id);
+        const last = {};
+        for (let i = 0; i < ids.length; i += 8) {
+            await Promise.all(ids.slice(i, i + 8).map(async id => { last[id] = await lastActivity(id); }));
+            if (run !== activityRun) return;   // הרשימה נטענה מחדש בינתיים
+        }
+        const now = Date.now();
+        let active = 0;
+        ids.forEach(id => {
+            const t = last[id];
+            const isActive = !!t && t > now - ACTIVE_DAYS * DAY_MS;
+            if (isActive) active++;
+            const el = document.getElementById('act_' + id);
+            if (el) el.innerHTML = t
+                ? `${isActive ? '<span class="badge badge-ok">פעילה</span>' : ''}פעילות אחרונה: ${new Date(t).toLocaleDateString('he-IL')}`
+                : 'עוד אין פעילות';
+        });
+        activeEl.textContent = active;
     }
 
     // לתמיכה: מנהל קבוצה ששכח את הסיסמה הישנה
@@ -309,6 +448,96 @@
         } catch (e) {
             alert("שגיאה במחיקה: " + e.message);
         }
+    }
+
+    // ===== פניות מ-contact.html =====
+    const TOPIC_LABELS = { question: 'שאלה', privacy: '🔒 פרטיות', abuse: '🚩 דיווח', bug: '🐞 תקלה', idea: '💡 רעיון', other: 'אחר' };
+    const PAGE_LABELS = { home: 'דף הבית', group: 'דף קבוצה', registration: 'הרשמה', vote: 'דירוג', mvp: 'MVP', privacy: 'מדיניות פרטיות', terms: 'תנאי שימוש' };
+
+    // אימייל → mailto, טלפון ישראלי → וואטסאפ, אחרת טקסט
+    function replyHTML(v) {
+        const s = String(v || '').trim();
+        if (!s) return '<span style="color: var(--muted);">לא השאירו פרטים</span>';
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return `✉️ <a href="${esc('mailto:' + s)}">${esc(s)}</a>`;
+        const d = s.replace(/\D/g, '');
+        const intl = d.startsWith('972') ? d : (d.startsWith('0') ? '972' + d.slice(1) : '');
+        if (intl.length >= 11 && intl.length <= 12) return `📞 ${esc(s)} · <a href="https://wa.me/${intl}" target="_blank" rel="noopener">וואטסאפ</a>`;
+        return esc(s);
+    }
+
+    async function loadInbox() {
+        const el = document.getElementById('inboxList');
+        try {
+            const snap = await db.collection('contact_messages').orderBy('createdAt', 'desc').limit(500).get();
+            document.getElementById('inboxCount').textContent = `(${snap.size}${snap.size === 500 ? '+' : ''})`;
+            if (snap.empty) {
+                el.innerHTML = '<p style="text-align: center; color: var(--muted);">אין פניות. 🎉</p>';
+                return;
+            }
+            const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+            el.innerHTML = snap.docs.map(d => {
+                const m = d.data();
+                const at = m.createdAt ? m.createdAt.toDate() : null;
+                const when = at ? at.toLocaleString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '---';
+                const old = at && at.getTime() < yearAgo ? '<span class="badge badge-old">מעל שנה</span>' : '';
+                const g = m.groupId ? groupsCache.find(x => x.id === m.groupId) : null;
+                const groupLink = m.groupId
+                    ? ` | קבוצה: <a href="index.html?group=${encodeURIComponent(m.groupId)}" target="_blank" rel="noopener">${esc(g ? (g.data().name || m.groupId) : m.groupId)}</a>`
+                    : '';
+                const page = m.page ? ` | נשלח מ: ${esc(PAGE_LABELS[m.page] || m.page)}` : '';
+                return `<div class="group-row">
+                    <div class="group-info">
+                        <div class="group-name"><span class="badge badge-topic">${esc(TOPIC_LABELS[m.topic] || m.topic)}</span>${esc(m.name || 'ללא שם')} ${old}</div>
+                        <div class="group-meta msg-meta">${esc(when)}${page}${groupLink}<br>לחזרה: ${replyHTML(m.replyTo)}</div>
+                        <div class="msg-text">${esc(m.message)}</div>
+                    </div>
+                    <div class="actions"><button class="btn-danger" onclick="deleteMessage('${esc(d.id)}')">מחק</button></div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            el.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
+        }
+    }
+
+    // ===== "מחפשים שחקן": מוחקים מודעות שפג תוקפן, ומודעות בפורמט הישן (המזהה שלהן הוא מזהה הקבוצה) =====
+    let marketOld = [];
+    async function loadMarketAdmin() {
+        const status = document.getElementById('marketStatus');
+        const btn = document.getElementById('marketCleanBtn');
+        try {
+            const snap = await db.collection('market_posts').get();
+            const now = Date.now();
+            marketOld = snap.docs.filter(d => { const m = d.data(); return !(m.expiresAt > now) || !m.ownerUid || 'groupId' in m; }).map(d => d.ref);
+            document.getElementById('marketCount').textContent = `(${snap.size})`;
+            status.textContent = `${snap.size - marketOld.length} מוצגות עכשיו, ${marketOld.length} ישנות.`;
+            btn.disabled = !marketOld.length;
+            btn.textContent = marketOld.length ? `מחק ${marketOld.length} מודעות ישנות` : 'אין מודעות ישנות';
+        } catch (e) {
+            status.textContent = 'שגיאה בטעינה: ' + e.message;
+        }
+    }
+
+    async function cleanupMarket() {
+        if (!marketOld.length) return;
+        if (!confirm(`למחוק ${marketOld.length} מודעות "מחפשים שחקן" ישנות, כולל מספרי הטלפון שבהן?`)) return;
+        const btn = document.getElementById('marketCleanBtn');
+        btn.disabled = true;
+        try {
+            for (let i = 0; i < marketOld.length; i += 400) {
+                const batch = db.batch();
+                marketOld.slice(i, i + 400).forEach(ref => batch.delete(ref));
+                await batch.commit();
+            }
+        } catch (e) { alert('שגיאה במחיקה: ' + e.message); }
+        loadMarketAdmin();
+    }
+
+    async function deleteMessage(id) {
+        if (!confirm('למחוק את הפנייה? מוחקים אחרי שהטיפול בה הסתיים.')) return;
+        try {
+            await db.collection('contact_messages').doc(id).delete();
+            loadInbox();
+        } catch (e) { alert('שגיאה במחיקה: ' + e.message); }
     }
 
     function logout() {
