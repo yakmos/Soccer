@@ -778,6 +778,9 @@ function getEntryBadgesHTML(entry) {
 function escHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+// ההרשמות נכתבות על ידי כל מי שיש לו את הקישור, והציונים על ידי המדרגים — לכן מציגים רק טקסט מנוקה ומספרים.
+// (מזהי השחקנים נוצרים רק על ידי המנהלים, וחוקי האבטחה מחייבים שמזהה ההרשמה יהיה מזהה של שחקן קיים)
+function scoreOf(v) { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : 5; }
 
 function updateDateBadge(data) {
     const badge = document.getElementById('gameDateBadge');
@@ -905,14 +908,15 @@ function renderAutocomplete(results, query) {
     }
     list.innerHTML = results.map(p => {
         const already = registrations.some(r => r.playerId === p.id);
-        const idx = p.name.indexOf(query);
+        const name = String(p.name || '');
+        const idx = name.indexOf(query);
         const hl  = idx >= 0
-            ? p.name.slice(0,idx) + `<span class="highlight">${p.name.slice(idx,idx+query.length)}</span>` + p.name.slice(idx+query.length)
-            : p.name;
+            ? escHtml(name.slice(0,idx)) + `<span class="highlight">${escHtml(name.slice(idx,idx+query.length))}</span>` + escHtml(name.slice(idx+query.length))
+            : escHtml(name);
         const badges = getEntryBadgesHTML(p);
-        const avatar = p.imgUrl ? `<div class="ac-avatar"><img src="${p.imgUrl}"></div>` : `<div class="ac-avatar">👤</div>`;
+        const avatar = p.imgUrl ? `<div class="ac-avatar"><img src="${escHtml(p.imgUrl)}"></div>` : `<div class="ac-avatar">👤</div>`;
         const status = already ? `<span class="ac-status registered">כבר רשום</span>` : '';
-        const scores = p.isGk ? `🧤 ${p.gkScore||5}` : `🛡️${p.defScore||5} 🎯${p.attScore||5}`;
+        const scores = p.isGk ? `🧤 ${scoreOf(p.gkScore)}` : `🛡️${scoreOf(p.defScore)} 🎯${scoreOf(p.attScore)}`;
         return `<div class="autocomplete-item ${already?'disabled':''}" onclick="selectPlayer('${p.id}')">
             ${avatar}
             <div class="ac-info">
@@ -1063,7 +1067,7 @@ function renderPlayersList() {
 
 function renderPlayerRow(r, pos, isWaiting) {
     const avatar = r.imgUrl
-        ? `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;"><img src="${r.imgUrl}"></div>`
+        ? `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;"><img src="${escHtml(r.imgUrl)}"></div>`
         : `<div class="player-avatar" onclick="showMiniCard('${r.playerId}')" style="cursor:pointer;">👤</div>`;
     const badges  = getEntryBadgesHTML(r);
     const gkBadge = r.isGk ? `<span style="font-size:0.72rem;background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.3);padding:1px 7px;border-radius:6px;font-weight:800;">🧤 שוער</span>` : '';
@@ -1075,7 +1079,7 @@ function renderPlayerRow(r, pos, isWaiting) {
         <div class="player-pos ${isWaiting?'waiting-pos':'confirmed'}">${isWaiting?'⏳':pos}</div>
         ${avatar}
         <div class="player-name-wrap">
-            <span class="player-name">${r.name}</span>
+            <span class="player-name">${escHtml(r.name)}</span>
             ${badges}${gkBadge}${waitTag}
         </div>
         ${timeStr?`<span class="player-time">${timeStr}</span>`:''}
@@ -1144,14 +1148,14 @@ function renderCancelledList() {
 
     section.style.display = 'block';
     container.innerHTML = cancelled.map(r => {
-        const avatar  = r.imgUrl ? `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);"><img src="${r.imgUrl}"></div>` : `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);">👤</div>`;
+        const avatar  = r.imgUrl ? `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);"><img src="${escHtml(r.imgUrl)}"></div>` : `<div class="player-avatar" style="border-color:rgba(239,68,68,0.3);">👤</div>`;
         const badges  = getEntryBadgesHTML(r);
         const timeStr = r.cancelledAt?.toDate ? r.cancelledAt.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '';
         return `<div class="player-row cancelled">
             <div class="player-pos" style="color:#F87171;">✕</div>
             ${avatar}
             <div class="player-name-wrap">
-                <span class="player-name" style="color:#F87171;">${r.name}</span>
+                <span class="player-name" style="color:#F87171;">${escHtml(r.name)}</span>
                 ${badges}<span class="cancelled-tag">בוטל</span>
             </div>
             ${timeStr?`<span class="cancel-time">${timeStr}</span>`:''}
@@ -1341,19 +1345,20 @@ function showMiniCard(playerId) {
     const isGk = !!p.isGk;
     const age  = calcAge(p.birthDate);
 
-    const borderColor = isGk ? '#A78BFA' : getColorStyles((p.attScore||5 + p.defScore||5) / 2).hex;
+    const borderColor = isGk ? '#A78BFA' : getColorStyles((scoreOf(p.attScore) + scoreOf(p.defScore)) / 2).hex;
     const avatar = p.imgUrl
-        ? `<img src="${p.imgUrl}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid ${borderColor};margin:0 auto 15px;display:block;">`
+        ? `<img src="${escHtml(p.imgUrl)}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid ${borderColor};margin:0 auto 15px;display:block;">`
         : `<div style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.05);border:4px solid #334155;display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 15px;">${isGk?'🧤':'👤'}</div>`;
 
     const badges   = getEntryBadgesHTML(p);
     const gkBadge  = isGk ? `<span style="background:rgba(167,139,250,0.15);color:#A78BFA;border:1px solid rgba(167,139,250,0.35);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:800;">🧤 שוער</span>` : '';
     const ageBadge = age !== null ? `<span style="background:rgba(99,102,241,0.12);color:#A5B4FC;border:1px solid rgba(99,102,241,0.3);padding:3px 10px;border-radius:20px;font-size:0.82rem;font-weight:800;">🎂 גיל ${age}</span>` : '';
 
-    const getBar = (label, val, color) => {
+    const getBar = (label, raw, color) => {
+        const val = scoreOf(raw);
         const c = color || getColorStyles(val).hex;
         return `<div style="display:flex;align-items:center;margin-bottom:10px;font-size:0.9rem;text-align:right;">
-            <div style="width:140px;color:#cbd5e1;font-weight:500;">${label}</div>
+            <div style="width:140px;color:#cbd5e1;font-weight:500;">${escHtml(label)}</div>
             <div style="flex:1;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;margin:0 10px;">
                 <div style="width:${(val||5)*10}%;height:100%;background:${c};border-radius:4px;"></div>
             </div>
@@ -1363,22 +1368,22 @@ function showMiniCard(playerId) {
 
     let scoreBoxes = '';
     if (isGk) {
-        const c = getColorStyles(p.gkScore||5);
+        const c = getColorStyles(scoreOf(p.gkScore));
         scoreBoxes = `<div style="display:flex;justify-content:center;margin-bottom:20px;">
             <div style="border:2px solid ${c.border};background:${c.bg};padding:10px 30px;border-radius:12px;text-align:center;">
-                <div style="font-size:1.6rem;font-weight:900;color:${c.text};">${p.gkScore||5}</div>
+                <div style="font-size:1.6rem;font-weight:900;color:${c.text};">${scoreOf(p.gkScore)}</div>
                 <div style="font-size:0.8rem;font-weight:800;color:${c.text};">🧤 ציון שוער</div>
             </div>
         </div>`;
     } else {
-        const ac = getColorStyles(p.attScore||5), dc = getColorStyles(p.defScore||5);
+        const ac = getColorStyles(scoreOf(p.attScore)), dc = getColorStyles(scoreOf(p.defScore));
         scoreBoxes = `<div style="display:flex;justify-content:center;gap:15px;margin-bottom:20px;">
             <div style="border:2px solid ${ac.border};background:${ac.bg};padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
-                <div style="font-size:1.6rem;font-weight:900;color:${ac.text};">${p.attScore||5}</div>
+                <div style="font-size:1.6rem;font-weight:900;color:${ac.text};">${scoreOf(p.attScore)}</div>
                 <div style="font-size:0.8rem;font-weight:800;color:${ac.text};">🎯 התקפה</div>
             </div>
             <div style="border:2px solid ${dc.border};background:${dc.bg};padding:10px 20px;border-radius:12px;text-align:center;width:45%;">
-                <div style="font-size:1.6rem;font-weight:900;color:${dc.text};">${p.defScore||5}</div>
+                <div style="font-size:1.6rem;font-weight:900;color:${dc.text};">${scoreOf(p.defScore)}</div>
                 <div style="font-size:0.8rem;font-weight:800;color:${dc.text};">🛡️ הגנה</div>
             </div>
         </div>`;
@@ -1409,7 +1414,7 @@ function showMiniCard(playerId) {
 
     document.getElementById('miniCardContent').innerHTML = `
         ${avatar}
-        <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">${p.name} ${gkBadge}</div>
+        <div style="font-size:1.6rem;font-weight:900;margin-bottom:8px;">${escHtml(p.name)} ${gkBadge}</div>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;">${badges}</div>
         <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">${ageBadge}</div>
         ${scoreBoxes}
