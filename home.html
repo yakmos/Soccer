@@ -131,8 +131,11 @@
     .final p { color: var(--muted); margin: 0 0 24px; }
     footer { border-top: 1px solid rgba(51,65,85,0.6); padding: 28px 0 40px; color: var(--muted); font-size: .9rem; }
     footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
-    footer nav { display: flex; gap: 16px; }
+    footer nav { display: flex; flex-wrap: wrap; gap: 6px 16px; }
     footer a:hover { color: var(--text); }
+    .legal-note { text-align: center; margin: 12px 0 0; font-size: .82rem; }
+    .legal-note a { color: var(--body, #CBD5E1); text-decoration: underline; text-underline-offset: 3px; }
+    .legal-note a:hover { color: var(--text); }
 
     /* ===== Group cards ===== */
     .group-list { display: grid; gap: 10px; }
@@ -396,6 +399,9 @@
         <nav aria-label="קישורים">
             <a href="#find">מצא משחק</a>
             <a href="#" onclick="startCreate(); return false;">פתח קבוצה</a>
+            <a href="privacy.html">מדיניות פרטיות</a>
+            <a href="terms.html">תנאי שימוש</a>
+            <a href="contact.html?from=home">יצירת קשר</a>
         </nav>
     </div>
 </footer>
@@ -431,6 +437,7 @@
                 <p class="hint">המספר יוצג לכל מי שמחפש משחק. את הקישור לקבוצה אתה שולח רק למי שתבחר.</p>
             </div>
             <button class="btn btn-primary btn-block btn-lg" id="cSubmit" type="submit">צור קבוצה</button>
+            <p class="hint legal-note">יצירת הקבוצה מהווה הסכמה ל<a href="terms.html" target="_blank" rel="noopener">תנאי השימוש</a> ול<a href="privacy.html" target="_blank" rel="noopener">מדיניות הפרטיות</a>.</p>
         </form>
     </div>
 </div>
@@ -464,6 +471,31 @@
         return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
     function groupUrl(id) { return 'index.html?group=' + encodeURIComponent(id); }
+
+    // ===== מאיפה הגיעו לפתיחת קבוצה (לסטטיסטיקה בלוח הבקרה) =====
+    // הכרטיס בדפים של השחקנים מקשר לכאן עם ?from=registration / vote / mvp / group
+    const SOURCE_KEY = 'sm_source', SOURCE_TTL = 30 * 24 * 3600 * 1000;
+    function captureSource() {
+        const params = new URLSearchParams(location.search);
+        const from = params.get('from');
+        if (from === null) return;
+        if (/^[a-z]{1,20}$/.test(from)) {
+            try {
+                const cur = JSON.parse(localStorage.getItem(SOURCE_KEY) || 'null');
+                if (!cur || !(Date.now() - cur.at < SOURCE_TTL)) localStorage.setItem(SOURCE_KEY, JSON.stringify({ from, at: Date.now() }));
+            } catch (e) {}
+        }
+        params.delete('from');
+        const qs = params.toString();
+        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    }
+    function readSource() {
+        try {
+            const cur = JSON.parse(localStorage.getItem(SOURCE_KEY) || 'null');
+            return cur && Date.now() - cur.at < SOURCE_TTL && /^[a-z]{1,20}$/.test(cur.from) ? cur.from : null;
+        } catch (e) { return null; }
+    }
+    captureSource();
     const CHEVRON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // ===== ניווט בין מסכים =====
@@ -738,6 +770,8 @@
                 visibility,
                 icon
             };
+            const source = readSource();
+            if (source) group.source = source;
             const batch = db.batch();
             if (listing) {
                 const listingRef = db.collection('listings').doc();
@@ -746,6 +780,7 @@
             }
             batch.set(groupRef, group);
             await batch.commit();
+            try { localStorage.removeItem(SOURCE_KEY); } catch (e) {}
             G.rememberGroup(groupRef.id, group.name, city, icon);
             location.href = groupUrl(groupRef.id) + '&welcome=1';
         } catch (e) {
