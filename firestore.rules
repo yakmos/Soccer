@@ -47,7 +47,9 @@ service cloud.firestore {
         && (!('schedule' in d) || (d.schedule is map && d.schedule.size() <= 4))
         && (!('listingId' in d) || (d.listingId is string && d.listingId.size() <= 40))
         && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40000))
-        && (!('regSchedule' in d) || (d.regSchedule is map && d.regSchedule.size() <= 8));
+        && (!('regSchedule' in d) || (d.regSchedule is map && d.regSchedule.size() <= 8))
+        && (!('source' in d) || (d.source is string && d.source.size() <= 20))
+        && (!('marketPostId' in d) || (d.marketPostId is string && d.marketPostId.size() <= 40));
     }
 
     // ולידציה בסיסית לכרטיס שחקן — עוצרת זבל ומסמכי ענק
@@ -182,7 +184,19 @@ service cloud.firestore {
         && changedKeys().hasOnly(['mvpVotes', 'mvpVoteCount', 'mvpWinner'])
         && request.resource.data.mvpVotes is map
         && request.resource.data.mvpVoteCount is number
-        && request.resource.data.mvpVoteCount <= resource.data.get('mvpVoteCount', 0) + 1;
+        && request.resource.data.mvpVoteCount <= resource.data.get('mvpVoteCount', 0) + 1
+        && mvpWinnerOk(request.resource.data.get('mvpWinner', null));
+    }
+
+    // הזוכה נכתב על ידי המצביעים ומוצג בדף הקבוצה: שם בלי תגיות HTML ומספרים בלבד
+    function mvpWinnerOk(w) {
+      return w == null
+        || (w is map
+            && w.keys().hasOnly(['id', 'name', 'votes', 'totalVotes'])
+            && w.get('name', '') is string && w.get('name', '').size() < 80
+            && !w.get('name', '').matches('.*[<>].*')
+            && w.get('votes', 0) is number
+            && w.get('totalVotes', 0) is number);
     }
 
     // ================= הרשמה למשחק =================
@@ -299,8 +313,13 @@ service cloud.firestore {
 
       // ===== קישורי הצבעה אישיים =====
       match /voters/{token} {
-        // הטוקן הוא הסוד שבקישור; רשימת כל הטוקנים — למנהלים בלבד
-        allow get: if signedIn();
+        // הטוקן הוא הסוד שבקישור; רשימת כל הטוקנים — למנהלים בלבד.
+        // קישור שכבר שויך למכשיר (ובו שם המדרג) — רק המכשיר הזה והמנהלים קוראים אותו
+        allow get: if signedIn()
+                   && (resource == null
+                       || resource.data.get('uid', null) == null
+                       || resource.data.uid == request.auth.uid
+                       || isGroupAdmin(gid));
         allow list: if isGroupAdmin(gid);
         allow create: if isGroupAdmin(gid) && request.resource.data.get('uid', null) == null;
         allow update: if isGroupAdmin(gid) || voterClaimOk() || voterTouchOk();
@@ -313,11 +332,27 @@ service cloud.firestore {
       }
     }
 
-    // לוח "חסרים שחקנים" — מזהה הפוסט הוא מזהה הקבוצה
+    // לוח "מחפשים שחקן": מודעה עם מזהה אקראי ובלי מזהה הקבוצה, כדי שהמודעה לא תחשוף את הקישור לקבוצה.
+    // מוצגת 24 שעות (expiresAt). מודעות ישנות נשמרו עם מזהה הקבוצה כמזהה — מנהלי הקבוצה מוחקים אותן
+    function marketPostOk() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['ownerUid', 'groupName', 'location', 'phone', 'missing', 'timestamp', 'expiresAt'])
+        && d.ownerUid == request.auth.uid
+        && d.groupName is string && d.groupName.size() <= 100
+        && d.location is string && d.location.size() > 0 && d.location.size() <= 100
+        && d.phone is string && d.phone.size() <= 20
+        && d.missing is int && d.missing > 0 && d.missing <= 99
+        && d.timestamp == request.time
+        && d.expiresAt is int && d.expiresAt <= request.time.toMillis() + 172800000;
+    }
+
     match /market_posts/{postId} {
       allow read: if true;
-      allow create, update: if isGroupAdmin(postId) && request.resource.data.groupId == postId;
-      allow delete: if isGroupAdmin(postId);
+      allow create: if isRealUser() && marketPostOk();
+      allow update: if false;
+      allow delete: if isSuperAdmin()
+                    || (resource != null && resource.data.get('ownerUid', '') == request.auth.uid)
+                    || isGroupAdmin(postId);
     }
 
     // ===== "מצא משחק": מודעה שהבעלים של קבוצה ציבורית מפרסם =====
@@ -342,6 +377,27 @@ service cloud.firestore {
       allow create: if isRealUser() && listingOk();
       allow update: if isRealUser() && resource.data.ownerUid == request.auth.uid && listingOk();
       allow delete: if isSuperAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    // ===== טופס "צור קשר": כל מבקר שולח (גם עם מזהה אנונימי), רק מנהל-העל קורא ומוחק =====
+    function contactMessageOk() {
+      let d = request.resource.data;
+      return signedIn()
+        && d.keys().hasAll(['topic', 'message', 'uid', 'createdAt'])
+        && d.keys().hasOnly(['topic', 'message', 'name', 'replyTo', 'groupId', 'page', 'uid', 'createdAt'])
+        && d.topic in ['question', 'privacy', 'abuse', 'bug', 'idea', 'other']
+        && d.message is string && d.message.size() > 0 && d.message.size() <= 2000
+        && (!('name' in d) || (d.name is string && d.name.size() <= 60))
+        && (!('replyTo' in d) || (d.replyTo is string && d.replyTo.size() <= 100))
+        && (!('groupId' in d) || (d.groupId is string && d.groupId.size() <= 40))
+        && (!('page' in d) || (d.page is string && d.page.size() <= 20))
+        && d.uid == request.auth.uid
+        && d.createdAt == request.time;
+    }
+
+    match /contact_messages/{msgId} {
+      allow create: if contactMessageOk();
+      allow read, update, delete: if isSuperAdmin();
     }
 
     // כל שאר הנתיבים חסומים
