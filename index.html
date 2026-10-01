@@ -1446,9 +1446,19 @@ async function migrateCareerStats() {
 }
 
 // ========== Realtime Listeners ==========
+// ציונים ומונים נכתבים גם על ידי המדרגים (קישור הצבעה) — מוודאים שהם מספרים לפני שהם מוצגים בדף
+const PLAYER_NUMBER_FIELDS = ['votesCount', 'attScore', 'defScore', 'gkScore', 'atk', 'def', 'sta', 'pac', 'pas', 'gkDiv', 'gkHan', 'gkKic', 'gkPos', 'gkRef'];
+function cleanPlayerNumbers(p) {
+    PLAYER_NUMBER_FIELDS.forEach(k => { if (p[k] != null && typeof p[k] !== 'number') p[k] = Number(p[k]) || 0; });
+    ['customStats', 'customAvgs'].forEach(m => {
+        if (p[m] && typeof p[m] === 'object') Object.keys(p[m]).forEach(k => { if (typeof p[m][k] !== 'number') p[m][k] = Number(p[m][k]) || 0; });
+    });
+    return p;
+}
+
 function startRealtimeListeners() {
     playersRef.orderBy("name").onSnapshot(snap => {
-        players = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        players = snap.docs.map(doc => cleanPlayerNumbers({ id: doc.id, ...doc.data() }));
         playersLoaded = true;
         render();
         if (careerStatsReady()) renderTopScorers();
@@ -3194,11 +3204,11 @@ function renderHistory() {
         if (game.date && game.date.toDate) { const d = game.date.toDate(); dateStr = d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }); }
         const allPlayers = (game.teams || []).flatMap(t => t.players || []);
         const scorers = allPlayers.filter(p => p.goals > 0).sort((a,b) => b.goals - a.goals);
-        const scorersHTML = scorers.length > 0 ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${p.name} × ${p.goals}</div>`).join('') : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
-        const teamsHTML = (game.teams || []).map((team, ti) => { const color = teamColors[ti] || '#10B981'; const playersTagsHTML = (team.players || []).map(p => `<div class="history-player-tag ${p.goals > 0 ? 'scorer' : ''}">${p.goals > 0 ? `⚽×${p.goals} ` : ''}${p.name}</div>`).join(''); return `<div class="history-team-block"><div class="history-team-header"><span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>${team.name}</span><span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span></div><div class="history-players-list">${playersTagsHTML}</div></div>`; }).join('');
-        const topScorerLine = game.topScorer ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${game.topScorer.name} ${game.topScorer.goals} שערים</span>` : '';
+        const scorersHTML = scorers.length > 0 ? scorers.map(p => `<div class="history-scorer-chip">⚽ ${escAdminText(p.name)} × ${Number(p.goals) || 0}</div>`).join('') : `<div style="color:var(--text-muted); font-size:0.85rem;">לא נרשמו שערים</div>`;
+        const teamsHTML = (game.teams || []).map((team, ti) => { const color = teamColors[ti] || '#10B981'; const playersTagsHTML = (team.players || []).map(p => `<div class="history-player-tag ${p.goals > 0 ? 'scorer' : ''}">${p.goals > 0 ? `⚽×${Number(p.goals) || 0} ` : ''}${escAdminText(p.name)}</div>`).join(''); return `<div class="history-team-block"><div class="history-team-header"><span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>${escAdminText(team.name)}</span><span class="history-team-wins">🏆 ${team.wins || 0} ניצחונות</span></div><div class="history-players-list">${playersTagsHTML}</div></div>`; }).join('');
+        const topScorerLine = game.topScorer ? `<span style="background:rgba(252,211,77,0.1); color:#FCD34D; border:1px solid rgba(252,211,77,0.2); padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:800;">⭐ ${escAdminText(game.topScorer.name)} ${Number(game.topScorer.goals) || 0} שערים</span>` : '';
         let mvpSection = '';
-        if (game.mvpWinner) { mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין</div><div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;"><span style="font-size:1.4rem;">🌟</span><div><div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${game.mvpWinner.name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${game.mvpWinner.votes} מתוך ${game.mvpWinner.totalVotes} קולות</div></div></div>`; }
+        if (game.mvpWinner) { mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין</div><div style="display:flex; align-items:center; gap:10px; background:rgba(252,211,77,0.08); border:1px solid rgba(252,211,77,0.25); padding:10px 14px; border-radius:10px; margin-bottom:12px;"><span style="font-size:1.4rem;">🌟</span><div><div style="font-weight:900; color:#FCD34D; font-size:1.05rem;">${escAdminText(game.mvpWinner.name)}</div><div style="font-size:0.8rem; color:var(--text-muted);">${Number(game.mvpWinner.votes) || 0} מתוך ${Number(game.mvpWinner.totalVotes) || 0} קולות</div></div></div>`; }
         else { const voteCount = game.mvpVoteCount || 0; mvpSection = `<div class="history-section-label">🌟 שחקן מצטיין של הערב</div><div style="display:flex; justify-content:space-between; align-items:center; background:rgba(252,211,77,0.05); border:1px solid rgba(252,211,77,0.2); padding:10px 14px; border-radius:10px; margin-bottom:12px; gap:10px;"><div style="font-size:0.85rem; color:var(--text-muted);">${voteCount > 0 ? `🗳️ ${voteCount} הצבעות עד כה` : 'ההצבעה פתוחה — שתף את הקישור!'}</div><button onclick="shareMvpLink('${game.id}', event)" style="background:rgba(252,211,77,0.15); border:1px solid rgba(252,211,77,0.4); color:#FCD34D; padding:8px 14px; border-radius:8px; font-weight:900; font-size:0.85rem; cursor:pointer; font-family:'Heebo',sans-serif; white-space:nowrap;">📤 שתף להצבעה</button></div>`; }
         const uid = `hist_${gameIndex}`;
         return `<div class="history-card"><div class="history-header" onclick="toggleHistoryCard('${uid}')"><div class="history-date"><span>📅 ${dateStr}</span></div><div class="history-meta">${topScorerLine}<span class="history-players-count">👥 ${game.numPlayers || allPlayers.length}</span><span class="history-chevron" id="chev_${uid}">▼</span></div></div><div class="history-body" id="body_${uid}"><div style="font-size:0.8rem; color:var(--text-muted); margin: 10px 0;">${timeStr ? `שעת סיום: ${timeStr} •` : ''} ${game.numTeams || (game.teams||[]).length} קבוצות • ${game.totalGoals || 0} שערים</div>${mvpSection}<div class="history-section-label">מלך השערים של הערב</div><div class="history-scorers-row">${scorersHTML}</div><div class="history-section-label">קבוצות והרכבים</div>${teamsHTML}</div></div>`;
@@ -3293,8 +3303,26 @@ async function publishToMarket() {
     const location = prompt("איפה המשחק מתקיים?");
     if (!location) return alert("חובה להזין מיקום.");
     const groupName = currentGroupName();
+    const u = firebase.auth().currentUser;
+    if (!AdminAuth.isRealUser(u)) return alert("צריך להיות מחובר כמנהל כדי לפרסם.");
     try {
-        await db.collection('market_posts').doc(currentGroupId).set({ groupName, groupId: currentGroupId, location, phone, missing, timestamp: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: Date.now()+(24*60*60*1000) });
+        // מזהה אקראי למודעה: המודעה גלויה לכולם, ומזהה הקבוצה הוא המפתח לדף הקבוצה
+        const postRef = db.collection('market_posts').doc();
+        await postRef.set({
+            ownerUid: u.uid,
+            groupName: String(groupName || '').slice(0, 100),
+            location: String(location).slice(0, 100),
+            phone: String(phone).slice(0, 20),
+            missing: Math.min(99, Math.round(missing)),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        });
+        // המודעה הקודמת של הקבוצה, ומודעה בפורמט הישן (שמזהה הקבוצה היה המזהה שלה), יורדות
+        const prevSnap = await groupRef.get();
+        const prevId = prevSnap.exists ? prevSnap.data().marketPostId : null;
+        await groupRef.update({ marketPostId: postRef.id });
+        if (prevId && prevId !== postRef.id) db.collection('market_posts').doc(prevId).delete().catch(() => {});
+        db.collection('market_posts').doc(currentGroupId).delete().catch(() => {});
         alert("המודעה פורסמה בהצלחה! 🎉");
     } catch(e) { console.error(e); alert("שגיאה בפרסום המודעה."); }
 }
@@ -3304,14 +3332,22 @@ function renderMarket() {
     const container = document.getElementById('marketList'); if(!container) return;
     if (marketListenerStarted) return; // מאזין אחד בלבד — לא נרשמים מחדש בכל לחיצה על הטאב
     marketListenerStarted = true;
-    db.collection('market_posts').orderBy('timestamp','desc').onSnapshot(snap => {
-        if (snap.empty) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`; return; }
-        container.innerHTML = snap.docs.map(doc => {
+    // רק מודעות מ-24 השעות האחרונות. הטקסט מגיע מקבוצות אחרות, ולכן עובר escape לפני שמוצג
+    db.collection('market_posts').where('expiresAt', '>', Date.now()).onSnapshot(snap => {
+        const now = Date.now();
+        const ms = d => (d.timestamp && d.timestamp.toMillis ? d.timestamp.toMillis() : now);
+        const docs = snap.docs
+            .filter(doc => doc.data().expiresAt > now)
+            .sort((a, b) => ms(b.data()) - ms(a.data()));
+        if (!docs.length) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`; return; }
+        const esc = escAdminText;
+        container.innerHTML = docs.map(doc => {
             const data = doc.data();
             const timeStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'עכשיו';
             const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
-            const waLink = `https://wa.me/972${data.phone.substring(1)}?text=${waMsg}`;
-            return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${data.location}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${data.groupName}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${timeStr}</div></div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${data.missing}</div></div><a href="${waLink}" target="_blank" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
+            const phoneDigits = String(data.phone || '').replace(/\D/g, '').replace(/^0/, '');
+            const waLink = `https://wa.me/972${phoneDigits}?text=${waMsg}`;
+            return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${esc(data.location)}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${esc(data.groupName)}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${esc(timeStr)}</div></div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${esc(data.missing)}</div></div><a href="${esc(waLink)}" target="_blank" rel="noopener" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
         }).join('');
     });
 }
