@@ -137,26 +137,40 @@
     .legal-note a { color: var(--body, #CBD5E1); text-decoration: underline; text-underline-offset: 3px; }
     .legal-note a:hover { color: var(--text); }
 
-    /* ===== Group cards ===== */
-    .group-list { display: grid; gap: 10px; }
-    .group-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; transition: border-color .15s, background .15s; }
+    /* ===== Group cards (הקבוצות שלי): כרטיס לכל קבוצה, הסמל שלה כמו סמל של מועדון ===== */
+    .group-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+    .group-list > .empty { grid-column: 1 / -1; }
+    .group-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "crest body go" "badges badges badges"; align-items: center; column-gap: 14px;
+                  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; transition: border-color .15s, background .15s; }
     .group-card:hover { border-color: var(--primary-line); background: #22304A; }
-    .gc-icon { width: 42px; height: 42px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--primary-soft); font-size: 1.25rem; overflow: hidden; }
-    .gc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-    .gc-name { font-weight: 800; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .gc-meta { color: var(--muted); font-size: .85rem; }
+    .crest { display: grid; place-items: center; flex: none; border-radius: 50%; overflow: hidden; background: var(--primary-soft); box-shadow: inset 0 0 0 1.5px var(--primary-line); }
+    .gc-icon { grid-area: crest; width: 52px; height: 52px; font-size: 1.55rem; }
+    .gc-body { grid-area: body; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .gc-name { font-weight: 800; font-size: 1.08rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gc-meta { color: var(--muted); font-size: .85rem; line-height: 1.4; }
     .dot { margin: 0 6px; opacity: .6; }
-    .gc-badges { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .gc-badges { grid-area: badges; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
     .badge { font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
     .badge-owner { color: var(--amber); background: rgba(252,211,77,0.1); }
     .badge-public { color: var(--blue); background: rgba(96,165,250,0.12); }
-    .gc-go { color: var(--muted); flex: none; display: flex; }
+    .gc-go { grid-area: go; color: var(--muted); display: flex; }
+    .group-card:hover .gc-go { color: var(--primary); }
+
+    /* ===== הקבוצות האחרונות בדף הנחיתה: שורה שקטה של "תגי קבוצה" בראש ה-hero ===== */
+    .recent-row { display: flex; align-items: center; gap: 14px; margin: -24px auto 40px; }
+    .recent-row h2 { font-size: .9rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .club-pills { display: flex; flex-wrap: wrap; gap: 10px; min-width: 0; }
+    .club-pill { display: inline-flex; align-items: center; gap: 10px; padding-block: 5px; padding-inline: 5px 18px; border-radius: 999px;
+                 background: rgba(30,41,59,0.7); border: 1px solid var(--border); transition: border-color .15s, background .15s; }
+    .club-pill:hover { border-color: var(--primary-line); background: var(--surface); }
+    .club-pill .crest { width: 40px; height: 40px; font-size: 1.2rem; }
+    .club-pill b { display: block; font-size: .95rem; font-weight: 800; line-height: 1.25; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .club-pill small { display: block; color: var(--muted); font-size: .78rem; line-height: 1.25; }
     .empty { background: transparent; border: 1px dashed var(--border); border-radius: 14px; padding: 26px 18px; text-align: center; color: var(--muted); }
     .empty b { color: var(--text); font-size: 1.05rem; }
     .empty .btn { margin-top: 14px; }
     .hint { color: var(--muted); font-size: .85rem; margin: 10px 0 0; }
     .recent-block { margin-top: 36px; }
-    .recent-top { padding-top: 24px; }
     .block-title { font-size: 1.15rem; font-weight: 800; margin: 0 0 12px; }
 
     /* ===== Dashboard / Find ===== */
@@ -225,9 +239,12 @@
         .field-row, .vis-opts { grid-template-columns: 1fr; }
         .modal { align-items: flex-end; padding: 0; }
         .modal-card { border-radius: 20px 20px 0 0; max-height: 92vh; padding: 22px 16px calc(22px + env(safe-area-inset-bottom)); }
-        .group-card { flex-wrap: wrap; }
-        .gc-badges { width: 100%; justify-content: flex-start; padding-inline-start: 56px; }
-        .gc-go { display: none; }
+        .group-card { padding: 14px; }
+        .gc-icon { width: 46px; height: 46px; font-size: 1.35rem; }
+        .recent-row { flex-direction: column; align-items: stretch; gap: 8px; margin: -12px auto 28px; }
+        .club-pills { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; padding-block: 2px; scrollbar-width: none; scroll-snap-type: x proximity; }
+        .club-pills::-webkit-scrollbar { display: none; }
+        .club-pill { flex: none; scroll-snap-align: start; }
     }
     @media (max-width: 420px) { .nav-ico { display: inline; font-size: 1.1rem; } .nav-text { display: none; } }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .group-card { transition: none; } }
@@ -254,12 +271,11 @@
 
 <!-- ============ דף נחיתה ============ -->
 <main id="viewLanding">
-    <section class="wrap recent-top" id="recentStrip" hidden>
-        <h2 class="block-title">הקבוצות האחרונות שלך</h2>
-        <div class="group-list" id="recentList"></div>
-    </section>
-
     <section class="hero">
+        <div class="wrap recent-row" id="recentStrip" hidden>
+            <h2>הקבוצות שלך</h2>
+            <div class="club-pills" id="recentList"></div>
+        </div>
         <div class="wrap hero-grid">
             <div>
                 <span class="eyebrow">לארגון משחקי כדורגל שכונתיים</span>
@@ -587,17 +603,27 @@
             badges += g.visibility === 'public' ? '<span class="badge badge-public">🌍 ציבורית</span>' : '<span class="badge">🔒 פרטית</span>';
         }
         return `<a class="group-card" href="${groupUrl(g.id)}">
-            <span class="gc-icon" aria-hidden="true">${G.iconHTML(g.icon, true)}</span>
+            <span class="gc-icon crest" aria-hidden="true">${G.iconHTML(g.icon, true)}</span>
             <span class="gc-body"><span class="gc-name">${esc(g.name || 'קבוצה')}</span>${meta ? `<span class="gc-meta">${meta}</span>` : ''}</span>
             ${badges ? `<span class="gc-badges">${badges}</span>` : ''}
             <span class="gc-go">${CHEVRON}</span>
         </a>`;
     }
 
+    // תג קבוצה קטן לשורת "הקבוצות שלך" בדף הנחיתה
+    function clubPillHTML(g) {
+        return `<a class="club-pill" href="${groupUrl(g.id)}">
+            <span class="crest" aria-hidden="true">${G.iconHTML(g.icon, true)}</span>
+            <span><b>${esc(g.name || 'קבוצה')}</b>${g.city ? `<small>${esc(g.city)}</small>` : ''}</span>
+        </a>`;
+    }
+
     function renderRecent(listEl, wrapEl, excludeIds) {
         const items = recentChecked ? G.getRecentGroups().filter(g => !excludeIds.has(g.id)).slice(0, 6) : [];
         wrapEl.hidden = !items.length;
-        listEl.innerHTML = items.map(g => groupCardHTML({ id: g.id, name: g.name, icon: g.icon, location: { city: g.city } })).join('');
+        listEl.innerHTML = items.map(g => listEl.classList.contains('club-pills')
+            ? clubPillHTML(g)
+            : groupCardHTML({ id: g.id, name: g.name, icon: g.icon, location: { city: g.city } })).join('');
     }
 
     function refreshRecentViews() {
