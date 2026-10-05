@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ניהול קישורי הצבעה 🔗</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -44,10 +45,13 @@
         #status { text-align: center; color: var(--text-muted); font-size: 0.9rem; min-height: 20px; margin-top: 8px; font-weight: 700; }
         .error-msg { text-align: center; color: var(--danger); font-weight: bold; margin-top: 50px; padding: 20px; background: rgba(239,68,68,0.1); border-radius: 12px; display: none; }
         .note { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+        .back-link { display: inline-block; color: var(--text-muted); text-decoration: none; font-weight: 700; font-size: .88rem; margin-bottom: 10px; }
+        .back-link:hover { color: var(--text-main); }
     </style>
 </head>
 <body>
 <div class="container">
+    <a class="back-link" id="backLink" href="home.html">→ חזרה לקבוצה</a>
     <div id="errorScreen" class="error-msg"></div>
     <div id="mainCard">
         <h1>ניהול קישורי הצבעה 🔗</h1>
@@ -126,6 +130,7 @@
 
     window.onload = async () => {
         if (!groupId) { showError("חסר מזהה קבוצה בקישור (?group=...)"); return; }
+        document.getElementById('backLink').href = 'index.html?group=' + encodeURIComponent(groupId);
         try {
             const groupDoc = await db.collection('groups').doc(groupId).get();
             if (!groupDoc.exists) { showError("הקבוצה לא נמצאה."); return; }
@@ -161,9 +166,20 @@
         catch (e) { console.error(e); showError("שגיאה: " + (e.message || e)); }
     }
 
+    // השמות נכתבים על ידי מנהלי הקבוצה, ובכל זאת עוברים escape: שם עם < או " לא ישבור את הדף ולא יריץ קוד אצל מנהל אחר
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    // הטוקנים נוצרים כאן (randomToken). רק כאלה נכנסים לכפתורים
+    const TOKEN_RE = /^[A-Za-z0-9_-]{1,64}$/;
+    function voterName(token) {
+        const v = voters.find(x => x.token === token);
+        return (v && v.name) || '';
+    }
+
     async function loadVoters() {
         const snap = await votersRef.get();
-        voters = snap.docs.map(d => ({ token: d.id, ...d.data() }));
+        voters = snap.docs.map(d => ({ token: d.id, ...d.data() })).filter(v => TOKEN_RE.test(v.token));
         // מיון לפי מספר השחקנים שדורגו (מהגבוה לנמוך), ובמקרה של שוויון — לפי שם
         voters.sort((a, b) => {
             const diff = (b.votedCount || 0) - (a.votedCount || 0);
@@ -182,20 +198,20 @@
         }
         el.innerHTML = voters.map(v => {
             const claimed = !!v.uid;
-            const progress = `${v.votedCount || 0}/${playersCount}`;
+            const progress = `${Number(v.votedCount) || 0}/${playersCount}`;
             return `
             <div class="voter-row">
                 <div class="voter-info">
-                    <div class="voter-name">${v.name || '(ללא שם)'}
+                    <div class="voter-name">${esc(v.name || '(ללא שם)')}
                         <span class="badge ${claimed ? 'badge-claimed' : 'badge-unclaimed'}">${claimed ? '🟢 שויך' : '🟡 ממתין'}</span>
                     </div>
                     <div class="voter-status">📊 דירג ${progress} שחקנים</div>
                 </div>
                 <div class="row-actions">
                     <button class="mini-btn" onclick="copyLink('${v.token}')">📋 העתק</button>
-                    <button class="mini-btn wa" onclick="shareWa('${v.token}', '${(v.name||'').replace(/'/g,"\\'")}')">💬 וואטסאפ</button>
+                    <button class="mini-btn wa" onclick="shareWa('${v.token}')">💬 וואטסאפ</button>
                     ${claimed ? `<button class="mini-btn release" onclick="releaseVoter('${v.token}')">🔓 שחרר מכשיר</button>` : ''}
-                    <button class="mini-btn del" onclick="deleteVoter('${v.token}', '${(v.name||'').replace(/'/g,"\\'")}')">🗑️</button>
+                    <button class="mini-btn del" onclick="deleteVoter('${v.token}')">🗑️</button>
                 </div>
             </div>`;
         }).join('');
@@ -230,7 +246,8 @@
         catch { prompt("העתק ידנית:", voteLink(token)); }
     }
 
-    function shareWa(token, name) {
+    function shareWa(token) {
+        const name = voterName(token);
         const msg = `היי ${name}! ⚽ הנה הקישור האישי שלך לדירוג שחקני הקבוצה:\n${voteLink(token)}\n\n⚠️ הקישור אישי — הוא ננעל למכשיר הראשון שפותח אותו, אז אל תעביר הלאה 😉\nאפשר לחזור אליו בכל רגע ולעדכן דירוגים.`;
         window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
@@ -260,7 +277,8 @@
         await loadVoters();
     }
 
-    async function deleteVoter(token, name) {
+    async function deleteVoter(token) {
+        const name = voterName(token) || '(ללא שם)';
         if (!confirm(`למחוק את ${name}? ההצבעות שכבר נקלטו בממוצעים יישארו, אך הוא לא יוכל לערוך אותן יותר.`)) return;
         const votesSnap = await votersRef.doc(token).collection('votes').get();
         const batch = db.batch();
