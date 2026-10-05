@@ -18,6 +18,148 @@
         return LEGACY_PRIORITY_LABELS[groupId] || 'תושב';
     }
 
+    // ===== מי נכנס כשההרשמה מלאה (settings.regPriority) =====
+    // mode 'first' = כל הקודם זוכה. mode 'rules' = לפי הכללים שסומנו, בסדר החשיבות הזה:
+    //   active  — שחקן פעיל (מסומן בכרטיס) לפני שחקן לא פעיל
+    //   veteran — ותיק לפני חדש
+    //   label   — מי שמסומן בקבוצת העדיפות (למשל "תושב מגדים"). כשהכלל "פעילים" פועל, זה עוזר רק לשחקן פעיל,
+    //             וכשהכלל "ותיקים" פועל — רק לשחקן חדש (הוותיקים ממילא קודמים)
+    //   age     — מגיל ageMin ומעלה. בלי תאריך לידה נחשבים צעירים
+    // בתוך אותה דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד לא נדחק (registration.html).
+    // קבוצה בלי regPriority נפתחה לפני שזו הפכה להגדרה, וממשיכה עם הכללים שהיו קבועים עד אז (כולם, מגיל 30).
+    const DEFAULT_PRIORITY_AGE = 30;
+    const PRIORITY_AGE_MIN = 16, PRIORITY_AGE_MAX = 70;
+
+    function validPriorityAge(n) {
+        const v = Number(n);
+        return Number.isInteger(v) && v >= PRIORITY_AGE_MIN && v <= PRIORITY_AGE_MAX;
+    }
+
+    // ההגדרות כפי שנשמרו (לטופס ההגדרות): כל כלל עם הסימון שלו, גם כשהמצב הוא "כל הקודם זוכה"
+    function priorityPrefs(groupId, groupData) {
+        const s = (groupData && groupData.settings) || {};
+        const labelText = priorityLabel(groupId, groupData);
+        const p = s.regPriority;
+        if (!p || typeof p !== 'object') {
+            return { mode: 'rules', active: true, veteran: true, label: !!labelText, age: true, ageMin: DEFAULT_PRIORITY_AGE, labelText, legacy: true };
+        }
+        return {
+            mode: p.mode === 'rules' ? 'rules' : 'first',
+            active: p.active === true,
+            veteran: p.veteran === true,
+            label: p.label === true,
+            age: p.age === true,
+            ageMin: validPriorityAge(p.ageMin) ? Number(p.ageMin) : DEFAULT_PRIORITY_AGE,
+            labelText
+        };
+    }
+
+    // הכללים שפועלים בפועל: label = שם קבוצת העדיפות או '' ; age = הגיל או 0
+    function regPriority(groupId, groupData) {
+        const p = priorityPrefs(groupId, groupData);
+        const on = p.mode === 'rules';
+        const cfg = {
+            active: on && p.active,
+            veteran: on && p.veteran,
+            label: on && p.label ? p.labelText : '',
+            age: on && p.age ? p.ageMin : 0
+        };
+        cfg.mode = (cfg.active || cfg.veteran || cfg.label || cfg.age) ? 'rules' : 'first';
+        return cfg;
+    }
+
+    // דרגת העדיפות של שחקן: מספר קטן יותר = נכנס קודם. 0 לכולם ב"כל הקודם זוכה".
+    // player = כרטיס השחקן (הדגלים), age = הגיל בשנים או null
+    function priorityRank(cfg, player, age) {
+        if (!cfg || cfg.mode !== 'rules' || !player) return 0;
+        let rank = 0;
+        const rule = ok => { rank = rank * 2 + (ok ? 0 : 1); };
+        if (cfg.active) rule(!!player.isActive);
+        if (cfg.veteran) rule(!player.isNew);
+        if (cfg.label) rule(!!player.isMoshavResident && (!cfg.active || !!player.isActive) && (!cfg.veteran || !!player.isNew));
+        if (cfg.age) rule(age != null && age >= cfg.age);
+        return rank;
+    }
+
+    // למי עוזר הסימון של קבוצת העדיפות, לפי הכללים האחרים שפועלים
+    function priorityLabelScope(cfg) {
+        if (cfg.active && cfg.veteran) return 'מבין השחקנים החדשים והפעילים';
+        if (cfg.veteran) return 'מבין השחקנים החדשים';
+        if (cfg.active) return 'מבין השחקנים הפעילים';
+        return '';
+    }
+
+    // הכללים שפועלים, בשפה פשוטה ובסדר החשיבות (לדף ההרשמה ולהגדרות)
+    function priorityRuleTexts(cfg) {
+        if (!cfg || cfg.mode !== 'rules') return [];
+        const out = [];
+        if (cfg.active) out.push('✅ שחקנים פעילים');
+        if (cfg.veteran) out.push('⭐ ותיקים לפני 🆕 חדשים');
+        if (cfg.label) {
+            const scope = priorityLabelScope(cfg);
+            out.push('🏠 ' + cfg.label + (scope ? ' (' + scope + ')' : ''));
+        }
+        if (cfg.age) out.push(`🎂 מגיל ${cfg.age} ומעלה`);
+        return out;
+    }
+
+    // ===== הוספת כמה שחקנים בבת אחת: רשימת שמות מודבקת, גם מהוואטסאפ =====
+    const PLAYER_NAME_MAX = 40;
+    const BULK_MAX = 100;
+
+    // מה שלפני השם בשורה שהועתקה מצ'אט: "[5.10.2026, 20:15] יקיר: " / "5.10.2026, 20:15 - יקיר: "
+    const CHAT_PREFIX = /^\s*(?:\[[^\]]{4,40}\]|\d{1,2}[./-]\d{1,2}[./-]\d{2,4},?\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?\s*[-–])\s*[^:]{1,40}:\s*/;
+    const BIDI = /[\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
+    const TIME_OR_DATE = /\b\d{1,2}:\d{2}\b|\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/;
+
+    // השורה בלי מה שמסביב לשם: טלפון, מספור ותבליטים, הערות בסוגריים או אחרי מקף, "+1"
+    function stripLineExtras(raw) {
+        let s = String(raw || '').replace(BIDI, '').replace(CHAT_PREFIX, '');
+        s = s.replace(/(?:\+?972[\s-]?|0)5\d(?:[\s-]?\d){7}/g, ' ');
+        s = s.replace(/^\s*(?:[-–—•·*▪◦~>]+|\(?\d{1,3}\s*[.):\-]|\(\d{1,3}\))\s*/u, '');
+        s = s.replace(/\([^)]*\)/g, ' ').replace(/\s[-–—]\s.*$/, '').replace(/\+\s*\d+/g, ' ');
+        return s;
+    }
+
+    // "1. אבי כהן ✅" → "אבי כהן". אחרי stripLineExtras: מוריד אימוג'ים וסימנים, ומרכאות מסביב לשם
+    function cleanPlayerName(raw) {
+        const s = stripLineExtras(raw).replace(/[^\p{L}\p{M}\p{N}\s'"׳״.\-]/gu, ' ');
+        return s.replace(/\s+/g, ' ').trim().replace(/^[.\-'"׳״]+/, '').replace(/[.\-'"׳״]+$/, '').trim();
+    }
+
+    // להשוואת שמות: בלי הבדלי רווחים, גרש וגדולות/קטנות
+    function playerNameKey(name) {
+        return String(name || '').toLowerCase().replace(/[׳`’]/g, "'").replace(/[״”“]/g, '"').replace(/\s+/g, ' ').trim();
+    }
+
+    // { names: שמות להוספה, existing: כבר בסגל, dupes: פעמיים ברשימה, tooLong, skipped: שורות שלא נראו כמו שם, overflow: מעבר למגבלה }
+    function parsePlayerList(text, existingNames) {
+        const have = new Set((existingNames || []).map(playerNameKey));
+        const out = { names: [], existing: [], dupes: [], tooLong: [], skipped: [], overflow: 0 };
+        const seen = new Set();
+        const skip = t => { const v = t.replace(BIDI, '').trim(); out.skipped.push(v.length > 30 ? v.slice(0, 30) + '…' : v); };
+        const parts = [];
+        String(text || '').split(/\r?\n/).forEach(line => {
+            line.replace(BIDI, '').replace(CHAT_PREFIX, '').split(/[,،;]+/).forEach(part => parts.push(part));
+        });
+        parts.forEach(part => {
+            const t = part.trim();
+            if (!t || !/\p{L}/u.test(t)) return;                                   // ריקה, או רק אימוג'ים ומספרים
+            if (/[:：]\s*$/.test(t)) return skip(t);                               // כותרת, למשל "רשימה לשישי:"
+            if (TIME_OR_DATE.test(stripLineExtras(t))) return skip(t);              // שעה או תאריך, למשל "שישי 20:00"
+            const name = cleanPlayerName(t);
+            if (!/\p{L}/u.test(name)) return skip(t);
+            if (name.length > PLAYER_NAME_MAX) { out.tooLong.push(name.slice(0, PLAYER_NAME_MAX) + '…'); return; }
+            const key = playerNameKey(name);
+            if (seen.has(key)) { out.dupes.push(name); return; }
+            seen.add(key);
+            if (have.has(key)) { out.existing.push(name); return; }
+            if (out.names.length >= BULK_MAX) { out.overflow++; return; }
+            out.names.push(name);
+        });
+        return out;
+    }
+
     // ===== פרטי קבוצה: ימים, רמה, טלפון, ערים =====
     const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
     const DAY_SHORT = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
@@ -310,7 +452,9 @@
     }
 
     window.GroupPrefs = {
-        priorityLabel,
+        priorityLabel, priorityPrefs, regPriority, priorityRank, priorityLabelScope, priorityRuleTexts,
+        validPriorityAge, DEFAULT_PRIORITY_AGE, PRIORITY_AGE_MIN, PRIORITY_AGE_MAX,
+        cleanPlayerName, playerNameKey, parsePlayerList, PLAYER_NAME_MAX, BULK_MAX,
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
         cleanDays, cleanTime, formatSchedule, normalizePhone, phoneToIntl, buildListing,
         renderDayChips, readDayChips, fillCityList, levelOptionsHTML,
