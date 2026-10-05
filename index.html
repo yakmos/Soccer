@@ -129,7 +129,7 @@
         .svb-text { flex: 1; min-width: 0; line-height: 1.4; }
         .svb-text b { display: block; font-size: 0.98rem; }
         .svb-text small { display: block; color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
-        .svb-btn { flex: none; background: #25D366; color: #062E16; border: 0; border-radius: 10px; padding: 9px 12px; font: 900 0.85rem 'Heebo', sans-serif; cursor: pointer; white-space: nowrap; }
+        .svb-btn { flex: none; background: #25D366; color: #062E16; border: 0; border-radius: 10px; padding: 9px 12px; font: 900 0.85rem 'Heebo', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; text-align: center; }
         @media (max-width: 420px) { .svb-row { flex-direction: column; align-items: stretch; } .svb-btn { padding: 11px; } }
         .market-post-card { border-color: rgba(59,130,246,0.45); background: linear-gradient(180deg, rgba(59,130,246,0.08), var(--surface-color) 70%); }
         .mp-sub { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 14px; line-height: 1.5; }
@@ -675,7 +675,7 @@
     <nav id="adminMenu" class="admin-menu" aria-label="פעולות ניהול" hidden>
         <div class="am-who" id="adminMenuWho"></div>
         <button type="button" class="am-item" onclick="adminMenuGo('settings')"><span class="am-ic" aria-hidden="true">⚙️</span><span class="am-tx">הגדרות הקבוצה<small>גודל הקבוצות, מי נכנס כשההרשמה מלאה, מנהלים</small></span></button>
-        <button type="button" class="am-item" onclick="adminMenuGo('vote')"><span class="am-ic" aria-hidden="true">📢</span><span class="am-tx">קישור לדירוג השחקנים<small>שולחים לקבוצה, והחלוקה לקבוצות משתפרת</small></span></button>
+        <a class="am-item voters-link" href="voters_admin.html"><span class="am-ic" aria-hidden="true">🔗</span><span class="am-tx">קישורים אישיים לדירוג<small>לכל שחקן קישור משלו, כדי שאף אחד לא ידרג פעמיים</small></span></a>
         <a class="am-item activity-link" href="activity.html"><span class="am-ic" aria-hidden="true">📊</span><span class="am-tx">פעילות שחקנים<small>מי מגיע, מי מבטל ומי נעלם</small></span></a>
         <button type="button" class="am-item" onclick="adminMenuGo('market')"><span class="am-ic" aria-hidden="true">🤝</span><span class="am-tx">חסרים שחקנים? פרסום מודעה<small>ל-24 שעות, בלשונית "מחפשים שחקן"</small></span></button>
         <button type="button" class="am-item" data-act="clear" onclick="adminMenuGo('clear')"><span class="am-ic" aria-hidden="true">🧹</span><span class="am-tx">איפוס ההרכב הנוכחי<small>מוריד את כולם מההרכב של המשחק</small></span></button>
@@ -1057,8 +1057,8 @@
             <div id="tab-leaderboards" class="tab-content">
                 <div class="admin-only share-vote-box">
                     <div class="svb-row">
-                        <div class="svb-text"><b>📢 דירוג השחקנים</b><small>שלחו לקבוצה קישור: כל אחד מדרג את השחקנים, והחלוקה לקבוצות נעשית מאוזנת יותר</small></div>
-                        <button type="button" class="svb-btn" onclick="shareGlobalVoteLink()">📤 שליחה בוואטסאפ</button>
+                        <div class="svb-text"><b>🔗 קישורים אישיים לדירוג</b><small>כל שחקן מקבל קישור משלו, שננעל לטלפון שלו, ולכן אי אפשר לדרג פעמיים. שם גם רואים מי כבר דירג</small></div>
+                        <a class="svb-btn voters-link" href="voters_admin.html">לקישורים ←</a>
                     </div>
                 </div>
                 <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
@@ -1186,7 +1186,7 @@
             <div id="bulkFlags" class="bulk-flags"></div>
             <div id="bulkPreview" class="bulk-preview" aria-live="polite"></div>
             <button type="button" class="btn" id="bulkAddBtn" onclick="bulkAddPlayers()" disabled>הוסף שחקנים</button>
-            <div class="bulk-note">המדדים של כולם מתחילים ב-5. אפשר לערוך כל שחקן אחר כך, או לשלוח לקבוצה קישור לדירוג השחקנים.</div>
+            <div class="bulk-note">המדדים של כולם מתחילים ב-5. אפשר לערוך כל שחקן אחר כך, או לשלוח לשחקנים קישורים אישיים לדירוג (בתפריט הניהול).</div>
         </div>
     </div>
 
@@ -1333,6 +1333,8 @@ function updateGroupLinkUI() {
     if (el) el.innerText = url;
     // דף הפעילות (למנהלים): מי מגיע, אחוזי נוכחות ומי לא נראה לאחרונה
     document.querySelectorAll('.activity-link').forEach(a => { a.href = 'activity.html?group=' + encodeURIComponent(currentGroupId); });
+    // הדירוג עובד רק בקישור אישי לכל שחקן (vote.html?group=…&token=…), ולכן המנהל עובר לדף שיוצר אותם
+    document.querySelectorAll('.voters-link').forEach(a => { a.href = 'voters_admin.html?group=' + encodeURIComponent(currentGroupId); });
 }
 function copyGroupLink() {
     navigator.clipboard.writeText(document.getElementById('groupLinkDisplay').innerText)
@@ -3181,7 +3183,6 @@ function toggleAdminMenu(open) {
 function adminMenuGo(action) {
     toggleAdminMenu(false);
     if (action === 'settings') openSettingsModal();
-    else if (action === 'vote') shareGlobalVoteLink();
     else if (action === 'market') openMarketPost();
     else if (action === 'clear') clearLineup();
     else if (action === 'logout') logoutAdmin();
@@ -3687,10 +3688,6 @@ async function shareImageToWhatsApp() {
             else { const link = document.createElement('a'); link.download='הרכבים.png'; link.href=canvas.toDataURL('image/png'); link.click(); }
         });
     } catch(e) { b.style.display='block'; if(wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor=bg; r.style.padding='0'; }
-}
-
-function shareGlobalVoteLink() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(`⚽ *חברים, פורטל הדירוגים של ${currentGroupName()} נפתח!* ⚽\n\nכנסו לדרג:\n${window.location.origin + window.location.pathname.replace('index.html','')}vote.html?group=${currentGroupId}`)}`, '_blank');
 }
 
 // ========== History ==========
