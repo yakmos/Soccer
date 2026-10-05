@@ -17,6 +17,11 @@
     <meta property="og:image:alt" content="Soccer Manager — הרשמה, חלוקה מאוזנת לקבוצות ו-MVP">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="theme-color" content="#0F172A">
+    <!-- אייקון למסך הבית ולכרטיסייה. במניפסט אין start_url ואין name, בכוונה: האייקון פותח את הדף שממנו הוסיפו אותו (למשל הקבוצה עצמה), ושמו הוא שם הדף -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Soccer Manager">
     
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -24,7 +29,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20260930"></script>
-    <script src="group-prefs.js?v=20260930"></script>
+    <script src="group-prefs.js?v=20261005"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -83,6 +88,102 @@
         .vis-opt:has(input:disabled) { opacity: 0.6; cursor: default; }
         .welcome-card { border: 1px solid var(--primary-color) !important; background: rgba(16,185,129,0.06) !important; }
         @media (max-width: 480px) { .vis-opts { grid-template-columns: 1fr; } }
+
+        /* הגדרות: מי נכנס כשההרשמה מלאה */
+        .prio-rules { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.15); padding: 12px; }
+        .prio-rules-head { color: var(--text-muted); font-size: 0.82rem; font-weight: 800; margin-bottom: 8px; }
+        .prio-rule { padding: 9px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+        .prio-rule small { display: block; color: var(--text-muted); font-size: 0.78rem; line-height: 1.45; margin-top: 3px; padding-right: 28px; }
+        .prio-check { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 800; color: var(--text-main); font-size: 0.95rem; }
+        .prio-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary-color); flex: none; cursor: pointer; }
+        .prio-rule .prio-input { margin: 8px 28px 0 0; width: calc(100% - 28px); padding: 10px 12px; font-size: 0.95rem; }
+        .prio-age { display: flex; align-items: center; gap: 8px; margin: 8px 28px 0 0; color: var(--text-main); font-size: 0.9rem; font-weight: 700; }
+        .prio-age input { width: 64px; padding: 7px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); text-align: center; font: 800 0.95rem 'Heebo', sans-serif; }
+        .prio-rule.off .prio-input, .prio-rule.off .prio-age { opacity: 0.55; }
+        .prio-note { margin-top: 8px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.78rem; line-height: 1.5; }
+
+        /* תפריט הניהול בכותרת */
+        .admin-menu { position: fixed; top: 60px; left: 12px; z-index: 300; width: 310px; max-width: calc(100vw - 24px); max-height: calc(100vh - 76px); overflow-y: auto;
+            background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.55); padding: 6px; }
+        .admin-menu[hidden] { display: none; }
+        .admin-menu .am-item { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 10px; border: 0; background: transparent; color: var(--text-main);
+            font: 800 0.95rem 'Heebo', sans-serif; text-align: right; border-radius: 10px; cursor: pointer; text-decoration: none; line-height: 1.3; }
+        .admin-menu .am-item[hidden] { display: none; }
+        .admin-menu .am-item:hover, .admin-menu .am-item:focus-visible { background: rgba(255,255,255,0.07); outline: none; }
+        .admin-menu .am-ic { width: 1.5em; text-align: center; flex: none; font-size: 1.05rem; }
+        .admin-menu .am-tx small { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.78rem; margin-top: 2px; }
+        .admin-menu .am-sep { border-top: 1px solid var(--border-color); margin: 6px 4px; }
+        .admin-menu .am-who { padding: 6px 10px 9px; margin-bottom: 4px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.78rem;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* פעולות מנהל במקום שבו משתמשים בהן */
+        .admin-inline { display: none; }
+        body.is-admin .admin-inline { display: inline-flex; }
+        body.is-admin .admin-inline[hidden] { display: none; }
+        .lineup-title-side { display: flex; align-items: center; gap: 8px; }
+        .lineup-clear-btn { align-items: center; gap: 4px; background: transparent; border: 1px solid rgba(239,68,68,0.45); color: #FCA5A5; border-radius: 20px;
+            padding: 4px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        .lineup-clear-btn:hover, .lineup-clear-btn:focus-visible { background: rgba(239,68,68,0.12); color: #FECACA; }
+        .share-vote-box { margin-bottom: 14px; }
+        .svb-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(37,211,102,0.07); border: 1px solid rgba(37,211,102,0.3); }
+        .svb-text { flex: 1; min-width: 0; line-height: 1.4; }
+        .svb-text b { display: block; font-size: 0.98rem; }
+        .svb-text small { display: block; color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
+        .svb-btn { flex: none; background: #25D366; color: #062E16; border: 0; border-radius: 10px; padding: 9px 12px; font: 900 0.85rem 'Heebo', sans-serif; cursor: pointer; white-space: nowrap; }
+        @media (max-width: 420px) { .svb-row { flex-direction: column; align-items: stretch; } .svb-btn { padding: 11px; } }
+        .market-post-card { border-color: rgba(59,130,246,0.45); background: linear-gradient(180deg, rgba(59,130,246,0.08), var(--surface-color) 70%); }
+        .mp-sub { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 14px; line-height: 1.5; }
+        .mp-grid { display: grid; grid-template-columns: 110px 1fr; gap: 10px; margin-bottom: 14px; }
+        .mp-field { display: flex; flex-direction: column; gap: 5px; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); min-width: 0; }
+        .mp-field input { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font: 700 0.95rem 'Heebo', sans-serif; }
+        .mp-field input:focus { border-color: #3B82F6; outline: none; }
+        .mp-field:last-child { grid-column: 1 / -1; }
+        .mp-num input { text-align: center; }
+        .mp-note { color: var(--text-muted); font-size: 0.78rem; margin-top: 10px; line-height: 1.5; }
+        .mp-mine { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; padding: 10px 12px; border-radius: 10px;
+            background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.35); color: #6EE7B7; font-size: 0.88rem; font-weight: 800; }
+        .mp-mine[hidden] { display: none; }
+        .mp-mine button { background: transparent; border: 1px solid rgba(239,68,68,0.5); color: #FCA5A5; border-radius: 8px; padding: 5px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        /* הוספה למסך הבית (בטלפון) */
+        .a2hs { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
+        .a2hs[hidden], .a2hs-help[hidden] { display: none; }
+        .a2hs-row { display: flex; align-items: center; gap: 8px; }
+        .a2hs-ic { border-radius: 6px; flex: none; }
+        .a2hs-text { flex: 1; min-width: 0; color: var(--text-muted); line-height: 1.4; }
+        .a2hs-text b { color: var(--text-main); }
+        .a2hs-how { flex: none; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); color: #6EE7B7; border-radius: 8px; padding: 4px 10px;
+            font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        .a2hs-x { flex: none; background: transparent; border: 0; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; padding: 4px; }
+        .a2hs-help { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); line-height: 1.6; }
+        .a2hs-help ol { margin: 0; padding-right: 20px; }
+        .a2hs-help small { display: block; color: var(--text-muted); margin-top: 6px; font-size: 0.78rem; }
+
+        /* הוספת כמה שחקנים בבת אחת */
+        .form-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+        .form-head .card-title { margin: 0; }
+        .bulk-open-btn { flex: none; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.4); color: #6EE7B7; border-radius: 20px; padding: 6px 12px;
+            font: 800 0.82rem 'Heebo', sans-serif; cursor: pointer; white-space: nowrap; }
+        .bulk-open-btn:hover, .bulk-open-btn:focus-visible { background: rgba(16,185,129,0.2); }
+        .bulk-open-btn[hidden] { display: none; }
+        .bulk-modal { max-width: 460px; text-align: right; }
+        .bulk-modal .modal-name { font-size: 1.35rem; margin: 0 0 6px 36px; }
+        .bulk-sub { color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; margin: 0 0 12px; }
+        .bulk-text { resize: vertical; min-height: 140px; line-height: 1.6; margin-bottom: 10px; }
+        .bulk-flags { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+        .bulk-flags:empty { display: none; }
+        .bulk-flags label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+        .bulk-flags input { width: 17px; height: 17px; margin: 0; accent-color: var(--primary-color); }
+        .bulk-preview { margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+        .bulk-preview:empty { display: none; }
+        .bulk-count { color: var(--text-main); font-weight: 900; font-size: 0.95rem; margin-bottom: 6px; }
+        .bulk-chips { display: flex; flex-wrap: wrap; gap: 5px; max-height: 150px; overflow-y: auto; margin-bottom: 6px; }
+        .bulk-chip { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); color: var(--text-main); border-radius: 8px; padding: 2px 8px; font-weight: 700; font-size: 0.85rem; }
+        .bulk-skip { margin-top: 4px; }
+        .bulk-skip b { color: #FCD34D; font-weight: 800; }
+        .bulk-note { color: var(--text-muted); font-size: 0.78rem; line-height: 1.5; margin-top: 10px; }
+        .squad-empty { text-align: center; color: var(--text-muted); padding: 18px 10px; border: 1px dashed var(--border-color); border-radius: 12px; line-height: 1.6; font-size: 0.9rem; }
+        .squad-empty button { display: block; margin: 10px auto 4px; }
+        .mp-mine-tag { display: inline-block; margin-top: 6px; background: rgba(16,185,129,0.15); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.35); border-radius: 6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 800; }
 
         #lobbyContainer { display: none; text-align: center; margin-top: 50px; }
         .lobby-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px 20px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -566,9 +667,21 @@
         <div style="display:flex; gap:10px;">
             <a href="home.html" class="admin-btn" title="הקבוצות שלי" aria-label="הקבוצות שלי">🏠</a>
             <button id="settingsBtnHeader" class="admin-btn admin-only" onclick="openSettingsModal()" title="הגדרות קבוצה">⚙️</button>
-            <button id="adminBtnHeader" class="admin-btn" style="display:none;" onclick="promptAdmin()">ניהול 🔒</button>
+            <button id="adminBtnHeader" class="admin-btn" style="display:none;" onclick="onAdminBtn(event)">ניהול 🔒</button>
         </div>
     </header>
+
+    <!-- תפריט הניהול: נפתח מהכפתור "ניהול" אחרי הכניסה. כל פעולה מופיעה גם במקום שבו משתמשים בה -->
+    <nav id="adminMenu" class="admin-menu" aria-label="פעולות ניהול" hidden>
+        <div class="am-who" id="adminMenuWho"></div>
+        <button type="button" class="am-item" onclick="adminMenuGo('settings')"><span class="am-ic" aria-hidden="true">⚙️</span><span class="am-tx">הגדרות הקבוצה<small>גודל הקבוצות, מי נכנס כשההרשמה מלאה, מנהלים</small></span></button>
+        <button type="button" class="am-item" onclick="adminMenuGo('vote')"><span class="am-ic" aria-hidden="true">📢</span><span class="am-tx">קישור לדירוג השחקנים<small>שולחים לקבוצה, והחלוקה לקבוצות משתפרת</small></span></button>
+        <a class="am-item activity-link" href="activity.html"><span class="am-ic" aria-hidden="true">📊</span><span class="am-tx">פעילות שחקנים<small>מי מגיע, מי מבטל ומי נעלם</small></span></a>
+        <button type="button" class="am-item" onclick="adminMenuGo('market')"><span class="am-ic" aria-hidden="true">🤝</span><span class="am-tx">חסרים שחקנים? פרסום מודעה<small>ל-24 שעות, בלשונית "מחפשים שחקן"</small></span></button>
+        <button type="button" class="am-item" data-act="clear" onclick="adminMenuGo('clear')"><span class="am-ic" aria-hidden="true">🧹</span><span class="am-tx">איפוס ההרכב הנוכחי<small>מוריד את כולם מההרכב של המשחק</small></span></button>
+        <div class="am-sep" aria-hidden="true"></div>
+        <button type="button" class="am-item" onclick="adminMenuGo('logout')"><span class="am-ic" aria-hidden="true">🚪</span><span class="am-tx">יציאה ממצב ניהול</span></button>
+    </nav>
 
     <div id="lobbyContainer" class="container">
         <p style="text-align:center; color:var(--text-muted);">מעביר לדף הבית… <a href="home.html" style="color:var(--primary-color);">לחץ כאן</a></p>
@@ -582,8 +695,18 @@
                     <button onclick="copyGroupLink()" style="background: var(--primary-color); border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 700;">העתק</button>
                 </div>
                 <div id="groupLinkDisplay" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted); word-break: break-all; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">טוען קישור...</div>
-                <div class="admin-only" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #FCD34D;">
+                <!-- במחשב: תזכורת למנהל לשמור את הקישור. בטלפון: הוספה למסך הבית (initA2hsTip) -->
+                <div class="admin-only" id="bookmarkTip" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #FCD34D;">
                     <strong>📢 תזכורת למנהל:</strong> שמור את הקישור הזה בקיצורי הדרך!
+                </div>
+                <div class="a2hs" id="a2hsTip" hidden>
+                    <div class="a2hs-row">
+                        <img src="icons/favicon-32.png" alt="" width="22" height="22" class="a2hs-ic">
+                        <span class="a2hs-text"><b>הוסיפו את הקבוצה למסך הבית</b> ותיכנסו בלחיצה אחת</span>
+                        <button type="button" class="a2hs-how" id="a2hsHowBtn" onclick="toggleA2hsHelp()" aria-expanded="false" aria-controls="a2hsHelp">איך?</button>
+                        <button type="button" class="a2hs-x" onclick="dismissA2hs()" aria-label="להסתיר את ההצעה">✕</button>
+                    </div>
+                    <div class="a2hs-help" id="a2hsHelp" hidden></div>
                 </div>
             </div>
         </div>
@@ -766,7 +889,10 @@
                     </div>
 
                     <div class="card admin-only">
-                        <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
+                        <div class="form-head">
+                            <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
+                            <button type="button" class="bulk-open-btn" id="bulkOpenBtn" onclick="openBulkAdd()">📋 כמה בבת אחת</button>
+                        </div>
                         <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
                         
                         <div style="margin-bottom: 15px;">
@@ -775,10 +901,10 @@
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
 
-                        <!-- Player Classification Toggles -->
-                        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
+                        <!-- Player Classification Toggles: רק לכללי העדיפות שפועלים בקבוצה (applyPriorityUI) -->
+                        <div id="flagRows" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
                             <!-- Active toggle -->
-                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:12px 16px;">
+                            <div id="activeFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:12px 16px;">
                                 <div>
                                     <div style="font-weight:800; color:#10B981; font-size:0.95rem;">✅ שחקן פעיל?</div>
                                     <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים פעילים מקבלים קדימות בהרשמה</div>
@@ -786,7 +912,7 @@
                                 <button type="button" id="activeToggleBtn" onclick="togglePlayerFlag('isActive','activeToggleBtn','✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא פעיל</button>
                             </div>
                             <!-- New toggle -->
-                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:12px 16px;">
+                            <div id="newFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:12px 16px;">
                                 <div>
                                     <div style="font-weight:800; color:#60A5FA; font-size:0.95rem;">🆕 שחקן חדש?</div>
                                     <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים חדשים מקבלים עדיפות נמוכה יותר</div>
@@ -899,17 +1025,15 @@
 
                         <h3 style="margin-top: 30px; font-size: 1.05rem; color:var(--text-main); font-weight:800;">כל הסגל <span style="font-size:0.85rem; font-weight:400; color:var(--text-muted);">(לחץ + להוספה, ✓ להסרה)</span></h3>
                         <div class="squad-list" id="squadList"></div>
-                        
-                        <button class="btn" onclick="clearLineup()" style="margin-top:20px; background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">אפס הרכב נוכחי</button>
-                        <button class="btn btn-whatsapp" onclick="shareGlobalVoteLink()" style="margin-top:10px;">📢 שתף פורטל דירוגים לקבוצה</button>
-                        <a class="btn activity-link" href="activity.html" style="margin-top:10px; display:block; text-align:center; text-decoration:none; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.45); color:#C4B5FD;">📊 פעילות שחקנים: מי מגיע ומי לא</a>
-                        <button class="btn" onclick="publishToMarket()" style="margin-top:10px; background: #3B82F6;">📢 פרסם גיוס שחקנים לשוק</button>
                     </div>
 
                     <div class="card">
                         <h2 class="card-title">
                             הרכב למשחק
-                            <span id="counterBadge" class="counter">0 / 0</span>
+                            <span class="lineup-title-side">
+                                <button type="button" id="clearLineupBtn" class="lineup-clear-btn admin-inline" onclick="clearLineup()" title="להוריד את כולם מההרכב">🧹 איפוס</button>
+                                <span id="counterBadge" class="counter">0 / 0</span>
+                            </span>
                         </h2>
                         <div id="lineupGrid" class="player-grid">
                             <div style="grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;">טוען נתונים...</div>
@@ -931,6 +1055,12 @@
 
             <!-- TAB: LEADERBOARDS -->
             <div id="tab-leaderboards" class="tab-content">
+                <div class="admin-only share-vote-box">
+                    <div class="svb-row">
+                        <div class="svb-text"><b>📢 דירוג השחקנים</b><small>שלחו לקבוצה קישור: כל אחד מדרג את השחקנים, והחלוקה לקבוצות נעשית מאוזנת יותר</small></div>
+                        <button type="button" class="svb-btn" onclick="shareGlobalVoteLink()">📤 שליחה בוואטסאפ</button>
+                    </div>
+                </div>
                 <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
                     <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 20px;">🏆 דירוג שחקנים מפורט</h2>
                     <select id="statSelector" class="form-input" onchange="renderLeaderboards()" style="font-weight: 800; font-size: 1.1rem; color: var(--primary-color);">
@@ -987,6 +1117,19 @@
         <!-- TAB: MARKET -->
         <div id="tab-market" class="tab-content">
             <div class="container">
+                <!-- למנהלים: מודעה ל-24 שעות כשחסרים שחקנים -->
+                <div class="card admin-only market-post-card" id="marketPostCard">
+                    <h2 class="card-title" style="margin-bottom:4px;">📢 חסרים לכם שחקנים?</h2>
+                    <p class="mp-sub">פרסמו כאן מודעה ל-24 שעות. מי שרוצה להצטרף שולח לכם הודעה בוואטסאפ.</p>
+                    <div id="marketMine" class="mp-mine" hidden></div>
+                    <div class="mp-grid">
+                        <label class="mp-field mp-num"><span>כמה חסרים?</span><input type="number" id="mpMissing" min="1" max="99" step="1" inputmode="numeric"></label>
+                        <label class="mp-field"><span>איפה משחקים?</span><input type="text" id="mpLocation" maxlength="100" placeholder="עיר ומגרש"></label>
+                        <label class="mp-field"><span>טלפון לוואטסאפ</span><input type="tel" id="mpPhone" inputmode="tel" maxlength="20" placeholder="050-1234567"></label>
+                    </div>
+                    <button type="button" class="btn" id="mpPublishBtn" onclick="publishToMarket()" style="background:#3B82F6;">📢 פרסם מודעה</button>
+                    <div class="mp-note">שם הקבוצה, המקום והטלפון יוצגו לכל מי שנכנס ל"מחפשים שחקן". הקישור לקבוצה לא מתפרסם.</div>
+                </div>
                 <div class="card" style="border-top: 4px solid #3B82F6;">
                     <h2 class="card-title" style="justify-content: center; margin-bottom: 20px;">🏃‍♂️ קבוצות מחפשות שחקנים</h2>
                     <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
@@ -1033,6 +1176,20 @@
         </div>
     </div>
 
+    <!-- Modal: הוספת כמה שחקנים בבת אחת (רשימה מודבקת, גם מהוואטסאפ) -->
+    <div id="bulkModalOverlay" class="modal-overlay" onclick="closeBulkAdd()">
+        <div class="player-card-modal bulk-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+            <button class="close-btn" onclick="closeBulkAdd()" aria-label="סגור">✕</button>
+            <h2 class="modal-name" id="bulkTitle">📋 הוספת כמה שחקנים</h2>
+            <p class="bulk-sub">הדביקו את השמות, שם בכל שורה. אפשר להדביק רשימה מהוואטסאפ: מספרים, סימנים ואימוג'ים יורדים לבד.</p>
+            <textarea id="bulkText" class="form-input bulk-text" rows="7" placeholder="אבי כהן&#10;בני לוי&#10;גיל" oninput="renderBulkPreview()" aria-label="שמות השחקנים"></textarea>
+            <div id="bulkFlags" class="bulk-flags"></div>
+            <div id="bulkPreview" class="bulk-preview" aria-live="polite"></div>
+            <button type="button" class="btn" id="bulkAddBtn" onclick="bulkAddPlayers()" disabled>הוסף שחקנים</button>
+            <div class="bulk-note">המדדים של כולם מתחילים ב-5. אפשר לערוך כל שחקן אחר כך, או לשלוח לקבוצה קישור לדירוג השחקנים.</div>
+        </div>
+    </div>
+
     <!-- Modal: Settings -->
     <div id="settingsModalOverlay" class="modal-overlay" onclick="closeSettingsModal()">
         <div class="player-card-modal" onclick="event.stopPropagation()" style="max-width: 480px;">
@@ -1073,10 +1230,35 @@
                 <span style="color:var(--text-main); font-weight:bold;">שחקנים בכל קבוצה</span>
                 <input type="number" id="setPlayersPerTeam" min="3" max="11" value="6">
             </div>
-            <div style="text-align: right; margin-bottom:20px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
-                <div style="color:var(--text-main); font-weight:bold; margin-bottom:8px;">🏠 קבוצת עדיפות בהרשמה</div>
-                <input type="text" id="setPriorityLabel" class="form-input" maxlength="30" placeholder="לדוגמה: תושב השכונה" style="margin-bottom:6px;">
-                <div style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.5;">שחקן חדש ופעיל שמסומן כך עוקף שחקנים חדשים אחרים כשההרשמה מלאה. השאר ריק כדי לבטל.</div>
+            <!-- מי נכנס כשההרשמה מלאה (settings.regPriority, ראה group-prefs.js) -->
+            <div id="prioritySection" style="text-align: right; margin-bottom:20px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
+                <div style="color:var(--text-main); font-weight:bold; margin-bottom:8px;">⚖️ מי נכנס כשההרשמה מלאה?</div>
+                <div class="vis-opts">
+                    <label class="vis-opt"><input type="radio" name="setPrioMode" value="first" onchange="onPrioModeChange()"><b>⏱️ כל הקודם זוכה</b><small>מי שנרשם אחרי שהרשימה התמלאה נכנס להמתנה, לפי הסדר</small></label>
+                    <label class="vis-opt"><input type="radio" name="setPrioMode" value="rules" onchange="onPrioModeChange()"><b>⭐ לפי עדיפות</b><small>שחקן בעדיפות גבוהה יותר דוחק להמתנה את מי שנמוך ממנו</small></label>
+                </div>
+                <div id="prioRules" class="prio-rules" style="display:none;">
+                    <div class="prio-rules-head">מה נותן עדיפות? מהחשוב ביותר:</div>
+                    <div class="prio-rule">
+                        <label class="prio-check"><input type="checkbox" id="prioActive" onchange="updatePrioForm()"><span>✅ שחקנים פעילים</span></label>
+                        <small>מסמנים "פעיל" בכרטיס של מי שמגיע באופן קבוע</small>
+                    </div>
+                    <div class="prio-rule">
+                        <label class="prio-check"><input type="checkbox" id="prioVeteran" onchange="updatePrioForm()"><span>⭐ ותיקים לפני חדשים</span></label>
+                        <small>מסמנים "חדש" בכרטיס של מי שהצטרף לאחרונה</small>
+                    </div>
+                    <div class="prio-rule">
+                        <label class="prio-check"><input type="checkbox" id="prioLabel" onchange="onPrioLabelCheck()"><span>🏠 קבוצת עדיפות</span></label>
+                        <input type="text" id="setPriorityLabel" class="form-input prio-input" maxlength="30" placeholder="שם, לדוגמה: תושב השכונה" oninput="onPrioLabelInput()" aria-label="שם קבוצת העדיפות">
+                        <small id="prioLabelHint"></small>
+                    </div>
+                    <div class="prio-rule">
+                        <label class="prio-check"><input type="checkbox" id="prioAge" onchange="updatePrioForm()"><span>🎂 מבוגרים קודם</span></label>
+                        <div class="prio-age">מגיל <input type="number" id="prioAgeMin" min="16" max="70" step="1" inputmode="numeric" oninput="onPrioAgeInput()" aria-label="מאיזה גיל"> ומעלה</div>
+                        <small>לפי תאריך הלידה בכרטיס. מי שאין לו תאריך נחשב צעיר</small>
+                    </div>
+                    <div class="prio-note">בתוך אותה דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד כבר לא נדחק להמתנה. השחקנים רואים את הכללים בדף ההרשמה.</div>
+                </div>
             </div>
             <div style="text-align: right;">
                 <h3 style="font-size: 1rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
@@ -1134,7 +1316,9 @@ const urlParams = new URLSearchParams(window.location.search);
 const currentGroupId = urlParams.get('group');
 let groupRef = null, playersRef = null, gameRef = null;
 let currentGroupData = null;   // מסמך הקבוצה העדכני (כולל admins / ownerUid)
-let priorityLabel = '';        // שם קבוצת העדיפות בהרשמה ('' = אין), ראה group-prefs.js
+// כללי העדיפות בהרשמה שפועלים בקבוצה (GroupPrefs.regPriority). עד שהקבוצה נטענת: כל הקודם זוכה
+let prioCfg = { mode: 'first', active: false, veteran: false, label: '', age: 0 };
+let priorityLabel = '';        // שם קבוצת העדיפות כשהכלל פועל ('' = אין)
 let groupSettings = { numTeams: 3, playersPerTeam: 6 };
 let customParams = [];
 let players = [], activeTeams = null, activeGkIds = [], activeHasFixedGk = [], activeWins = [];
@@ -1153,6 +1337,43 @@ function updateGroupLinkUI() {
 function copyGroupLink() {
     navigator.clipboard.writeText(document.getElementById('groupLinkDisplay').innerText)
         .then(() => alert("הקישור הועתק ללוח! 📋"));
+}
+
+// ========== הוספה למסך הבית ==========
+// בטלפון מוצגת הצעה עם הסבר לפי סוג המכשיר, עד שסוגרים אותה. במחשב נשארת התזכורת למנהל לשמור את הקישור
+const A2HS_KEY = 'sm_a2hs_hidden';
+function deviceKind() {
+    const ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/Android/i.test(ua)) return 'android';
+    return 'desktop';
+}
+function initA2hsTip() {
+    const kind = deviceKind();
+    let hiddenByUser = false;
+    try { hiddenByUser = localStorage.getItem(A2HS_KEY) === '1'; } catch (e) { /* אין גישה לאחסון */ }
+    const tip = document.getElementById('a2hsTip');
+    if (tip) tip.hidden = kind === 'desktop' || hiddenByUser;
+    const bookmark = document.getElementById('bookmarkTip');
+    if (bookmark && kind !== 'desktop') bookmark.style.display = 'none';
+}
+function toggleA2hsHelp() {
+    const help = document.getElementById('a2hsHelp');
+    const btn = document.getElementById('a2hsHowBtn');
+    const open = help.hidden;
+    if (open) {
+        help.innerHTML = deviceKind() === 'ios'
+            ? '<ol><li>לוחצים על כפתור השיתוף (ריבוע עם חץ למעלה), בתחתית המסך או ליד הכתובת</li><li>גוללים ובוחרים "הוספה למסך הבית"</li></ol>'
+              + '<small>הדף נפתח בתוך וואטסאפ? קודם פותחים אותו בספארי.</small>'
+            : '<ol><li>לוחצים על שלוש הנקודות ⋮ בפינה של הדפדפן</li><li>בוחרים "הוספה למסך הבית"</li></ol>'
+              + '<small>הדף נפתח בתוך וואטסאפ? קודם בוחרים "פתיחה בכרום" מהתפריט.</small>';
+    }
+    help.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+}
+function dismissA2hs() {
+    document.getElementById('a2hsTip').hidden = true;
+    try { localStorage.setItem(A2HS_KEY, '1'); } catch (e) { /* לא קריטי */ }
 }
 
 // ========== Init ==========
@@ -1174,8 +1395,7 @@ window.onload = async () => {
             if (doc.exists) {
                 const groupData = doc.data();
                 currentGroupData = groupData;
-                priorityLabel = GroupPrefs.priorityLabel(currentGroupId, groupData);
-                applyPriorityLabelUI();
+                setPrioCfg(GroupPrefs.regPriority(currentGroupId, groupData));
                 GroupPrefs.rememberGroup(currentGroupId, groupData.name, (groupData.location || {}).city, groupData.icon);
                 setHeaderGroup(groupData.name, groupData.icon);
                 if (groupData.settings) {
@@ -1192,6 +1412,7 @@ window.onload = async () => {
         } catch (error) { console.error("Error loading group:", error); }
 
         updateGroupLinkUI();
+        initA2hsTip();
         startRealtimeListeners();
         initRegCalendar();
         initBdayCal();
@@ -1215,6 +1436,13 @@ window.onload = async () => {
 function setHeaderGroup(name, icon) {
     document.getElementById('headerIcon').innerHTML = GroupPrefs.iconHTML(icon);
     document.getElementById('headerName').textContent = name || 'SOCCER MANAGER';
+    // שם הקבוצה בכרטיסייה, וכשם האייקון כשמוסיפים את הדף למסך הבית באייפון
+    const n = String(name || '').trim();
+    if (n) {
+        document.title = n;
+        const m = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        if (m) m.setAttribute('content', n.slice(0, 30));
+    }
 }
 
 // שם הקבוצה להודעות ולקישורים (בכותרת יש גם סמל, ולכן לא קוראים אותו משם)
@@ -1229,14 +1457,27 @@ function setAdminMode(on) {
     const mainTab = document.getElementById('tab-main');
     if (on) {
         document.body.classList.add('is-admin');
-        if (btn) { btn.innerText = '✅ מנהל'; btn.style.color = 'var(--primary-color)'; }
+        if (btn) {
+            btn.innerText = '✅ ניהול ▾';
+            btn.style.color = 'var(--primary-color)';
+            btn.setAttribute('aria-controls', 'adminMenu');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.title = 'פעולות ניהול';
+        }
         if (bottomBar && (!mainTab || mainTab.classList.contains('active'))) bottomBar.style.display = 'block';
         ensureAdminUids();
         migrateCareerStats();
         maybeSyncAutoRegs();
     } else {
         document.body.classList.remove('is-admin');
-        if (btn) { btn.innerText = 'ניהול 🔒'; btn.style.color = ''; }
+        toggleAdminMenu(false);
+        if (btn) {
+            btn.innerText = 'ניהול 🔒';
+            btn.style.color = '';
+            btn.removeAttribute('aria-controls');
+            btn.removeAttribute('aria-expanded');
+            btn.title = 'כניסת מנהל';
+        }
         if (bottomBar) bottomBar.style.display = 'none';
     }
     render();
@@ -1269,7 +1510,7 @@ function showWelcomeBanner() {
             <button type="button" onclick="this.closest('.card').remove()" style="background:none; border:none; color:var(--text-muted); font-size:1.1rem; cursor:pointer;" aria-label="סגור">✕</button>
         </div>
         <ol style="margin:10px 0 14px; padding-inline-start:20px; line-height:1.9;">
-            <li>הוסף את השחקנים לסגל, בטופס "הוספת שחקן חדש"</li>
+            <li>הוסף את השחקנים לסגל, אחד-אחד או כולם בבת אחת:<br><button type="button" class="bulk-open-btn" onclick="openBulkAdd()" style="margin:4px 0 2px;">📋 הדבקת רשימה מהוואטסאפ</button></li>
             <li>שלח את הקישור לקבוצת הוואטסאפ</li>
             <li>פתח הרשמה למשחק הקרוב, והשאר קורה לבד</li>
         </ol>
@@ -1461,6 +1702,8 @@ function startRealtimeListeners() {
         players = snap.docs.map(doc => cleanPlayerNumbers({ id: doc.id, ...doc.data() }));
         playersLoaded = true;
         render();
+        // חלון "כמה בבת אחת" פתוח: מי שנוסף עכשיו עובר ל"כבר בסגל"
+        if (document.getElementById('bulkModalOverlay').style.display === 'flex') renderBulkPreview();
         if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
     });
@@ -1499,8 +1742,9 @@ function startRealtimeListeners() {
                 setHeaderGroup(data.name, data.icon);
                 GroupPrefs.updateRecentGroup(currentGroupId, data.name, (data.location || {}).city, data.icon);
             }
-            const newPriorityLabel = GroupPrefs.priorityLabel(currentGroupId, data);
-            if (newPriorityLabel !== priorityLabel) { priorityLabel = newPriorityLabel; applyPriorityLabelUI(); render(); }
+            const newPrio = GroupPrefs.regPriority(currentGroupId, data);
+            if (JSON.stringify(newPrio) !== JSON.stringify(prioCfg)) { setPrioCfg(newPrio); render(); }
+            if (marketDocs) paintMarket();   // מנהל אחר פרסם או הוריד מודעה
             syncHistoryListener();
             customParams = data.customParams || [];
             renderCustomParamsManagerList();
@@ -1553,7 +1797,13 @@ function setPlayerFlagUI(fieldId, btnId, val, labelOn, labelOff, bgOn, colorOn, 
     btn.style.borderColor = val ? borderOn : 'var(--border-color)';
 }
 
-// ========== Priority group (per-group label) ==========
+// ========== Registration priority: which player flags are in use ==========
+function setPrioCfg(cfg) {
+    prioCfg = cfg;
+    priorityLabel = cfg.label;
+    applyPriorityUI();
+}
+
 function priorityFlagTexts() { return [`🏠 ${priorityLabel}`, `לא ${priorityLabel}`]; }
 function togglePriorityFlag() {
     const [on, off] = priorityFlagTexts();
@@ -1563,13 +1813,21 @@ function setPriorityFlagUI(val) {
     const [on, off] = priorityFlagTexts();
     setPlayerFlagUI('isMoshavResident','residentToggleBtn',!!val,on,off,'rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)');
 }
-function applyPriorityLabelUI() {
-    const row = document.getElementById('priorityFlagRow');
-    if (row) row.style.display = priorityLabel ? 'flex' : 'none';
+
+// בטופס השחקן מופיעים רק הסימונים של כללים שפועלים. סימון שכבר נשמר בכרטיס נשאר בו גם כשהכלל כבוי
+function applyPriorityUI() {
+    const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? 'flex' : 'none'; };
+    show('activeFlagRow', prioCfg.active);
+    show('newFlagRow', prioCfg.veteran);
+    show('priorityFlagRow', !!priorityLabel);
+    show('flagRows', prioCfg.active || prioCfg.veteran || !!priorityLabel);
     const title = document.getElementById('priorityFlagTitle');
     if (title) title.textContent = `🏠 ${priorityLabel}?`;
     const desc = document.getElementById('priorityFlagDesc');
-    if (desc) desc.textContent = `מי שמסומן "${priorityLabel}" מקבל קדימות בהרשמה`;
+    if (desc) {
+        const scope = GroupPrefs.priorityLabelScope(prioCfg);
+        desc.textContent = `מי שמסומן "${priorityLabel}" מקבל קדימות בהרשמה` + (scope ? ` (${scope})` : '');
+    }
     const hidden = document.getElementById('pIsMoshavResident');
     if (hidden) setPriorityFlagUI(hidden.value === 'true');
 }
@@ -2005,6 +2263,7 @@ function startEdit(id, p) {
     editingId = id;
     currentEditingImg = p.imgUrl || null;
     document.getElementById('formTitle').innerText = "עריכת שחקן: " + p.name;
+    document.getElementById('bulkOpenBtn').hidden = true;
     document.getElementById('pName').value = p.name;
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
@@ -2046,6 +2305,7 @@ function startEdit(id, p) {
 function cancelEdit() {
     editingId = null; currentEditingImg = null;
     document.getElementById('formTitle').innerText = "הוספת שחקן חדש";
+    document.getElementById('bulkOpenBtn').hidden = false;
     document.getElementById('pName').value = '';
     document.getElementById('pImage').value = '';
     document.getElementById('imgPreviewText').style.display = 'none';
@@ -2081,6 +2341,102 @@ async function clearLineup() {
     players.filter(p => p.inLineup).forEach(p => batch.update(playersRef.doc(p.id), { inLineup: false }));
     await batch.commit();
     await gameRef.delete();
+}
+
+// ========== Bulk add: כמה שחקנים בבת אחת ==========
+const BULK_CHUNK = 10;   // כתיבות בכל batch: כל אחת נבדקת בחוקי האבטחה מול מסמך הקבוצה
+let bulkAdding = false;
+
+// כרטיס של שחקן חדש: כמו בטופס הרגיל, עם כל המדדים על 5
+function newPlayerDefaults(name, flags) {
+    const customStats = {};
+    customParams.forEach(cp => { customStats[cp.id] = 5; });
+    return Object.assign({
+        name, isGk: false, isActive: false, isNew: false, isMoshavResident: false, lockedParams: {}, birthDate: null,
+        atk: 5, def: 5, sta: 5, pac: 5, pas: 5, customStats, attScore: 5, defScore: 5,
+        gkScore: 5, gkDiv: 5, gkHan: 5, gkKic: 5, gkPos: 5, gkRef: 5,
+        imgUrl: null, inLineup: false, goals: 0
+    }, flags || {});
+}
+
+function openBulkAdd() {
+    // סימון לכולם, רק לכללי העדיפות שפועלים בקבוצה
+    const opts = [];
+    if (prioCfg.active) opts.push(['isActive', '✅ כולם שחקנים פעילים']);
+    if (prioCfg.veteran) opts.push(['isNew', '🆕 כולם שחקנים חדשים']);
+    if (priorityLabel) opts.push(['isMoshavResident', `🏠 כולם ${priorityLabel}`]);
+    const box = document.getElementById('bulkFlags');
+    box.innerHTML = opts.map(([k, label]) => `<label><input type="checkbox" data-flag="${k}"> ${escAdminText(label)}</label>`).join('');
+    renderBulkPreview();
+    document.getElementById('bulkModalOverlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('bulkText').focus(), 50);
+}
+
+function closeBulkAdd() {
+    if (bulkAdding) return;
+    document.getElementById('bulkModalOverlay').style.display = 'none';
+}
+
+function readBulkFlags() {
+    const flags = {};
+    document.querySelectorAll('#bulkFlags input[data-flag]').forEach(i => { if (i.checked) flags[i.dataset.flag] = true; });
+    return flags;
+}
+
+function parseBulkText() {
+    return GroupPrefs.parsePlayerList(document.getElementById('bulkText').value, players.map(p => p.name));
+}
+
+function renderBulkPreview() {
+    const r = parseBulkText();
+    const n = r.names.length;
+    const esc = escAdminText;
+    const list = arr => arr.map(esc).join(', ');
+    let html = '';
+    if (n) html += `<div class="bulk-count">${n === 1 ? 'יתווסף שחקן אחד' : `יתווספו ${n} שחקנים`}:</div><div class="bulk-chips">${r.names.map(x => `<span class="bulk-chip">${esc(x)}</span>`).join('')}</div>`;
+    if (r.existing.length) html += `<div class="bulk-skip"><b>כבר בסגל</b> (לא יתווספו שוב): ${list(r.existing)}</div>`;
+    if (r.dupes.length) html += `<div class="bulk-skip"><b>הופיעו פעמיים</b> (יתווספו פעם אחת): ${list(r.dupes)}</div>`;
+    if (r.tooLong.length) html += `<div class="bulk-skip"><b>ארוכים מדי</b> (עד ${GroupPrefs.PLAYER_NAME_MAX} תווים): ${list(r.tooLong)}</div>`;
+    if (r.skipped.length) html += `<div class="bulk-skip"><b>דילגנו</b> (לא נראה כמו שם): ${list(r.skipped)}</div>`;
+    if (r.overflow) html += `<div class="bulk-skip"><b>עד ${GroupPrefs.BULK_MAX} בכל פעם:</b> ${r.overflow} שמות נוספים לא נכנסו. אפשר להוסיף אותם אחר כך.</div>`;
+    document.getElementById('bulkPreview').innerHTML = html;
+    const btn = document.getElementById('bulkAddBtn');
+    if (!bulkAdding) {
+        btn.disabled = !n;
+        btn.textContent = !n ? 'הוסף שחקנים' : n === 1 ? '➕ הוסף שחקן אחד' : `➕ הוסף ${n} שחקנים`;
+    }
+}
+
+async function bulkAddPlayers() {
+    if (bulkAdding) return;
+    const names = parseBulkText().names;
+    if (!names.length) return;
+    const flags = readBulkFlags();
+    const btn = document.getElementById('bulkAddBtn');
+    bulkAdding = true;
+    btn.disabled = true;
+    let added = 0;
+    try {
+        for (let i = 0; i < names.length; i += BULK_CHUNK) {
+            btn.textContent = `מוסיף… ${added} מתוך ${names.length}`;
+            const batch = db.batch();
+            names.slice(i, i + BULK_CHUNK).forEach(name => batch.set(playersRef.doc(), newPlayerDefaults(name, flags)));
+            await batch.commit();
+            added = Math.min(names.length, i + BULK_CHUNK);
+        }
+        bulkAdding = false;
+        document.getElementById('bulkText').value = '';
+        closeBulkAdd();
+        showToast(added === 1 ? '✅ שחקן אחד נוסף לסגל' : `✅ ${added} שחקנים נוספו לסגל`);
+    } catch (e) {
+        console.error('bulk add', e);
+        bulkAdding = false;
+        alert((added ? `${added} מתוך ${names.length} שחקנים נוספו. ` : '') + 'השאר לא נוספו: ' + AdminAuth.errorMessage(e)
+            + '\nאפשר ללחוץ שוב: מי שכבר נוסף ידולג.');
+    } finally {
+        bulkAdding = false;
+        renderBulkPreview();
+    }
 }
 
 // ========== Goals & Wins ==========
@@ -2409,7 +2765,9 @@ function render() {
     const isAdmin = document.body.classList.contains('is-admin');
 
     const squadList = document.getElementById('squadList');
-    if (squadList) {
+    if (squadList && !players.length && playersLoaded) {
+        squadList.innerHTML = `<div class="squad-empty">עוד אין שחקנים בסגל.<button type="button" class="bulk-open-btn" onclick="openBulkAdd()">📋 הדבקת רשימה מהוואטסאפ</button>או הוספה אחד-אחד בטופס למעלה</div>`;
+    } else if (squadList) {
         squadList.innerHTML = players.map(p => {
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
             const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
@@ -2469,6 +2827,8 @@ function render() {
         const calcBtn = document.getElementById('calcBtn');
         if (calcBtn) calcBtn.disabled = !ready;
     }
+    const clearBtn = document.getElementById('clearLineupBtn');
+    if (clearBtn) clearBtn.hidden = lineupPlayers.length === 0;
 
     renderTopScorers();
     renderLeaderboards();
@@ -2492,9 +2852,9 @@ function getColoredBadge(icon, val) {
 }
 function getPlayerBadgesHTML(p, small = false) {
     const sz = small ? 'font-size:0.65rem;' : '';
-    let badges = '';
-    if (p.isActive) badges += `<span class="badge-active" style="${sz}">✅ פעיל</span>`;
-    if (p.isNew) badges += `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
+    let badges = '';   // רק לכללי העדיפות שפועלים בקבוצה
+    if (p.isActive && prioCfg.active) badges += `<span class="badge-active" style="${sz}">✅ פעיל</span>`;
+    if (p.isNew && prioCfg.veteran) badges += `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
     if (p.isMoshavResident && priorityLabel) badges += `<span class="badge-resident" style="${sz}">🏠 ${escAdminText(priorityLabel)}</span>`;
     return badges;
 }
@@ -2530,7 +2890,7 @@ async function resizeImage(file) {
 function openSettingsModal() {
     document.getElementById('setNumTeams').value = groupSettings.numTeams;
     document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
-    document.getElementById('setPriorityLabel').value = priorityLabel;
+    fillPriorityForm();
     fillGroupDetailsForm();
     renderCustomParamsManagerList();
     renderAdminsManager();
@@ -2540,6 +2900,85 @@ function openSettingsModal() {
     document.getElementById('settingsModalOverlay').style.display = 'flex';
 }
 function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
+
+// ========== Settings: who gets in when registration is full ==========
+const PRIO_BOXES = ['prioActive', 'prioVeteran', 'prioLabel', 'prioAge'];
+
+function fillPriorityForm() {
+    const p = GroupPrefs.priorityPrefs(currentGroupId, currentGroupData);
+    document.querySelectorAll('input[name="setPrioMode"]').forEach(r => { r.checked = r.value === p.mode; });
+    document.getElementById('prioActive').checked = p.active;
+    document.getElementById('prioVeteran').checked = p.veteran;
+    document.getElementById('prioLabel').checked = p.label;
+    document.getElementById('setPriorityLabel').value = p.labelText;
+    document.getElementById('prioAge').checked = p.age;
+    document.getElementById('prioAgeMin').value = p.ageMin;
+    updatePrioForm();
+}
+
+function readPriorityForm() {
+    const modeEl = document.querySelector('input[name="setPrioMode"]:checked');
+    return {
+        mode: modeEl && modeEl.value === 'rules' ? 'rules' : 'first',
+        active: document.getElementById('prioActive').checked,
+        veteran: document.getElementById('prioVeteran').checked,
+        label: document.getElementById('prioLabel').checked,
+        age: document.getElementById('prioAge').checked,
+        ageMin: Number(document.getElementById('prioAgeMin').value),
+        labelText: (document.getElementById('setPriorityLabel').value || '').trim().slice(0, 30)
+    };
+}
+
+function onPrioModeChange() {
+    // מעבר ל"לפי עדיפות" בלי אף כלל מסומן: מתחילים מ"שחקנים פעילים"
+    const f = readPriorityForm();
+    if (f.mode === 'rules' && !PRIO_BOXES.some(id => document.getElementById(id).checked)) document.getElementById('prioActive').checked = true;
+    updatePrioForm();
+}
+
+function onPrioLabelCheck() {
+    const box = document.getElementById('prioLabel'), input = document.getElementById('setPriorityLabel');
+    if (box.checked && !input.value.trim()) input.focus();
+    updatePrioForm();
+}
+function onPrioLabelInput() {
+    if (document.getElementById('setPriorityLabel').value.trim()) document.getElementById('prioLabel').checked = true;
+    updatePrioForm();
+}
+function onPrioAgeInput() {
+    document.getElementById('prioAge').checked = true;
+    updatePrioForm();
+}
+
+function updatePrioForm() {
+    const f = readPriorityForm();
+    document.getElementById('prioRules').style.display = f.mode === 'rules' ? 'block' : 'none';
+    PRIO_BOXES.forEach(id => { const el = document.getElementById(id); el.closest('.prio-rule').classList.toggle('off', !el.checked); });
+    // למי עוזר הסימון, לפי הכללים האחרים שמסומנים (ראה GroupPrefs.priorityRank)
+    const name = f.labelText ? `"${f.labelText}"` : 'כך';
+    document.getElementById('prioLabelHint').textContent =
+        f.active && f.veteran ? `שחקן חדש ופעיל שמסומן ${name} נכנס לפני שחקנים חדשים אחרים`
+        : f.veteran ? `שחקן חדש שמסומן ${name} נכנס לפני שחקנים חדשים אחרים`
+        : f.active ? `שחקן פעיל שמסומן ${name} נכנס לפני שחקנים פעילים אחרים`
+        : `מי שמסומן ${name} נכנס לפני כל האחרים`;
+}
+
+// מחזיר את מה שנשמר ב-settings, או הודעת שגיאה
+function priorityFormToSettings() {
+    const f = readPriorityForm();
+    if (f.mode === 'rules') {
+        if (f.label && !f.labelText) return { error: 'כתוב שם לקבוצת העדיפות (לדוגמה "תושב השכונה"), או בטל את הסימון שלה.' };
+        if (f.age && !GroupPrefs.validPriorityAge(f.ageMin)) return { error: `הגיל לעדיפות צריך להיות מספר שלם בין ${GroupPrefs.PRIORITY_AGE_MIN} ל-${GroupPrefs.PRIORITY_AGE_MAX}.` };
+        if (!f.active && !f.veteran && !f.label && !f.age) return { error: 'סמן לפחות דבר אחד שנותן עדיפות, או בחר "כל הקודם זוכה".' };
+    }
+    return {
+        priorityLabel: f.labelText,
+        regPriority: {
+            mode: f.mode, active: f.active, veteran: f.veteran, label: f.label, age: f.age,
+            ageMin: GroupPrefs.validPriorityAge(f.ageMin) ? f.ageMin : GroupPrefs.DEFAULT_PRIORITY_AGE
+        }
+    };
+}
 
 // ========== Delete group (owner) ==========
 let deletingGroup = false;
@@ -2622,10 +3061,14 @@ async function fillGroupDetailsForm() {
 async function saveGroupSettings() {
     const numTeams = parseInt(document.getElementById('setNumTeams').value) || 3;
     const playersPerTeam = parseInt(document.getElementById('setPlayersPerTeam').value) || 6;
-    const newPriorityLabel = (document.getElementById('setPriorityLabel').value || '').trim().slice(0, 30);
+    const prio = priorityFormToSettings();
+    if (prio.error) {
+        document.getElementById('prioritySection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return alert(prio.error);
+    }
     // שינוי גודל הקבוצות מבטל את השיבוץ הנוכחי; שאר ההגדרות לא
     const teamsChanged = numTeams !== Number(groupSettings.numTeams) || playersPerTeam !== Number(groupSettings.playersPerTeam);
-    const update = { settings: { numTeams, playersPerTeam, priorityLabel: newPriorityLabel } };
+    const update = { settings: { numTeams, playersPerTeam, priorityLabel: prio.priorityLabel, regPriority: prio.regPriority } };
     const batch = db.batch();
     let savedName = null, savedCity = null, savedIcon = null;
 
@@ -2674,8 +3117,8 @@ async function saveGroupSettings() {
     try {
         await batch.commit();
         groupSettings = { numTeams, playersPerTeam };
-        priorityLabel = newPriorityLabel;
-        applyPriorityLabelUI();
+        if (currentGroupData) currentGroupData.settings = Object.assign({}, currentGroupData.settings, update.settings);
+        setPrioCfg(GroupPrefs.regPriority(currentGroupId, currentGroupData));
         if (savedName) {
             setHeaderGroup(savedName, savedIcon);
             GroupPrefs.rememberGroup(currentGroupId, savedName, savedCity, savedIcon);
@@ -2693,15 +3136,7 @@ async function saveGroupSettings() {
 // ========== Admin ==========
 // כניסה עם Google. קבוצה ותיקה עם סיסמה עוברת פעם אחת לבעלות של החשבון המחובר.
 async function promptAdmin() {
-    if (document.body.classList.contains('is-admin')) {
-        const u = firebase.auth().currentUser;
-        if (confirm(`אתה מחובר כמנהל${u && u.email ? ' (' + u.email + ')' : ''}.\nלהתנתק ממצב ניהול?`)) {
-            await AdminAuth.signOut();
-            setAdminMode(false);
-            showToast('התנתקת ממצב ניהול', 'info');
-        }
-        return;
-    }
+    if (document.body.classList.contains('is-admin')) return logoutAdmin();
     const res = await AdminAuth.loginAsAdmin(db, currentGroupId, currentGroupData);
     if (!res.ok) return;
     if (res.claimed) {
@@ -2711,6 +3146,70 @@ async function promptAdmin() {
     showToast('נכנסת כמנהל ✅', 'success');
 }
 
+async function logoutAdmin() {
+    const u = firebase.auth().currentUser;
+    if (!confirm(`לצאת ממצב ניהול${u && u.email ? ' (' + u.email + ')' : ''}?`)) return;
+    await AdminAuth.signOut();
+    setAdminMode(false);
+    showToast('יצאת ממצב ניהול', 'info');
+}
+
+// ========== Admin menu (header) ==========
+// לפני הכניסה הכפתור "ניהול" מחבר עם Google. אחרי הכניסה הוא פותח את תפריט הפעולות
+function onAdminBtn(e) {
+    if (!document.body.classList.contains('is-admin')) return promptAdmin();
+    if (e) e.stopPropagation();
+    toggleAdminMenu();
+}
+
+function toggleAdminMenu(open) {
+    const menu = document.getElementById('adminMenu');
+    if (!menu) return;
+    const willOpen = open === undefined ? menu.hidden : !!open;
+    if (willOpen === !menu.hidden) return;
+    menu.hidden = !willOpen;
+    const btn = document.getElementById('adminBtnHeader');
+    if (btn && btn.hasAttribute('aria-expanded')) btn.setAttribute('aria-expanded', String(willOpen));
+    if (!willOpen) return;
+    const u = firebase.auth().currentUser;
+    document.getElementById('adminMenuWho').textContent = 'מחובר כמנהל' + (u && u.email ? ': ' + u.email : '');
+    menu.querySelector('[data-act="clear"]').hidden = !players.some(p => p.inLineup);
+    const first = menu.querySelector('.am-item');
+    if (first) first.focus({ preventScroll: true });
+}
+
+function adminMenuGo(action) {
+    toggleAdminMenu(false);
+    if (action === 'settings') openSettingsModal();
+    else if (action === 'vote') shareGlobalVoteLink();
+    else if (action === 'market') openMarketPost();
+    else if (action === 'clear') clearLineup();
+    else if (action === 'logout') logoutAdmin();
+}
+
+// לחיצה מחוץ לתפריט רק סוגרת אותו, ולא מפעילה את מה שמתחתיו (למשל "פתח הרשמה")
+document.addEventListener('click', e => {
+    const menu = document.getElementById('adminMenu');
+    if (!menu || menu.hidden || menu.contains(e.target)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    toggleAdminMenu(false);
+}, true);
+document.addEventListener('focusout', e => {
+    const menu = document.getElementById('adminMenu');
+    if (!menu || menu.hidden || !menu.contains(e.target)) return;
+    const to = e.relatedTarget;
+    if (to && !menu.contains(to) && to.id !== 'adminBtnHeader') toggleAdminMenu(false);
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('bulkModalOverlay').style.display === 'flex') return closeBulkAdd();
+    const menu = document.getElementById('adminMenu');
+    if (e.key !== 'Escape' || !menu || menu.hidden) return;
+    toggleAdminMenu(false);
+    const btn = document.getElementById('adminBtnHeader');
+    if (btn) btn.focus();
+});
+
 // ========== Tab Switching ==========
 function switchTab(tabId, btnElement) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active');
@@ -2718,7 +3217,7 @@ function switchTab(tabId, btnElement) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     const bottomBar = document.getElementById('adminBottomBar');
     if (bottomBar) bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
-    if (tabId === 'tab-market') renderMarket();
+    if (tabId === 'tab-market') { renderMarket(); if (document.body.classList.contains('is-admin')) fillMarketForm(); }
     if (tabId === 'tab-leaderboards') renderLeaderboards();
     if (tabId === 'tab-history') renderHistory();
 }
@@ -3294,62 +3793,172 @@ function startLaundryListener() {
 }
 
 // ========== Market ==========
+// המנהל מפרסם מהלשונית "מחפשים שחקן" (או מתפריט הניהול): כמה חסרים, איפה, וטלפון לוואטסאפ
+const MP_PHONE_KEY = 'sm_market_phone';   // הטלפון האחרון שפורסם מהמכשיר הזה, למילוי בפעם הבאה
+const MP_DAY_MS = 24 * 60 * 60 * 1000;
+let publishingMarket = false;
+
+// כמה חסרים: לפי ההרשמה הפתוחה, ואם אין — לפי ההרכב שנבחר
+function suggestedMissing() {
+    const c = lastRegCounts;
+    if (c && c.max > c.confirmed) return c.max - c.confirmed;
+    const total = (parseInt(groupSettings.numTeams) || 3) * (parseInt(groupSettings.playersPerTeam) || 6);
+    const inLineup = players.filter(p => p.inLineup).length;
+    if (inLineup > 0 && inLineup < total) return total - inLineup;
+    return 1;
+}
+
+// ממלא רק שדות ריקים, כדי לא לדרוס מה שהמנהל כבר כתב
+function fillMarketForm() {
+    const missing = document.getElementById('mpMissing');
+    const loc = document.getElementById('mpLocation');
+    const phone = document.getElementById('mpPhone');
+    if (!missing || !loc || !phone) return;
+    if (!missing.value) missing.value = Math.min(99, suggestedMissing());
+    if (!loc.value) {
+        const l = (currentGroupData && currentGroupData.location) || {};
+        loc.value = [l.city, l.venue].map(s => String(s || '').trim()).filter(Boolean).join(', ').slice(0, 100);
+    }
+    if (!phone.value) { try { phone.value = localStorage.getItem(MP_PHONE_KEY) || ''; } catch (e) { /* אין גישה לאחסון */ } }
+}
+
+function openMarketPost() {
+    const tabBtn = document.querySelector('.tab-btn[onclick*="tab-market"]');
+    if (tabBtn) switchTab('tab-market', tabBtn);
+}
+
 async function publishToMarket() {
-    const lineupCount = players.filter(p => p.inLineup).length;
-    const missing = (groupSettings.numTeams * groupSettings.playersPerTeam) - lineupCount;
-    if (missing <= 0) return alert("הסגל שלך מלא!");
-    const phone = prompt("מספר טלפון ליצירת קשר:");
-    if (!phone || phone.length < 10) return alert("חובה להזין מספר טלפון תקין.");
-    const location = prompt("איפה המשחק מתקיים?");
-    if (!location) return alert("חובה להזין מיקום.");
-    const groupName = currentGroupName();
+    if (publishingMarket) return;
     const u = firebase.auth().currentUser;
     if (!AdminAuth.isRealUser(u)) return alert("צריך להיות מחובר כמנהל כדי לפרסם.");
+    const missing = Number(document.getElementById('mpMissing').value);
+    if (!Number.isInteger(missing) || missing < 1 || missing > 99) return alert('כמה שחקנים חסרים? מספר בין 1 ל-99.');
+    const location = document.getElementById('mpLocation').value.trim().slice(0, 100);
+    if (!location) return alert('איפה משחקים? כתבו עיר או מגרש.');
+    const phone = GroupPrefs.normalizePhone(document.getElementById('mpPhone').value);
+    if (!phone) return alert('צריך טלפון תקין לוואטסאפ, לדוגמה 050-1234567.');
+    const live = liveGroupPost();
+    if (live && live.data.ownerUid !== u.uid) return alert('מנהל אחר כבר פרסם מודעה לקבוצה. רק הוא יכול להחליף או להוריד אותה, והיא יורדת לבד אחרי 24 שעות.');
+    const btn = document.getElementById('mpPublishBtn');
+    publishingMarket = true;
+    btn.disabled = true;
+    btn.textContent = 'מפרסם… ⏳';
     try {
         // מזהה אקראי למודעה: המודעה גלויה לכולם, ומזהה הקבוצה הוא המפתח לדף הקבוצה
         const postRef = db.collection('market_posts').doc();
         await postRef.set({
             ownerUid: u.uid,
-            groupName: String(groupName || '').slice(0, 100),
-            location: String(location).slice(0, 100),
-            phone: String(phone).slice(0, 20),
-            missing: Math.min(99, Math.round(missing)),
+            groupName: String(currentGroupName() || '').slice(0, 100),
+            location,
+            phone,
+            missing,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000
+            expiresAt: Date.now() + MP_DAY_MS
         });
+        try { localStorage.setItem(MP_PHONE_KEY, phone); } catch (e) { /* לא קריטי */ }
         // המודעה הקודמת של הקבוצה, ומודעה בפורמט הישן (שמזהה הקבוצה היה המזהה שלה), יורדות
         const prevSnap = await groupRef.get();
         const prevId = prevSnap.exists ? prevSnap.data().marketPostId : null;
         await groupRef.update({ marketPostId: postRef.id });
-        if (prevId && prevId !== postRef.id) db.collection('market_posts').doc(prevId).delete().catch(() => {});
+        if (currentGroupData) currentGroupData.marketPostId = postRef.id;
+        if (prevId && prevId !== postRef.id) db.collection('market_posts').doc(prevId).delete().catch(e => console.warn('previous market post not removed', e));
         db.collection('market_posts').doc(currentGroupId).delete().catch(() => {});
-        alert("המודעה פורסמה בהצלחה! 🎉");
-    } catch(e) { console.error(e); alert("שגיאה בפרסום המודעה."); }
+        paintMarket();
+        showToast('✅ המודעה פורסמה ל-24 שעות', 'success');
+    } catch (e) {
+        console.error(e);
+        alert('שגיאה בפרסום המודעה: ' + AdminAuth.errorMessage(e));
+    } finally {
+        publishingMarket = false;
+        btn.disabled = false;
+        btn.textContent = '📢 פרסם מודעה';
+        paintMarket();   // הכפתור והשורה "המודעה שלכם באוויר" לפי המצב העדכני
+    }
+}
+
+// המנהל שפרסם יכול להוריד את המודעה כשכבר לא חסרים שחקנים
+async function removeMarketPost(id) {
+    if (!/^[A-Za-z0-9]{1,40}$/.test(id)) return;
+    if (!confirm('להוריד את המודעה מ"מחפשים שחקן"?')) return;
+    try {
+        await db.collection('market_posts').doc(id).delete();
+        if (currentGroupData && currentGroupData.marketPostId === id) {
+            await groupRef.update({ marketPostId: firebase.firestore.FieldValue.delete() });
+            delete currentGroupData.marketPostId;
+        }
+        paintMarket();
+        showToast('המודעה ירדה', 'info');
+    } catch (e) {
+        console.error(e);
+        alert('לא הצלחנו להוריד את המודעה: ' + AdminAuth.errorMessage(e));
+    }
 }
 
 let marketListenerStarted = false;
+let marketDocs = null;   // המודעות הפעילות, מהסנפשוט האחרון
 function renderMarket() {
     const container = document.getElementById('marketList'); if(!container) return;
-    if (marketListenerStarted) return; // מאזין אחד בלבד — לא נרשמים מחדש בכל לחיצה על הטאב
+    if (marketListenerStarted) { paintMarket(); return; } // מאזין אחד בלבד — לא נרשמים מחדש בכל לחיצה על הטאב
     marketListenerStarted = true;
-    // רק מודעות מ-24 השעות האחרונות. הטקסט מגיע מקבוצות אחרות, ולכן עובר escape לפני שמוצג
+    // רק מודעות מ-24 השעות האחרונות
     db.collection('market_posts').where('expiresAt', '>', Date.now()).onSnapshot(snap => {
-        const now = Date.now();
-        const ms = d => (d.timestamp && d.timestamp.toMillis ? d.timestamp.toMillis() : now);
-        const docs = snap.docs
-            .filter(doc => doc.data().expiresAt > now)
-            .sort((a, b) => ms(b.data()) - ms(a.data()));
-        if (!docs.length) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`; return; }
-        const esc = escAdminText;
-        container.innerHTML = docs.map(doc => {
-            const data = doc.data();
-            const timeStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'עכשיו';
-            const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
-            const phoneDigits = String(data.phone || '').replace(/\D/g, '').replace(/^0/, '');
-            const waLink = `https://wa.me/972${phoneDigits}?text=${waMsg}`;
-            return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${esc(data.location)}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${esc(data.groupName)}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${esc(timeStr)}</div></div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${esc(data.missing)}</div></div><a href="${esc(waLink)}" target="_blank" rel="noopener" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
-        }).join('');
+        marketDocs = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+        paintMarket();
     });
+}
+
+// הטקסט מגיע מקבוצות אחרות, ולכן עובר escape לפני שמוצג
+function paintMarket() {
+    const container = document.getElementById('marketList');
+    if (!container || !marketDocs) return;
+    const now = Date.now();
+    const ms = d => (d.timestamp && d.timestamp.toMillis ? d.timestamp.toMillis() : now);
+    const docs = marketDocs
+        .filter(doc => doc.data.expiresAt > now)
+        .sort((a, b) => ms(b.data) - ms(a.data));
+    const mineId = currentGroupData && currentGroupData.marketPostId;
+    const mine = docs.find(doc => doc.id === mineId) || null;
+    renderMarketMine(mine);
+    if (!docs.length) { container.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:20px;">אין קבוצות שמחפשות שחקנים כרגע.</div>`; return; }
+    const esc = escAdminText;
+    container.innerHTML = docs.map(doc => {
+        const data = doc.data;
+        const timeStr = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'עכשיו';
+        const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
+        const phoneDigits = String(data.phone || '').replace(/\D/g, '').replace(/^0/, '');
+        const waLink = `https://wa.me/972${phoneDigits}?text=${waMsg}`;
+        const mineTag = doc === mine ? `<div class="mp-mine-tag">המודעה שלכם</div>` : '';
+        return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${esc(data.location)}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${esc(data.groupName)}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${esc(timeStr)}</div>${mineTag}</div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${esc(data.missing)}</div></div><a href="${esc(waLink)}" target="_blank" rel="noopener" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
+    }).join('');
+}
+
+// "המודעה שלכם באוויר עד…" בכרטיס הפרסום של המנהל
+function renderMarketMine(mine) {
+    const box = document.getElementById('marketMine');
+    if (!box) return;
+    const btn = document.getElementById('mpPublishBtn');
+    const u = firebase.auth().currentUser;
+    // מודעה שמנהל אחר פרסם: רק הוא יכול להוריד או להחליף אותה (חוקי האבטחה), ולכן אין פרסום נוסף עד שתרד
+    const mineIsMine = !!(mine && u && mine.data.ownerUid === u.uid);
+    if (btn && !publishingMarket) {
+        btn.disabled = !!mine && !mineIsMine;
+        btn.textContent = !mine ? '📢 פרסם מודעה' : mineIsMine ? '📢 פרסום מחדש (מחליף את המודעה)' : '📢 כבר יש לקבוצה מודעה באוויר';
+    }
+    if (!mine) { box.hidden = true; box.innerHTML = ''; return; }
+    const until = new Date(mine.data.expiresAt);
+    const time = until.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const when = until.toDateString() === new Date().toDateString() ? `עד ${time}` : `עד מחר ב-${time}`;
+    const canRemove = mineIsMine && /^[A-Za-z0-9]{1,40}$/.test(mine.id);
+    box.innerHTML = `<span>✅ ${mineIsMine ? 'המודעה שלכם' : 'מודעה של הקבוצה (פרסם מנהל אחר)'} באוויר ${escAdminText(when)} · חסרים ${Number(mine.data.missing) || 0}</span>`
+        + (canRemove ? `<button type="button" onclick="removeMarketPost('${mine.id}')">הורדת המודעה</button>` : '');
+    box.hidden = false;
+}
+
+// המודעה הפעילה של הקבוצה, אם יש (מהסנפשוט האחרון)
+function liveGroupPost() {
+    const id = currentGroupData && currentGroupData.marketPostId;
+    const p = id && marketDocs ? marketDocs.find(d => d.id === id) : null;
+    return p && p.data.expiresAt > Date.now() ? p : null;
 }
 
 // ========== REGISTRATION SYSTEM ==========
