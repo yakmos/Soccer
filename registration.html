@@ -16,13 +16,18 @@
     <meta property="og:image:alt" content="Soccer Manager — הרשמה, חלוקה מאוזנת לקבוצות ו-MVP">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="theme-color" content="#0F172A">
+    <!-- אייקון למסך הבית ולכרטיסייה. במניפסט אין start_url ואין name, בכוונה: האייקון פותח את הדף שממנו הוסיפו אותו (למשל הקבוצה עצמה), ושמו הוא שם הדף -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="Soccer Manager">
 
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js?v=20260930"></script>
+    <script src="group-prefs.js?v=20261005"></script>
     <script src="reg-auto.js?v=1"></script>
 
     <style>
@@ -369,6 +374,18 @@
             background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
             z-index: 1000; align-items: center; justify-content: center; padding: 20px;
         }
+
+        /* מי נכנס כשהרשימה מלאה */
+        .prio-info { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; color: var(--muted); font-size: 0.85rem; line-height: 1.6; }
+        .prio-info[hidden] { display: none; }
+        .prio-info summary { cursor: pointer; font-weight: 800; color: var(--muted); list-style: none; display: flex; align-items: center; gap: 6px; }
+        .prio-info summary::-webkit-details-marker { display: none; }
+        .prio-info summary::after { content: '▾'; font-size: 0.8rem; transition: transform 0.2s; }
+        .prio-info[open] summary::after { transform: rotate(180deg); }
+        .prio-info summary:hover, .prio-info summary:focus-visible { color: var(--text); }
+        .prio-info p { margin-top: 8px; }
+        .prio-info ol { margin: 6px 0 0; padding-right: 22px; color: var(--text); font-weight: 700; }
+        .prio-info li { margin-bottom: 2px; }
     </style>
 </head>
 <body>
@@ -477,6 +494,10 @@
                 <div class="cancelled-divider">ביטולים</div>
                 <div id="cancelledList" class="players-list"></div>
             </div>
+            <details class="prio-info" id="prioInfo" hidden>
+                <summary>⚖️ מי נכנס כשהרשימה מלאה?</summary>
+                <div id="prioInfoBody"></div>
+            </details>
         </div>
 
         <button class="generate-teams-btn" id="generateTeamsBtn" onclick="generateTeamsFromReg()">
@@ -530,7 +551,8 @@ let selectedPlayer = null;
 let gameData       = null;
 let maxPlayers     = 10;
 let isAdmin        = false;
-let priorityLabel  = '';   // שם קבוצת העדיפות של הקבוצה ('' = אין)
+let prioCfg        = null; // מי נכנס כשהרשימה מלאה (GroupPrefs.regPriority)
+let priorityLabel  = '';   // שם קבוצת העדיפות כשהכלל פועל ('' = אין)
 let cancelled      = [];
 let customParams   = [];
 
@@ -544,8 +566,17 @@ window.onload = async () => {
 
         const settings = groupData.settings || {};
         maxPlayers  = (settings.numTeams || 3) * (settings.playersPerTeam || 6);
+        // שם הקבוצה בכרטיסייה, וכשם האייקון כשמוסיפים את הדף למסך הבית באייפון
+        const gName = String(groupData.name || '').trim();
+        if (gName) {
+            document.title = `${gName} · הרשמה למשחק`;
+            const appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (appTitle) appTitle.setAttribute('content', gName.slice(0, 30));
+        }
         customParams = groupData.customParams || [];
-        priorityLabel = GroupPrefs.priorityLabel(groupId, groupData);
+        prioCfg = GroupPrefs.regPriority(groupId, groupData);
+        priorityLabel = prioCfg.label;
+        renderPriorityInfo();
 
         if (!registrationId) {
             registrationId = await resolveCurrentRegistration();
@@ -748,31 +779,37 @@ function getEntryBirthDate(entry) {
     return entry.birthDate || null;
 }
 
-// סדר עדיפות חדש (1 = הכי חזק):
-// 1-2:  פעיל ותיק (מעל 30 / מתחת)
-// 3-4:  חדש פעיל מקבוצת העדיפות של הקבוצה, למשל "תושב מגדים" (מעל 30 / מתחת)
-// 5-6:  פעיל חדש (מעל 30 / מתחת)
-// 7-8:  לא פעיל ותיק (מעל 30 / מתחת)
-// 9-10: לא פעיל חדש (מעל 30 / מתחת)
-// שחקן ללא תאריך לידה נחשב "מתחת ל-30"
+// דרגת העדיפות כשהרשימה מלאה (מספר קטן = נכנס קודם). הכללים נקבעים בהגדרות הקבוצה,
+// ראה GroupPrefs.regPriority. ב"כל הקודם זוכה" הדרגה של כולם 0, והסדר הוא סדר ההרשמה.
 function getPriorityScore(entry) {
-    const live   = getLivePlayer(entry) || entry;   // דגלים עדכניים מכרטיס השחקן
-    const age    = calcAge(getEntryBirthDate(entry));
-    const over30 = age !== null && age >= 30;
-
-    if (live.isActive && !live.isNew)                        return over30 ? 1 : 2;
-    if (live.isActive && live.isNew && live.isMoshavResident && priorityLabel) return over30 ? 3 : 4;
-    if (live.isActive && live.isNew)                         return over30 ? 5 : 6;
-    if (!live.isActive && !live.isNew)                       return over30 ? 7 : 8;
-    return over30 ? 9 : 10;
+    const live = getLivePlayer(entry) || entry;   // דגלים עדכניים מכרטיס השחקן
+    return GroupPrefs.priorityRank(prioCfg, live, calcAge(getEntryBirthDate(entry)));
 }
 
+// תגיות רק לכללים שפועלים בקבוצה
 function getEntryBadgesHTML(entry) {
+    const cfg = prioCfg || {};
     let b = '';
-    if (entry.isActive)         b += `<span class="badge-active">✅ פעיל</span>`;
-    if (entry.isNew)            b += `<span class="badge-new">🆕 חדש</span>`;
+    if (entry.isActive && cfg.active)  b += `<span class="badge-active">✅ פעיל</span>`;
+    if (entry.isNew && cfg.veteran)    b += `<span class="badge-new">🆕 חדש</span>`;
     if (entry.isMoshavResident && priorityLabel) b += `<span class="badge-resident">🏠 ${escHtml(priorityLabel)}</span>`;
     return b;
+}
+
+// "מי נכנס כשהרשימה מלאה?" — כדי שהשחקנים יבינו למה מישהו עבר להמתנה
+function renderPriorityInfo() {
+    const box = document.getElementById('prioInfo');
+    if (!box || !prioCfg) return;
+    const rules = GroupPrefs.priorityRuleTexts(prioCfg);
+    const body = document.getElementById('prioInfoBody');
+    if (!rules.length) {
+        body.innerHTML = '<p>כל הקודם זוכה: מי שנרשם אחרי שהרשימה התמלאה נכנס לרשימת ההמתנה לפי הסדר, ועולה כשמתפנה מקום.</p>';
+    } else {
+        body.innerHTML = '<p>כשהרשימה מלאה, שחקן בעדיפות גבוהה יותר נכנס, ומי שנמוך ממנו עובר להמתנה. סדר העדיפות:</p><ol>'
+            + rules.map(t => `<li>${escHtml(t)}</li>`).join('')
+            + '</ol><p>בכל דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד כבר לא נדחק להמתנה.</p>';
+    }
+    box.hidden = false;
 }
 
 function escHtml(s) {
