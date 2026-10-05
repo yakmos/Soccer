@@ -16,6 +16,11 @@
 <meta property="og:image:alt" content="Soccer Manager — הרשמה, חלוקה מאוזנת לקבוצות ו-MVP">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0F172A">
+<!-- אייקון למסך הבית ולכרטיסייה. במניפסט אין start_url ואין name, בכוונה: האייקון פותח את הדף שממנו הוסיפו אותו (למשל הקבוצה עצמה), ושמו הוא שם הדף -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Soccer Manager">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -23,7 +28,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="admin-auth.js"></script>
-<script src="group-prefs.js?v=20260930"></script>
+<script src="group-prefs.js?v=20261005"></script>
 <style>
     :root {
         --bg: #0F172A; --bg-deep: #0B1220; --surface: #1E293B; --surface-2: #273449;
@@ -788,7 +793,11 @@
                 ownerUid: u.uid,
                 admins: { [u.uid]: AdminAuth.displayName(u) },
                 adminUids: [u.uid],
-                settings: { numTeams: 3, playersPerTeam: 6, priorityLabel: '' },
+                // קבוצה חדשה מתחילה ב"כל הקודם זוכה". את כללי העדיפות בהרשמה מפעילים בהגדרות הקבוצה
+                settings: {
+                    numTeams: 3, playersPerTeam: 6, priorityLabel: '',
+                    regPriority: { mode: 'first', active: false, veteran: false, label: false, age: false, ageMin: G.DEFAULT_PRIORITY_AGE }
+                },
                 customParams: [],
                 createdAt: ts,
                 location: { city: city.slice(0, 40), venue: venue.slice(0, 60) },
