@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
+    <script src="group-prefs.js?v=20261005"></script>
     <style>
         :root {
             --bg-color: #0F172A; --surface-color: #1E293B; --primary-color: #10B981;
@@ -30,6 +31,12 @@
         .btn:disabled { opacity: 0.5; }
         .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.4); }
         .btn-wa { background: rgba(37,211,102,0.12); color: #25D366; border: 1px solid rgba(37,211,102,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-main); border: 1px solid var(--border-color); }
+        .hint { font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin-top: 8px; }
+        .hint:empty { display: none; }
+        .hint b { color: var(--text-main); font-weight: 700; }
+        .or-sep { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 0.8rem; font-weight: 700; margin: 18px 0 10px; }
+        .or-sep::before, .or-sep::after { content: ''; flex: 1; border-top: 1px solid var(--border-color); }
         .voter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; flex-wrap: wrap; }
         .voter-info { flex: 1; min-width: 140px; }
         .voter-name { font-weight: 800; font-size: 1.05rem; }
@@ -66,9 +73,13 @@
         <div id="adminArea" style="display:none;">
         <div class="card">
             <h3>➕ יצירת קישורים</h3>
-            <textarea id="namesInput" placeholder="שם מצביע בכל שורה, למשל:&#10;יקיר&#10;דני&#10;אבי"></textarea>
-            <button class="btn" id="createBtn" onclick="createVoters()">צור קישורים אישיים 🎫</button>
+            <button class="btn" id="squadBtn" onclick="createSquadVoters()" disabled>👥 קישור לכל שחקן בסגל</button>
+            <div class="hint" id="squadHint"></div>
+            <div class="or-sep">או לפי שמות</div>
+            <textarea id="namesInput" placeholder="שם בכל שורה. אפשר להדביק רשימה מהוואטסאפ:&#10;יקיר&#10;דני&#10;אבי"></textarea>
+            <button class="btn btn-secondary" id="createBtn" onclick="createVoters()">צור קישורים לשמות האלה 🎫</button>
             <div id="status"></div>
+            <div class="hint">מי שכבר יש לו קישור לא מקבל עוד אחד, כדי שאף אחד לא ידרג פעמיים.</div>
         </div>
 
         <div class="card">
@@ -108,6 +119,7 @@
     let groupData = null;
     let votersRef = null;
     let playersCount = 0;
+    let squadNames = [];   // שמות השחקנים בסגל, ליצירת קישור לכל אחד
     let voters = [];
 
     function voteBaseUrl() {
@@ -152,6 +164,7 @@
         document.getElementById('adminArea').style.display = 'block';
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         playersCount = playersSnap.size;
+        squadNames = playersSnap.docs.map(d => String((d.data() || {}).name || '').trim()).filter(Boolean);
         await loadVoters();
     }
 
@@ -187,6 +200,7 @@
             return (a.name || '').localeCompare(b.name || '', 'he');
         });
         renderVoters();
+        renderSquadHint();
     }
 
     function renderVoters() {
@@ -217,28 +231,92 @@
         }).join('');
     }
 
-    async function createVoters() {
-        const names = document.getElementById('namesInput').value
-            .split('\n').map(s => s.trim()).filter(Boolean);
-        if (names.length === 0) return alert("הזן לפחות שם אחד.");
-        const btn = document.getElementById('createBtn');
-        btn.disabled = true;
-        try {
-            const batch = db.batch();
-            names.forEach(name => {
-                batch.set(votersRef.doc(randomToken()), {
-                    name, uid: null, votedCount: 0,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            });
-            await batch.commit();
-            document.getElementById('namesInput').value = '';
-            setStatus(`✅ נוצרו ${names.length} קישורים`);
-            await loadVoters();
-        } catch (e) {
-            console.error(e); alert("שגיאה ביצירה: " + (e.message || e));
+    // ===== יצירת קישורים: לכל הסגל, או לפי רשימת שמות =====
+    // שם שכבר יש לו קישור לא מקבל עוד אחד: שני קישורים לאותו אדם = שתי הצבעות
+    const CREATE_CHUNK = 10;   // כתיבות בכל batch: כל אחת נבדקת בחוקי האבטחה מול מסמך הקבוצה
+    let creating = false;
+
+    // שחקני הסגל שעוד אין להם קישור (לפי השם), כל שם פעם אחת
+    function squadWithoutLink() {
+        const have = new Set(voters.map(v => GroupPrefs.playerNameKey(v.name)));
+        const seen = new Set(), out = [];
+        squadNames.forEach(name => {
+            const key = GroupPrefs.playerNameKey(name);
+            if (!key || have.has(key) || seen.has(key)) return;
+            seen.add(key);
+            out.push(name);
+        });
+        return out;
+    }
+
+    function renderSquadHint() {
+        const btn = document.getElementById('squadBtn');
+        const hint = document.getElementById('squadHint');
+        const missing = squadWithoutLink();
+        const withLink = new Set(squadNames.map(n => GroupPrefs.playerNameKey(n))).size - missing.length;
+        if (!creating) {
+            btn.disabled = !missing.length;
+            btn.textContent = !squadNames.length ? '👥 עוד אין שחקנים בסגל'
+                : !missing.length ? '✅ לכל השחקנים בסגל יש קישור'
+                : missing.length === 1 ? '👥 קישור לשחקן אחד בסגל שעוד אין לו'
+                : `👥 קישור לכל שחקן בסגל (${missing.length})`;
         }
-        btn.disabled = false;
+        if (!missing.length) { hint.innerHTML = ''; return; }
+        const shown = missing.slice(0, 12).map(esc).join(', ') + (missing.length > 12 ? ` ועוד ${missing.length - 12}` : '');
+        hint.innerHTML = `ייווצרו קישורים ל: <b>${shown}</b>`
+            + (withLink > 0 ? `<br>ל-${withLink} שחקנים כבר יש קישור, והם לא יקבלו עוד אחד.` : '');
+    }
+
+    async function createVoterDocs(names) {
+        for (let i = 0; i < names.length; i += CREATE_CHUNK) {
+            const batch = db.batch();
+            names.slice(i, i + CREATE_CHUNK).forEach(name => batch.set(votersRef.doc(randomToken()), {
+                name, uid: null, votedCount: 0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }));
+            await batch.commit();
+        }
+    }
+
+    async function runCreate(names, onDone) {
+        if (creating || !names.length) return;
+        creating = true;
+        ['squadBtn', 'createBtn'].forEach(id => { document.getElementById(id).disabled = true; });
+        setStatus('יוצר קישורים… ⏳');
+        try {
+            await createVoterDocs(names);
+            onDone(names.length);
+        } catch (e) {
+            console.error(e);
+            setStatus('');
+            alert('לא כל הקישורים נוצרו: ' + AdminAuth.errorMessage(e) + '\nאפשר ללחוץ שוב: מי שכבר יש לו קישור ידולג.');
+        } finally {
+            creating = false;
+            document.getElementById('createBtn').disabled = false;
+            try { await loadVoters(); } catch (e) { console.error(e); renderSquadHint(); }
+        }
+    }
+
+    const createdText = n => n === 1 ? 'נוצר קישור אחד' : `נוצרו ${n} קישורים`;
+
+    function createSquadVoters() {
+        runCreate(squadWithoutLink(), n => setStatus(`✅ ${createdText(n)}. עכשיו שולחים לכל אחד את שלו: 💬 וואטסאפ ליד השם.`));
+    }
+
+    // רשימה מודבקת, גם מהוואטסאפ: מספור, אימוג'ים ושעות יורדים לבד (כמו בהוספת שחקנים לסגל)
+    function createVoters() {
+        const input = document.getElementById('namesInput');
+        const r = GroupPrefs.parsePlayerList(input.value, voters.map(v => v.name));
+        const had = r.existing.length ? ` · כבר היה קישור ל: ${r.existing.join(', ')}` : '';
+        const more = r.overflow ? ` · עד ${GroupPrefs.BULK_MAX} בכל פעם, ${r.overflow} נשארו בחוץ` : '';
+        if (!r.names.length) {
+            if (r.existing.length) return setStatus(`לכל השמות כבר יש קישור: ${r.existing.join(', ')}`);
+            return alert("הזן לפחות שם אחד.");
+        }
+        runCreate(r.names, n => {
+            input.value = '';
+            setStatus(`✅ ${createdText(n)}${had}${more}`);
+        });
     }
 
     async function copyLink(token) {
