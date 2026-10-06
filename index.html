@@ -54,14 +54,18 @@
             --att-bg: rgba(239, 68, 68, 0.15);
             --att-text: #F87171;
             --att-border: rgba(239, 68, 68, 0.3);
+            --gnav-h: 62px;   /* גובה הסרגל התחתון, בלי השוליים של האייפון */
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body { 
             font-family: 'Heebo', sans-serif; background-color: var(--bg-color); 
-            color: var(--text-main); margin: 0; padding: 0; padding-bottom: 100px; direction: rtl; 
+            color: var(--text-main); margin: 0; padding: 0; direction: rtl;
+            padding-bottom: calc(var(--gnav-h) + env(safe-area-inset-bottom) + 24px);
         }
+        /* מנהל בלשונית "משחק": גם סרגל החלוקה לקבוצות מעל הסרגל התחתון */
+        body.has-bar { padding-bottom: calc(var(--gnav-h) + env(safe-area-inset-bottom) + 104px); }
 
         .container { max-width: 600px; margin: 0 auto; padding: 15px; }
 
@@ -120,7 +124,6 @@
         .admin-inline { display: none; }
         body.is-admin .admin-inline { display: inline-flex; }
         body.is-admin .admin-inline[hidden] { display: none; }
-        .lineup-title-side { display: flex; align-items: center; gap: 8px; }
         .lineup-clear-btn { align-items: center; gap: 4px; background: transparent; border: 1px solid rgba(239,68,68,0.45); color: #FCA5A5; border-radius: 20px;
             padding: 4px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
         .lineup-clear-btn:hover, .lineup-clear-btn:focus-visible { background: rgba(239,68,68,0.12); color: #FECACA; }
@@ -147,6 +150,7 @@
         /* הוספה למסך הבית (בטלפון) */
         .a2hs { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
         .a2hs[hidden], .a2hs-help[hidden] { display: none; }
+        .a2hs-card { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--surface-color); }
         .a2hs-row { display: flex; align-items: center; gap: 8px; }
         .a2hs-ic { border-radius: 6px; flex: none; }
         .a2hs-text { flex: 1; min-width: 0; color: var(--text-muted); line-height: 1.4; }
@@ -190,38 +194,102 @@
         .lobby-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 20px; color: var(--primary-color); }
         .lobby-desc { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5; }
 
-        .tabs-nav {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            background: var(--surface-color);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 57px;
-            z-index: 90;
-        }
-        .tab-btn {
-            padding: 11px 4px 9px;
-            text-align: center;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            font-weight: 800;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: 0.2s;
-            font-family: 'Heebo', sans-serif;
-            white-space: nowrap;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 3px;
-            line-height: 1.2;
-        }
-        .tab-btn .tab-icon { font-size: 1.1rem; line-height: 1; }
-        .tab-btn .tab-label { font-size: 0.72rem; }
-        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
-        .tab-btn:nth-child(n+4) { border-top: 1px solid var(--border-color); }
+        /* ===== הסרגל התחתון: משחק · סגל · דירוגים · היסטוריה · עוד ===== */
+        .gnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 110; background: rgba(15, 23, 42, 0.97);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--border-color);
+            padding-bottom: env(safe-area-inset-bottom); }
+        .gnav-inner { max-width: 600px; margin: 0 auto; display: flex; height: var(--gnav-h); }
+        .gnav-btn { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+            background: none; border: 0; padding: 6px 2px; color: var(--text-muted); font: 800 0.72rem 'Heebo', sans-serif; cursor: pointer; white-space: nowrap; }
+        .gnav-ic { font-size: 1.25rem; line-height: 1; filter: grayscale(0.7); opacity: 0.8; transition: filter 0.15s, opacity 0.15s; }
+        .gnav-more { font-weight: 900; }
+        .gnav-btn[aria-current="page"] { color: var(--primary-color); }
+        .gnav-btn[aria-current="page"] .gnav-ic { filter: none; opacity: 1; }
+        .gnav-btn[aria-current="page"]::before { content: ''; position: absolute; top: 0; left: 24%; right: 24%; height: 3px; border-radius: 0 0 3px 3px; background: var(--primary-color); }
+        .gnav-btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -5px; border-radius: 12px; }
+        .gnav-btn.admin-nav { display: none; }
+        body.is-admin .gnav-btn.admin-nav { display: flex; }
+        .gnav-dot { position: absolute; top: 8px; left: calc(50% - 17px); width: 9px; height: 9px; border-radius: 50%; background: var(--primary-color); box-shadow: 0 0 0 2px var(--bg-color); }
+        .gnav-dot[hidden] { display: none; }
+        .top-zone { padding-bottom: 0; }
+        .top-zone:empty { display: none; }
+        .back-row { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 12px; padding: 6px 2px; background: none; border: 0; color: var(--text-muted);
+            font: 800 0.9rem 'Heebo', sans-serif; cursor: pointer; }
+        .back-row:hover, .back-row:focus-visible { color: var(--text-main); }
+
+        /* לשונית "עוד" */
+        .more-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .more-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);
+            background: var(--surface-color); color: var(--text-main); font: 800 1rem 'Heebo', sans-serif; text-align: right; cursor: pointer; }
+        .more-item:hover, .more-item:focus-visible { border-color: var(--primary-color); outline: none; }
+        .more-ic { font-size: 1.6rem; flex: none; width: 1.6em; text-align: center; }
+        .more-tx { flex: 1; min-width: 0; line-height: 1.35; }
+        .more-tx b { display: block; font-size: 1.02rem; }
+        .more-tx small { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.82rem; margin-top: 2px; }
+        .more-go { color: var(--text-muted); font-size: 1.4rem; flex: none; }
+        .link-card-title { font-weight: 900; font-size: 1rem; margin-bottom: 10px; }
+        .link-display { font-family: monospace; font-size: 0.85rem; color: var(--text-muted); word-break: break-all; direction: ltr; text-align: left;
+            background: var(--bg-color); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); }
+        .link-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .link-btn { flex: 1; padding: 11px 8px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main);
+            font: 800 0.9rem 'Heebo', sans-serif; cursor: pointer; }
+        .link-btn.wa { background: #25D366; border-color: #25D366; color: #062E16; }
+        .link-tip { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #FCD34D; }
+        .link-note { margin-top: 10px; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; }
+        .more-admin-title { font-weight: 900; font-size: 1rem; margin-bottom: 6px; }
+        .more-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 4px; background: none; border: 0; border-top: 1px solid rgba(255,255,255,0.06);
+            color: var(--text-main); font: 700 0.95rem 'Heebo', sans-serif; text-align: right; text-decoration: none; cursor: pointer; }
+        .more-admin-title + .more-row { border-top: 0; }
+        .more-row:hover, .more-row:focus-visible { color: var(--primary-color); outline: none; }
+
+        /* היסטוריה / מלכי שערים */
+        .seg { display: flex; gap: 4px; padding: 4px; margin-bottom: 14px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; }
+        .seg-btn { flex: 1; padding: 10px 6px; border: 0; border-radius: 9px; background: transparent; color: var(--text-muted); font: 800 0.92rem 'Heebo', sans-serif; cursor: pointer; }
+        .seg-btn[aria-selected="true"] { background: rgba(16,185,129,0.15); color: var(--primary-color); }
+        .seg-btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: -2px; }
+
+        /* לשונית הסגל */
+        #playerFormCard { scroll-margin-top: 72px; }
+        .form-head-acts { display: flex; align-items: center; gap: 8px; }
+        .form-x { background: rgba(255,255,255,0.08); border: 0; color: var(--text-main); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: 800; }
+        .form-x[hidden], .add-player-btn[hidden] { display: none; }
+        .add-player-btn { font-size: 1rem; padding: 13px; }
+        .squad-count { color: var(--text-muted); font-weight: 500; font-size: 0.9rem; margin-inline-start: auto; padding-inline-start: 8px; }
+        .squad-search { margin-bottom: 10px; padding: 11px 14px; }
+        .squad-search[hidden] { display: none; }
+        .squad-hint { color: var(--text-muted); font-size: 0.8rem; margin: 0 0 10px; }
+        #tab-squad .squad-list { max-height: none; overflow: visible; padding-right: 0; }
+        .squad-none { text-align: center; color: var(--text-muted); padding: 16px; font-size: 0.9rem; }
+
+        /* כרטיס ההרכב: בחירת שחקנים ואיפוס */
+        .lineup-tools { margin: -4px 0 14px; }
+        body.is-admin .lineup-tools { display: flex; gap: 8px; }
+        .lineup-pick-btn { display: inline-flex; align-items: center; gap: 4px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.45); color: #6EE7B7;
+            border-radius: 20px; padding: 6px 12px; font: 800 0.85rem 'Heebo', sans-serif; cursor: pointer; }
+        .lineup-pick-btn:hover, .lineup-pick-btn:focus-visible { background: rgba(16,185,129,0.22); }
+        .picker-modal { max-width: 440px; text-align: right; display: flex; flex-direction: column; }
+        .picker-modal .modal-name { font-size: 1.3rem; margin: 0 0 6px 36px; }
+        .picker-count { color: var(--text-muted); font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; }
+        .picker-count b { color: var(--text-main); }
+        .picker-count.ready b { color: var(--primary-color); }
+        .picker-modal .form-input { margin-bottom: 10px; padding: 11px 14px; }
+        .picker-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 48vh; margin-bottom: 14px; padding: 2px; }
+        .picker-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-main); font: 700 0.95rem 'Heebo', sans-serif; text-align: right; cursor: pointer; }
+        .picker-item.on { border-color: rgba(16,185,129,0.6); background: rgba(16,185,129,0.1); }
+        .pi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pi-mark { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--border-color); font-weight: 900; }
+        .picker-item.on .pi-mark { background: var(--primary-color); color: #fff; }
+
+        /* חלון "מה חדש" (פעם אחת, למי שהכיר את הדף הקודם) */
+        .wn-modal { max-width: 420px; text-align: right; }
+        .wn-modal .modal-name { font-size: 1.3rem; margin: 0 0 14px; }
+        .wn-list { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+        .wn-list li { display: flex; gap: 12px; align-items: flex-start; line-height: 1.45; }
+        .wn-ic { font-size: 1.4rem; flex: none; width: 1.6em; text-align: center; }
+        .wn-list b { display: block; }
+        .wn-list small { display: block; color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -286,11 +354,12 @@
         .counter { background: var(--bg-color); padding: 4px 12px; border-radius: 20px; font-size: 0.95rem; font-weight: 800; color: var(--text-muted); border: 1px solid var(--border-color);}
         .counter.ready { background: rgba(16, 185, 129, 0.2); color: var(--primary-color); border-color: var(--primary-color); }
 
-        .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 15px 20px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; display: none;}
+        .bottom-bar { position: fixed; bottom: calc(var(--gnav-h) + env(safe-area-inset-bottom)); left: 0; right: 0; padding: 12px 16px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color); z-index: 100; display: none;}
+        .bottom-bar > div { max-width: 568px; margin: 0 auto; }
         body.is-admin .tab-content.active #tab-main-content .bottom-bar-wrapper { display: block; }
         .bottom-bar-wrapper { display: none; }
 
-        #results { display: none; }
+        #results { display: none; scroll-margin-bottom: calc(var(--gnav-h) + env(safe-area-inset-bottom) + 96px); }
         .team-row { margin-bottom: 25px; }
         .team-header { font-size: 1.2rem; font-weight: 900; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;}
         .team-header-name { display: flex; align-items: center; gap: 8px; }
@@ -677,7 +746,7 @@
         <button type="button" class="am-item" onclick="adminMenuGo('settings')"><span class="am-ic" aria-hidden="true">⚙️</span><span class="am-tx">הגדרות הקבוצה<small>גודל הקבוצות, מי נכנס כשההרשמה מלאה, מנהלים</small></span></button>
         <a class="am-item voters-link" href="voters_admin.html"><span class="am-ic" aria-hidden="true">🔗</span><span class="am-tx">קישורים אישיים לדירוג<small>לכל שחקן קישור משלו, כדי שאף אחד לא ידרג פעמיים</small></span></a>
         <a class="am-item activity-link" href="activity.html"><span class="am-ic" aria-hidden="true">📊</span><span class="am-tx">פעילות שחקנים<small>מי מגיע, מי מבטל ומי נעלם</small></span></a>
-        <button type="button" class="am-item" onclick="adminMenuGo('market')"><span class="am-ic" aria-hidden="true">🤝</span><span class="am-tx">חסרים שחקנים? פרסום מודעה<small>ל-24 שעות, בלשונית "מחפשים שחקן"</small></span></button>
+        <button type="button" class="am-item" onclick="adminMenuGo('market')"><span class="am-ic" aria-hidden="true">🤝</span><span class="am-tx">חסרים שחקנים? פרסום מודעה<small>ל-24 שעות, ב"עוד ← מחפשים שחקן"</small></span></button>
         <button type="button" class="am-item" data-act="clear" onclick="adminMenuGo('clear')"><span class="am-ic" aria-hidden="true">🧹</span><span class="am-tx">איפוס ההרכב הנוכחי<small>מוריד את כולם מההרכב של המשחק</small></span></button>
         <div class="am-sep" aria-hidden="true"></div>
         <button type="button" class="am-item" onclick="adminMenuGo('logout')"><span class="am-ic" aria-hidden="true">🚪</span><span class="am-tx">יציאה ממצב ניהול</span></button>
@@ -688,70 +757,38 @@
     </div>
 
     <div id="appContainer" style="display:none;">
-        <div class="container" style="padding-bottom: 0;">
-            <div class="card" style="margin-bottom: 10px; border-style: dashed; border-color: var(--primary-color); background: rgba(16, 185, 129, 0.05);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: 800; font-size: 0.9rem; color: var(--primary-color);">🔗 קישור ישיר לקבוצה זו:</span>
-                    <button onclick="copyGroupLink()" style="background: var(--primary-color); border: none; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 700;">העתק</button>
-                </div>
-                <div id="groupLinkDisplay" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted); word-break: break-all; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color);">טוען קישור...</div>
-                <!-- במחשב: תזכורת למנהל לשמור את הקישור. בטלפון: הוספה למסך הבית (initA2hsTip) -->
-                <div class="admin-only" id="bookmarkTip" style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: #FCD34D;">
-                    <strong>📢 תזכורת למנהל:</strong> שמור את הקישור הזה בקיצורי הדרך!
-                </div>
-                <div class="a2hs" id="a2hsTip" hidden>
-                    <div class="a2hs-row">
-                        <img src="icons/favicon-32.png" alt="" width="22" height="22" class="a2hs-ic">
-                        <span class="a2hs-text"><b>הוסיפו את הקבוצה למסך הבית</b> ותיכנסו בלחיצה אחת</span>
-                        <button type="button" class="a2hs-how" id="a2hsHowBtn" onclick="toggleA2hsHelp()" aria-expanded="false" aria-controls="a2hsHelp">איך?</button>
-                        <button type="button" class="a2hs-x" onclick="dismissA2hs()" aria-label="להסתיר את ההצעה">✕</button>
-                    </div>
-                    <div class="a2hs-help" id="a2hsHelp" hidden></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tabs-nav">
-            <button class="tab-btn active" onclick="switchTab('tab-main', this)">
-                <span class="tab-icon">⚽</span><span class="tab-label">משחק נוכחי</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-leaderboards', this)">
-                <span class="tab-icon">📊</span><span class="tab-label">דירוגים</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-scorers', this)">
-                <span class="tab-icon">🏆</span><span class="tab-label">מלכי שערים</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-history', this)">
-                <span class="tab-icon">📅</span><span class="tab-label">היסטוריה</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-market', this)">
-                <span class="tab-icon">🤝</span><span class="tab-label">מחפשים שחקן</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('tab-laundry', this)">
-                <span class="tab-icon">👕</span><span class="tab-label">כביסה</span>
-            </button>
-        </div>
-
-        <div class="container" style="padding-bottom:0; padding-top:0;">
-            <div class="reg-banner" id="regBanner">
-                <div class="reg-banner-top">
-                    <div class="reg-banner-title">🟢 הרשמה פתוחה למשחק!</div>
-                    <div class="reg-banner-date" id="regBannerDate"></div>
-                </div>
-                <div class="reg-banner-counts">
-                    <div class="reg-count-chip" id="regBannerConfirmed">0 / 0 נרשמו</div>
-                    <div class="reg-count-chip waiting" id="regBannerWaiting" style="display:none;">0 ממתינים</div>
-                </div>
-                <a class="reg-open-btn" id="regBannerLink" href="#" target="_blank">
-                    להרשמה →
-                </a>
-            </div>
-        </div>
+        <!-- הודעות כלליות מעל כל הלשוניות: הזמנה לניהול, קבוצה חדשה (showInviteBanner / showWelcomeBanner) -->
+        <div class="container top-zone" id="topZone"></div>
 
         <div class="container">
-            <!-- TAB: MAIN -->
+            <!-- לשונית: משחק — ההרשמה, ההרכב והחלוקה לקבוצות -->
             <div id="tab-main" class="tab-content active">
                 <div id="tab-main-content">
+
+                    <!-- בטלפון: הוספה למסך הבית (initA2hsTip) -->
+                    <div class="a2hs a2hs-card" id="a2hsTip" hidden>
+                        <div class="a2hs-row">
+                            <img src="icons/favicon-32.png" alt="" width="22" height="22" class="a2hs-ic">
+                            <span class="a2hs-text"><b>הוסיפו את הקבוצה למסך הבית</b> ותיכנסו בלחיצה אחת</span>
+                            <button type="button" class="a2hs-how" id="a2hsHowBtn" onclick="toggleA2hsHelp()" aria-expanded="false" aria-controls="a2hsHelp">איך?</button>
+                            <button type="button" class="a2hs-x" onclick="dismissA2hs()" aria-label="להסתיר את ההצעה">✕</button>
+                        </div>
+                        <div class="a2hs-help" id="a2hsHelp" hidden></div>
+                    </div>
+
+                    <div class="reg-banner" id="regBanner">
+                        <div class="reg-banner-top">
+                            <div class="reg-banner-title">🟢 הרשמה פתוחה למשחק!</div>
+                            <div class="reg-banner-date" id="regBannerDate"></div>
+                        </div>
+                        <div class="reg-banner-counts">
+                            <div class="reg-count-chip" id="regBannerConfirmed">0 / 0 נרשמו</div>
+                            <div class="reg-count-chip waiting" id="regBannerWaiting" style="display:none;">0 ממתינים</div>
+                        </div>
+                        <a class="reg-open-btn" id="regBannerLink" href="#" target="_blank">
+                            להרשמה →
+                        </a>
+                    </div>
 
                     <div class="reg-admin-card admin-only" id="regAdminCard">
                         <div class="reg-admin-title">📋 ניהול הרשמה למשחק</div>
@@ -888,11 +925,45 @@
                         </div>
                     </div>
 
-                    <div class="card admin-only">
-                        <div class="form-head">
-                            <h2 class="card-title" id="formTitle">הוספת שחקן חדש</h2>
-                            <button type="button" class="bulk-open-btn" id="bulkOpenBtn" onclick="openBulkAdd()">📋 כמה בבת אחת</button>
+                    <div class="card">
+                        <h2 class="card-title">
+                            הרכב למשחק
+                            <span id="counterBadge" class="counter">0 / 0</span>
+                        </h2>
+                        <div class="lineup-tools admin-only">
+                            <button type="button" id="pickLineupBtn" class="lineup-pick-btn" onclick="openLineupPicker()">➕ בחירת שחקנים</button>
+                            <button type="button" id="clearLineupBtn" class="lineup-clear-btn admin-inline" onclick="clearLineup()" title="להוריד את כולם מההרכב">🧹 איפוס</button>
                         </div>
+                        <div id="lineupGrid" class="player-grid">
+                            <div style="grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;">טוען נתונים...</div>
+                        </div>
+                    </div>
+
+                    <div id="results" class="card"></div>
+
+                    <div class="bottom-bar-wrapper">
+                        <div class="bottom-bar" id="adminBottomBar">
+                            <div style="display:flex; gap:10px;">
+                                <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
+                                <button id="finishGameBtn" class="btn" style="background: var(--danger); flex: 0.6; font-size: 0.95rem; display: none;" onclick="finishGame()">סיום משחק 🏁</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- לשונית: סגל (למנהלים) — הוספה, עריכה וחיפוש שחקנים -->
+            <div id="tab-squad" class="tab-content">
+                <div class="card admin-only" id="playerFormCard">
+                    <div class="form-head">
+                        <h2 class="card-title" id="formTitle">הוספת שחקנים</h2>
+                        <div class="form-head-acts">
+                            <button type="button" class="bulk-open-btn" id="bulkOpenBtn" onclick="openBulkAdd()">📋 כמה בבת אחת</button>
+                            <button type="button" class="form-x" id="playerFormClose" onclick="closePlayerForm()" aria-label="סגירת הטופס" hidden>✕</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn add-player-btn" id="playerFormToggle" onclick="openPlayerForm()" aria-expanded="false" aria-controls="playerFormBody">➕ שחקן חדש</button>
+                    <div id="playerFormBody" hidden>
                         <input type="text" id="pName" class="form-input" placeholder="שם השחקן">
                         
                         <div style="margin-bottom: 15px;">
@@ -1020,36 +1091,16 @@
 
                         <div style="display:flex; gap:10px;">
                             <button class="btn" id="saveBtn" onclick="savePlayer()">שמור שחקן</button>
-                            <button class="btn" id="cancelBtn" onclick="cancelEdit()" style="display:none; background:var(--danger);">בטל עריכה</button>
-                        </div>
-
-                        <h3 style="margin-top: 30px; font-size: 1.05rem; color:var(--text-main); font-weight:800;">כל הסגל <span style="font-size:0.85rem; font-weight:400; color:var(--text-muted);">(לחץ + להוספה, ✓ להסרה)</span></h3>
-                        <div class="squad-list" id="squadList"></div>
-                    </div>
-
-                    <div class="card">
-                        <h2 class="card-title">
-                            הרכב למשחק
-                            <span class="lineup-title-side">
-                                <button type="button" id="clearLineupBtn" class="lineup-clear-btn admin-inline" onclick="clearLineup()" title="להוריד את כולם מההרכב">🧹 איפוס</button>
-                                <span id="counterBadge" class="counter">0 / 0</span>
-                            </span>
-                        </h2>
-                        <div id="lineupGrid" class="player-grid">
-                            <div style="grid-column: 1/-1; color:var(--text-muted); text-align:center; padding: 20px;">טוען נתונים...</div>
+                            <button class="btn" id="cancelBtn" onclick="closePlayerForm()" style="display:none; background:var(--danger);">בטל עריכה</button>
                         </div>
                     </div>
+                </div>
 
-                    <div id="results" class="card"></div>
-
-                    <div class="bottom-bar-wrapper">
-                        <div class="bottom-bar" id="adminBottomBar">
-                            <div style="display:flex; gap:10px;">
-                                <button id="calcBtn" class="btn" disabled onclick="run()">חלק לקבוצות מאוזנות 🔥</button>
-                                <button id="finishGameBtn" class="btn" style="background: var(--danger); flex: 0.6; font-size: 0.95rem; display: none;" onclick="finishGame()">סיום משחק 🏁</button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="card admin-only">
+                    <h2 class="card-title">👥 כל הסגל <span class="squad-count" id="squadCount"></span></h2>
+                    <input type="search" id="squadSearch" class="form-input squad-search" placeholder="🔍 חיפוש שחקן לפי שם" oninput="render()" aria-label="חיפוש שחקן בסגל" autocomplete="off" hidden>
+                    <div class="squad-hint">➕ מוסיף את השחקן להרכב של המשחק, ✓ מוריד אותו</div>
+                    <div class="squad-list" id="squadList"></div>
                 </div>
             </div>
 
@@ -1091,25 +1142,65 @@
                 </div>
             </div>
 
-            <!-- TAB: SCORERS -->
-            <div id="tab-scorers" class="tab-content">
-                <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
-                    <h2 class="card-title" style="font-size: 1.4rem; justify-content: center; margin-bottom: 25px;">🏆 טבלת מלכי השערים</h2>
-                    <div id="topScorersList" style="display: flex; flex-direction: column; gap: 15px;">
-                        <div style="text-align:center; color:var(--text-muted); padding:10px;">טוען נתונים...</div>
+            <!-- לשונית: היסטוריה ומלכי שערים -->
+            <div id="tab-history" class="tab-content">
+                <div class="seg" role="tablist" aria-label="היסטוריה">
+                    <button type="button" role="tab" class="seg-btn" id="segGames" aria-selected="true" aria-controls="histGames" onclick="showHistoryPane('games')">📅 משחקים</button>
+                    <button type="button" role="tab" class="seg-btn" id="segScorers" aria-selected="false" aria-controls="histScorers" onclick="showHistoryPane('scorers')">🏆 מלכי שערים</button>
+                </div>
+                <div id="histGames" role="tabpanel" aria-labelledby="segGames">
+                    <div class="card" style="border-top-width: 4px; border-top-color: #8B5CF6;">
+                        <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">📅 היסטוריית משחקים</h2>
+                        <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">כל ערב משחק שנסכם נשמר כאן עם כל הפרטים</p>
+                        <a class="admin-only activity-link" href="activity.html" style="text-align:center; margin:-10px 0 18px; color:#C4B5FD; font-weight:800; font-size:0.9rem; text-decoration:none;">📊 מי מגיע הכי הרבה? לדף פעילות השחקנים ←</a>
+                        <div id="historyList">
+                            <div class="history-empty">טוען היסטוריה... ⏳</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="histScorers" role="tabpanel" aria-labelledby="segScorers" hidden>
+                    <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
+                        <h2 class="card-title" style="font-size: 1.4rem; justify-content: center; margin-bottom: 25px;">🏆 טבלת מלכי השערים</h2>
+                        <div id="topScorersList" style="display: flex; flex-direction: column; gap: 15px;">
+                            <div style="text-align:center; color:var(--text-muted); padding:10px;">טוען נתונים...</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB: HISTORY -->
-            <div id="tab-history" class="tab-content">
-                <div class="card" style="border-top-width: 4px; border-top-color: #8B5CF6;">
-                    <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">📅 היסטוריית משחקים</h2>
-                    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">כל ערב משחק שנסכם נשמר כאן עם כל הפרטים</p>
-                    <a class="admin-only activity-link" href="activity.html" style="text-align:center; margin:-10px 0 18px; color:#C4B5FD; font-weight:800; font-size:0.9rem; text-decoration:none;">📊 מי מגיע הכי הרבה? לדף פעילות השחקנים ←</a>
-                    <div id="historyList">
-                        <div class="history-empty">טוען היסטוריה... ⏳</div>
+            <!-- לשונית: עוד — כביסה, מחפשים שחקן, הקישור לקבוצה וקיצורי ניהול -->
+            <div id="tab-more" class="tab-content">
+                <div class="more-list">
+                    <button type="button" class="more-item" onclick="goSection('laundry')">
+                        <span class="more-ic" aria-hidden="true">👕</span>
+                        <span class="more-tx"><b>תורנות כביסה</b><small>מי לוקח את הגופיות הביתה הערב</small></span>
+                        <span class="more-go" aria-hidden="true">‹</span>
+                    </button>
+                    <button type="button" class="more-item" onclick="goSection('market')">
+                        <span class="more-ic" aria-hidden="true">🤝</span>
+                        <span class="more-tx"><b>מחפשים שחקן</b><small>קבוצות שחסר להן שחקן, ומודעה כשחסר לכם</small></span>
+                        <span class="more-go" aria-hidden="true">‹</span>
+                    </button>
+                </div>
+
+                <div class="card link-card">
+                    <div class="link-card-title">🔗 הקישור לקבוצה</div>
+                    <div id="groupLinkDisplay" class="link-display">טוען קישור...</div>
+                    <div class="link-actions">
+                        <button type="button" class="link-btn" onclick="copyGroupLink()">📋 העתקה</button>
+                        <button type="button" class="link-btn wa" onclick="shareGroupLink()">📤 שיתוף בוואטסאפ</button>
                     </div>
+                    <!-- במחשב: תזכורת למנהל לשמור את הקישור. בטלפון מוצגת במקומה ההצעה להוסיף למסך הבית (initA2hsTip) -->
+                    <div class="admin-only link-tip" id="bookmarkTip"><strong>📢 תזכורת למנהל:</strong> שמור את הקישור הזה בקיצורי הדרך!</div>
+                    <div class="link-note">בקישור הזה כולם רואים את ההרכב, הדירוגים וההיסטוריה. הוא לא נותן הרשאות ניהול.</div>
+                </div>
+
+                <div class="card admin-only more-admin">
+                    <div class="more-admin-title">🛠️ ניהול</div>
+                    <button type="button" class="more-row" onclick="openSettingsModal()"><span aria-hidden="true">⚙️</span> הגדרות הקבוצה</button>
+                    <a class="more-row voters-link" href="voters_admin.html"><span aria-hidden="true">🔗</span> קישורים אישיים לדירוג</a>
+                    <a class="more-row activity-link" href="activity.html"><span aria-hidden="true">📊</span> פעילות שחקנים</a>
+                    <button type="button" class="more-row" onclick="logoutAdmin()"><span aria-hidden="true">🚪</span> יציאה ממצב ניהול</button>
                 </div>
             </div>
         </div>
@@ -1117,6 +1208,7 @@
         <!-- TAB: MARKET -->
         <div id="tab-market" class="tab-content">
             <div class="container">
+                <button type="button" class="back-row" onclick="goSection('more')"><span aria-hidden="true">→</span> חזרה ל"עוד"</button>
                 <!-- למנהלים: מודעה ל-24 שעות כשחסרים שחקנים -->
                 <div class="card admin-only market-post-card" id="marketPostCard">
                     <h2 class="card-title" style="margin-bottom:4px;">📢 חסרים לכם שחקנים?</h2>
@@ -1145,6 +1237,7 @@
         <!-- TAB: LAUNDRY -->
         <div id="tab-laundry" class="tab-content">
             <div class="container">
+                <button type="button" class="back-row" onclick="goSection('more')"><span aria-hidden="true">→</span> חזרה ל"עוד"</button>
                 <div class="card" style="border-top: 4px solid #A78BFA;">
                     <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 5px;">👕 תורנות כביסת גופיות</h2>
                     <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin: 0 0 20px 0;">רק מהשחקנים שמשחקים הערב — סבב מלא לפני חזרה</p>
@@ -1166,6 +1259,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- הסרגל התחתון: מעבר בין הלשוניות. הלשונית הנוכחית נשמרת בכתובת (#squad וכו') -->
+        <nav class="gnav" id="groupNav" aria-label="ניווט בדף הקבוצה">
+            <div class="gnav-inner">
+                <button type="button" class="gnav-btn" data-sec="game" aria-current="page"><span class="gnav-ic" aria-hidden="true">⚽</span><span class="gnav-tx">משחק</span><span class="gnav-dot" id="gameNavDot" hidden></span></button>
+                <button type="button" class="gnav-btn admin-nav" data-sec="squad"><span class="gnav-ic" aria-hidden="true">👥</span><span class="gnav-tx">סגל</span></button>
+                <button type="button" class="gnav-btn" data-sec="ratings"><span class="gnav-ic" aria-hidden="true">⭐</span><span class="gnav-tx">דירוגים</span></button>
+                <button type="button" class="gnav-btn" data-sec="history"><span class="gnav-ic" aria-hidden="true">📅</span><span class="gnav-tx">היסטוריה</span></button>
+                <button type="button" class="gnav-btn" data-sec="more"><span class="gnav-ic gnav-more" aria-hidden="true">☰</span><span class="gnav-tx">עוד</span></button>
+            </div>
+        </nav>
     </div>
 
     <!-- Modal: Player Card -->
@@ -1187,6 +1291,18 @@
             <div id="bulkPreview" class="bulk-preview" aria-live="polite"></div>
             <button type="button" class="btn" id="bulkAddBtn" onclick="bulkAddPlayers()" disabled>הוסף שחקנים</button>
             <div class="bulk-note">המדדים של כולם מתחילים ב-5. אפשר לערוך כל שחקן אחר כך, או לשלוח לשחקנים קישורים אישיים לדירוג (בתפריט הניהול).</div>
+        </div>
+    </div>
+
+    <!-- Modal: בחירת שחקנים להרכב -->
+    <div id="lineupPickerOverlay" class="modal-overlay" onclick="closeLineupPicker()">
+        <div class="player-card-modal picker-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+            <button class="close-btn" onclick="closeLineupPicker()" aria-label="סגור">✕</button>
+            <h2 class="modal-name" id="pickerTitle">➕ בחירת שחקנים להרכב</h2>
+            <div class="picker-count" id="pickerCount" aria-live="polite"></div>
+            <input type="search" id="pickerSearch" class="form-input" placeholder="🔍 חיפוש שחקן" oninput="renderLineupPicker()" aria-label="חיפוש שחקן" autocomplete="off">
+            <div class="picker-list" id="pickerList"></div>
+            <button type="button" class="btn" onclick="closeLineupPicker()">סיום</button>
         </div>
     </div>
 
@@ -1328,17 +1444,24 @@ let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
 
 // ========== Utilities ==========
 function updateGroupLinkUI() {
-    const url = window.location.origin + window.location.pathname + '?group=' + currentGroupId;
     const el = document.getElementById('groupLinkDisplay');
-    if (el) el.innerText = url;
+    if (el) el.innerText = groupLinkUrl();
     // דף הפעילות (למנהלים): מי מגיע, אחוזי נוכחות ומי לא נראה לאחרונה
     document.querySelectorAll('.activity-link').forEach(a => { a.href = 'activity.html?group=' + encodeURIComponent(currentGroupId); });
     // הדירוג עובד רק בקישור אישי לכל שחקן (vote.html?group=…&token=…), ולכן המנהל עובר לדף שיוצר אותם
     document.querySelectorAll('.voters-link').forEach(a => { a.href = 'voters_admin.html?group=' + encodeURIComponent(currentGroupId); });
 }
+function groupLinkUrl() {
+    return window.location.origin + window.location.pathname + '?group=' + currentGroupId;
+}
 function copyGroupLink() {
-    navigator.clipboard.writeText(document.getElementById('groupLinkDisplay').innerText)
-        .then(() => alert("הקישור הועתק ללוח! 📋"));
+    navigator.clipboard.writeText(groupLinkUrl())
+        .then(() => showToast('📋 הקישור הועתק'))
+        .catch(() => prompt('העתיקו את הקישור:', groupLinkUrl()));
+}
+function shareGroupLink() {
+    const msg = `⚽ ${currentGroupName()}: ההרכב, הדירוגים וההיסטוריה של הקבוצה\n${groupLinkUrl()}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ========== הוספה למסך הבית ==========
@@ -1387,6 +1510,9 @@ window.onload = async () => {
         document.getElementById('lobbyContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('adminBtnHeader').style.display = 'block';
+        goSection(sectionFromHash() || 'game', { initial: true });
+        // הקבוצה כבר הייתה ב"קבוצות האחרונות" במכשיר הזה: מכירים את הדף הקודם (בשביל "מה חדש")
+        knownGroupBefore = GroupPrefs.getRecentGroups().some(g => g.id === currentGroupId);
 
         groupRef = db.collection('groups').doc(currentGroupId);
         playersRef = groupRef.collection('players');
@@ -1431,8 +1557,47 @@ window.onload = async () => {
             }
         } catch (e) { console.warn('auth init', e); }
         if (urlParams.get('welcome')) showWelcomeBanner();
+        else maybeShowWhatsNew();
     }
 };
+
+// ========== "מה חדש" — פעם אחת, למי שהכיר את הדף לפני הסרגל התחתון ==========
+const WHATS_NEW_KEY = 'sm_whatsnew';
+const WHATS_NEW_VERSION = 'nav1';
+let knownGroupBefore = false;
+
+function maybeShowWhatsNew() {
+    try {
+        if (localStorage.getItem(WHATS_NEW_KEY) === WHATS_NEW_VERSION) return;
+        localStorage.setItem(WHATS_NEW_KEY, WHATS_NEW_VERSION);
+    } catch (e) { return; }
+    if (!knownGroupBefore || document.getElementById('inviteBanner')) return;
+    const tips = isAdminNow() ? [
+        ['⬇️', 'התפריט עבר לתחתית המסך', 'משחק, סגל, דירוגים, היסטוריה ועוד, בלחיצה אחת.'],
+        ['👥', 'לסגל יש לשונית משלו', 'שם מוסיפים, עורכים ומחפשים שחקנים. את ההרכב בוחרים בכרטיס ההרכב, בכפתור "➕ בחירת שחקנים".'],
+        ['☰', 'ב"עוד": כביסה, מחפשים שחקן והקישור לקבוצה', 'וגם ההגדרות, הקישורים האישיים לדירוג ודף הפעילות.']
+    ] : [
+        ['⬇️', 'התפריט עבר לתחתית המסך', 'משחק, דירוגים, היסטוריה ועוד, בלחיצה אחת.'],
+        ['📅', 'ההיסטוריה ומלכי השערים באותה לשונית', 'עוברים ביניהם בכפתורים שבראש הלשונית.'],
+        ['☰', 'ב"עוד": כביסה ומחפשים שחקן', 'וגם הקישור לקבוצה, להעתקה ולשיתוף בוואטסאפ.']
+    ];
+    const box = document.createElement('div');
+    box.id = 'whatsNewOverlay';
+    box.className = 'modal-overlay';
+    box.style.display = 'flex';
+    box.onclick = closeWhatsNew;
+    box.innerHTML = `<div class="player-card-modal wn-modal" role="dialog" aria-modal="true" aria-labelledby="wnTitle" onclick="event.stopPropagation()">
+        <h2 class="modal-name" id="wnTitle">✨ מה חדש בדף הקבוצה</h2>
+        <ul class="wn-list">${tips.map(([ic, t, d]) => `<li><span class="wn-ic" aria-hidden="true">${ic}</span><div><b>${t}</b><small>${d}</small></div></li>`).join('')}</ul>
+        <button type="button" class="btn" id="whatsNewOk" onclick="closeWhatsNew()">הבנתי 👍</button>
+    </div>`;
+    document.body.appendChild(box);
+    document.getElementById('whatsNewOk').focus({ preventScroll: true });
+}
+function closeWhatsNew() {
+    const box = document.getElementById('whatsNewOverlay');
+    if (box) box.remove();
+}
 
 // ========== Group header ==========
 function setHeaderGroup(name, icon) {
@@ -1455,8 +1620,6 @@ function currentGroupName() {
 // ========== Admin mode (Google) ==========
 function setAdminMode(on) {
     const btn = document.getElementById('adminBtnHeader');
-    const bottomBar = document.getElementById('adminBottomBar');
-    const mainTab = document.getElementById('tab-main');
     if (on) {
         document.body.classList.add('is-admin');
         if (btn) {
@@ -1466,7 +1629,10 @@ function setAdminMode(on) {
             btn.setAttribute('aria-expanded', 'false');
             btn.title = 'פעולות ניהול';
         }
-        if (bottomBar && (!mainTab || mainTab.classList.contains('active'))) bottomBar.style.display = 'block';
+        // לשונית של מנהלים שהתבקשה בכתובת (#squad) נפתחת עכשיו
+        if (wantedSection && SECTIONS[wantedSection].admin) goSection(wantedSection, { keepScroll: true });
+        else updateBottomBar();
+        if (currentSection === 'market') fillMarketForm();   // נכנסו ישר ל-#market לפני שזוהה המנהל
         ensureAdminUids();
         migrateCareerStats();
         maybeSyncAutoRegs();
@@ -1480,7 +1646,8 @@ function setAdminMode(on) {
             btn.removeAttribute('aria-expanded');
             btn.title = 'כניסת מנהל';
         }
-        if (bottomBar) bottomBar.style.display = 'none';
+        if (SECTIONS[currentSection].admin) goSection('game');
+        else updateBottomBar();
     }
     render();
 }
@@ -1512,9 +1679,9 @@ function showWelcomeBanner() {
             <button type="button" onclick="this.closest('.card').remove()" style="background:none; border:none; color:var(--text-muted); font-size:1.1rem; cursor:pointer;" aria-label="סגור">✕</button>
         </div>
         <ol style="margin:10px 0 14px; padding-inline-start:20px; line-height:1.9;">
-            <li>הוסף את השחקנים לסגל, אחד-אחד או כולם בבת אחת:<br><button type="button" class="bulk-open-btn" onclick="openBulkAdd()" style="margin:4px 0 2px;">📋 הדבקת רשימה מהוואטסאפ</button></li>
+            <li>הוסף את השחקנים לסגל (בלשונית 👥 סגל), אחד-אחד או כולם בבת אחת:<br><button type="button" class="bulk-open-btn" onclick="openBulkAdd()" style="margin:4px 0 2px;">📋 הדבקת רשימה מהוואטסאפ</button></li>
             <li>שלח את הקישור לקבוצת הוואטסאפ</li>
-            <li>פתח הרשמה למשחק הקרוב, והשאר קורה לבד</li>
+            <li>פתח הרשמה למשחק הקרוב כאן למטה, ושלח את קישור ההרשמה. כל שחקן בוחר את עצמו מהרשימה ונרשם</li>
         </ol>
         <a class="btn" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="background:#25D366; color:#062E16; text-decoration:none; display:block; text-align:center;">💬 שלח את הקישור לוואטסאפ</a>`;
     host.prepend(card);
@@ -1706,6 +1873,7 @@ function startRealtimeListeners() {
         render();
         // חלון "כמה בבת אחת" פתוח: מי שנוסף עכשיו עובר ל"כבר בסגל"
         if (document.getElementById('bulkModalOverlay').style.display === 'flex') renderBulkPreview();
+        if (document.getElementById('lineupPickerOverlay').style.display === 'flex') renderLineupPicker();
         if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
     });
@@ -2130,13 +2298,60 @@ function justSavedAttrs(id) {
         : { cls: '', style: '' };
 }
 
-// גלילה בתוך רשימת הסגל בלבד (בלי להזיז את הדף), כדי שהשחקן שנשמר ייראה
-function revealSavedPlayer(id) {
+// אחרי שמירה השחקן מסומן ברשימת הסגל. אחרי עריכה (page=true) הדף גולל אליו;
+// אחרי הוספה הדף נשאר במקום, כדי שאפשר יהיה להוסיף את השחקן הבא
+function revealSavedPlayer(id, page) {
     const list = document.getElementById('squadList');
     const el = list && list.querySelector(`.squad-item[data-pid="${id}"]`);
     if (!el) return;
+    if (page) {
+        const r = el.getBoundingClientRect();
+        if (r.top < 70 || r.bottom > window.innerHeight - 90) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
     const lr = list.getBoundingClientRect(), er = el.getBoundingClientRect();
-    if (er.top < lr.top || er.bottom > lr.bottom) list.scrollTop += (er.top - lr.top) - (lr.height - er.height) / 2;
+    if (list.scrollHeight > list.clientHeight && (er.top < lr.top || er.bottom > lr.bottom)) list.scrollTop += (er.top - lr.top) - (lr.height - er.height) / 2;
+}
+
+// חיפוש שחקן: בלי הבדל בין אותיות גדולות/קטנות, רווחים כפולים וגרשיים
+function squadSearchKey(s) {
+    return String(s || '').toLowerCase().replace(/[\u05F3\u05F4'"`\u2018\u2019\u201C\u201D]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// ===== בחירת שחקנים להרכב (מכרטיס ההרכב בלשונית "משחק") =====
+function openLineupPicker() {
+    document.getElementById('pickerSearch').value = '';
+    renderLineupPicker();
+    document.getElementById('lineupPickerOverlay').style.display = 'flex';
+    const s = document.getElementById('pickerSearch');
+    if (window.matchMedia('(hover: hover)').matches) s.focus();
+}
+function closeLineupPicker() {
+    document.getElementById('lineupPickerOverlay').style.display = 'none';
+    const btn = document.getElementById('pickLineupBtn');
+    if (btn && btn.offsetParent) btn.focus({ preventScroll: true });
+}
+function renderLineupPicker() {
+    const total = (parseInt(groupSettings.numTeams) || 3) * (parseInt(groupSettings.playersPerTeam) || 6);
+    const inCount = players.filter(p => p.inLineup).length;
+    const count = document.getElementById('pickerCount');
+    count.innerHTML = `בהרכב: <b>${inCount} / ${total}</b>` + (inCount > total ? ' · יותר מדי שחקנים' : '');
+    count.classList.toggle('ready', inCount === total);
+    const q = squadSearchKey(document.getElementById('pickerSearch').value);
+    const list = q ? players.filter(p => squadSearchKey(p.name).includes(q)) : players;
+    document.getElementById('pickerList').innerHTML = list.length ? list.map(p => {
+        const on = !!p.inLineup;
+        return `<button type="button" class="picker-item${on ? ' on' : ''}" aria-pressed="${on}" onclick="pickerToggle('${escAdminText(p.id)}')">
+            <span class="pi-name">${escAdminText(p.name)}${p.isGk ? ' 🧤' : ''}</span>
+            <span class="pi-mark" aria-hidden="true">${on ? '✓' : '+'}</span>
+        </button>`;
+    }).join('') : `<div class="squad-none">${players.length ? 'אין בסגל שחקן בשם הזה' : 'עוד אין שחקנים בסגל'}</div>`;
+}
+async function pickerToggle(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    try { await toggleLineup(id, !!p.inLineup); }
+    catch (e) { console.error('lineup toggle', e); showToast('❌ ' + AdminAuth.errorMessage(e), 'error'); }
 }
 
 function setSaveBtn(text, busy) {
@@ -2218,8 +2433,8 @@ async function savePlayer() {
             }
             justSaved = { id, at: Date.now() };
             await playersRef.doc(id).update(updateData);
-            cancelEdit();
-            revealSavedPlayer(id);
+            closePlayerForm();
+            revealSavedPlayer(id, true);
             showToast(`✅ הפרטים של ${name} עודכנו`);
         } else {
             playerData.inLineup = false;
@@ -2301,7 +2516,9 @@ function startEdit(id, p) {
     fillLockedParamsUI(p.lockedParams || null);
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
     document.getElementById('cancelBtn').style.display = "block";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (currentSection !== 'squad') goSection('squad');
+    setPlayerFormOpen(true);
+    document.getElementById('playerFormCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function cancelEdit() {
@@ -2324,6 +2541,25 @@ function cancelEdit() {
     document.getElementById('cancelBtn').style.display = "none";
     resetLockedParamsUI();
     resetBirthdayField();
+}
+
+// ===== טופס השחקן בלשונית הסגל: סגור עד שלוחצים "➕ שחקן חדש" או ✏️ ליד שחקן =====
+function setPlayerFormOpen(open) {
+    document.getElementById('playerFormBody').hidden = !open;
+    document.getElementById('playerFormToggle').hidden = open;
+    document.getElementById('playerFormToggle').setAttribute('aria-expanded', String(open));
+    document.getElementById('playerFormClose').hidden = !open;
+    if (!open) document.getElementById('formTitle').innerText = 'הוספת שחקנים';
+    else if (!editingId) document.getElementById('formTitle').innerText = 'הוספת שחקן חדש';
+}
+function openPlayerForm() {
+    if (editingId) cancelEdit();
+    setPlayerFormOpen(true);
+    document.getElementById('pName').focus({ preventScroll: true });
+}
+function closePlayerForm() {
+    if (editingId) cancelEdit();
+    setPlayerFormOpen(false);
 }
 async function deletePlayer(id) {
     const p = players.find(x => x.id === id);
@@ -2767,10 +3003,19 @@ function render() {
     const isAdmin = document.body.classList.contains('is-admin');
 
     const squadList = document.getElementById('squadList');
+    // חיפוש בסגל: מופיע כשיש יותר מ-8 שחקנים
+    const search = document.getElementById('squadSearch');
+    if (search) search.hidden = players.length <= 8;
+    const q = search && !search.hidden ? squadSearchKey(search.value) : '';
+    const shown = q ? players.filter(p => squadSearchKey(p.name).includes(q)) : players;
+    const countEl = document.getElementById('squadCount');
+    if (countEl) countEl.textContent = players.length ? (q ? `${shown.length} מתוך ${players.length}` : `${players.length} שחקנים`) : '';
     if (squadList && !players.length && playersLoaded) {
-        squadList.innerHTML = `<div class="squad-empty">עוד אין שחקנים בסגל.<button type="button" class="bulk-open-btn" onclick="openBulkAdd()">📋 הדבקת רשימה מהוואטסאפ</button>או הוספה אחד-אחד בטופס למעלה</div>`;
+        squadList.innerHTML = `<div class="squad-empty">עוד אין שחקנים בסגל.<button type="button" class="bulk-open-btn" onclick="openBulkAdd()">📋 הדבקת רשימה מהוואטסאפ</button>או אחד-אחד, עם "➕ שחקן חדש" למעלה</div>`;
+    } else if (squadList && !shown.length) {
+        squadList.innerHTML = `<div class="squad-none">אין בסגל שחקן בשם הזה</div>`;
     } else if (squadList) {
-        squadList.innerHTML = players.map(p => {
+        squadList.innerHTML = shown.map(p => {
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
             const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
             const playerBadges = getPlayerBadgesHTML(p);
@@ -2803,7 +3048,9 @@ function render() {
     const lineupGrid = document.getElementById('lineupGrid');
     if (lineupGrid) {
         if (lineupPlayers.length === 0) {
-            lineupGrid.innerHTML = "<div style='grid-column:1/-1; color:var(--text-muted); text-align:center; padding:20px;'>עדיין לא נבחר הרכב להערב.</div>";
+            lineupGrid.innerHTML = "<div style='grid-column:1/-1; color:var(--text-muted); text-align:center; padding:20px;'>עדיין לא נבחר הרכב להערב."
+                + (isAdmin && players.length ? "<br><button type='button' class='lineup-pick-btn' style='margin-top:12px;' onclick='openLineupPicker()'>➕ בחירת שחקנים להרכב</button>" : '')
+                + "</div>";
         } else {
             lineupGrid.innerHTML = lineupPlayers.map(p => {
                 const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
@@ -3204,6 +3451,8 @@ document.addEventListener('focusout', e => {
 });
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.getElementById('bulkModalOverlay').style.display === 'flex') return closeBulkAdd();
+    if (e.key === 'Escape' && document.getElementById('lineupPickerOverlay').style.display === 'flex') return closeLineupPicker();
+    if (e.key === 'Escape' && document.getElementById('whatsNewOverlay')) return closeWhatsNew();
     const menu = document.getElementById('adminMenu');
     if (e.key !== 'Escape' || !menu || menu.hidden) return;
     toggleAdminMenu(false);
@@ -3211,17 +3460,98 @@ document.addEventListener('keydown', e => {
     if (btn) btn.focus();
 });
 
-// ========== Tab Switching ==========
-function switchTab(tabId, btnElement) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); btnElement.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active')); document.getElementById(tabId).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    const bottomBar = document.getElementById('adminBottomBar');
-    if (bottomBar) bottomBar.style.display = (tabId === 'tab-main' && document.body.classList.contains('is-admin')) ? 'block' : 'none';
-    if (tabId === 'tab-market') { renderMarket(); if (document.body.classList.contains('is-admin')) fillMarketForm(); }
-    if (tabId === 'tab-leaderboards') renderLeaderboards();
-    if (tabId === 'tab-history') renderHistory();
+// ========== ניווט בין הלשוניות (הסרגל התחתון) ==========
+// הלשונית הנוכחית נשמרת בכתובת (#squad, #ratings…), כך שרענון או קישור פותחים אותה.
+// כביסה ו"מחפשים שחקן" נפתחות מתוך "עוד", ולכן "עוד" נשאר מסומן בסרגל כשהן פתוחות.
+const SECTIONS = {
+    game:    { tab: 'tab-main',         nav: 'game' },
+    squad:   { tab: 'tab-squad',        nav: 'squad', admin: true },
+    ratings: { tab: 'tab-leaderboards', nav: 'ratings' },
+    history: { tab: 'tab-history',      nav: 'history', pane: 'games' },
+    scorers: { tab: 'tab-history',      nav: 'history', pane: 'scorers' },
+    more:    { tab: 'tab-more',         nav: 'more' },
+    laundry: { tab: 'tab-laundry',      nav: 'more' },
+    market:  { tab: 'tab-market',       nav: 'more' }
+};
+const TAB_SECTION = { 'tab-main': 'game', 'tab-squad': 'squad', 'tab-leaderboards': 'ratings', 'tab-history': 'history',
+    'tab-scorers': 'scorers', 'tab-more': 'more', 'tab-market': 'market', 'tab-laundry': 'laundry' };
+let currentSection = 'game';
+let wantedSection = null;   // לשונית של מנהלים שהתבקשה בכתובת, לפני שידוע אם המשתמש מנהל
+
+function isAdminNow() { return document.body.classList.contains('is-admin'); }
+function hasSection(name) { return Object.prototype.hasOwnProperty.call(SECTIONS, name); }
+
+function sectionFromHash() {
+    let h = '';
+    try { h = decodeURIComponent((location.hash || '').slice(1)); } catch (e) { h = ''; }
+    return hasSection(h) ? h : null;
 }
+
+function goSection(name, opts) {
+    opts = opts || {};
+    if (!hasSection(name)) name = 'game';
+    if (SECTIONS[name].admin && !isAdminNow()) { wantedSection = name; name = 'game'; }
+    else if (!opts.keepWanted) wantedSection = null;
+    const sec = SECTIONS[name];
+    const prev = currentSection;
+    currentSection = name;
+    document.querySelectorAll('#appContainer .tab-content').forEach(t => t.classList.toggle('active', t.id === sec.tab));
+    document.querySelectorAll('#groupNav .gnav-btn').forEach(b => {
+        if (b.dataset.sec === sec.nav) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    if (sec.pane) showHistoryPane(sec.pane, true);
+    if (opts.initial) { /* בטעינה הדפדפן כבר בראש הדף */ }
+    else if (prev === name) window.scrollTo({ top: 0, behavior: 'smooth' });   // לחיצה נוספת על הלשונית: חזרה למעלה
+    else if (!opts.keepScroll) window.scrollTo(0, 0);
+    const hash = name === 'game' ? '' : '#' + name;
+    if ((location.hash || '') !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
+    updateBottomBar();
+    updateNavDot();
+    if (name === 'market') { renderMarket(); if (isAdminNow()) fillMarketForm(); }
+    if (name === 'ratings') renderLeaderboards();
+    if (name === 'history' || name === 'scorers') renderHistory();
+}
+
+// תאימות לקריאות הישנות (switchTab('tab-market', …))
+function switchTab(tabId) { goSection(TAB_SECTION[tabId] || 'game'); }
+
+function showHistoryPane(pane, fromNav) {
+    const scorers = pane === 'scorers';
+    document.getElementById('histGames').hidden = scorers;
+    document.getElementById('histScorers').hidden = !scorers;
+    document.getElementById('segGames').setAttribute('aria-selected', String(!scorers));
+    document.getElementById('segScorers').setAttribute('aria-selected', String(scorers));
+    if (!fromNav) goSection(scorers ? 'scorers' : 'history', { keepScroll: true });
+}
+
+// סרגל "חלק לקבוצות מאוזנות" מוצג רק למנהל, בלשונית "משחק", מעל הסרגל התחתון
+function updateBottomBar() {
+    const bar = document.getElementById('adminBottomBar');
+    const show = isAdminNow() && currentSection === 'game';
+    if (bar) bar.style.display = show ? 'block' : 'none';
+    document.body.classList.toggle('has-bar', show);
+}
+
+// נקודה ירוקה על "משחק" כשההרשמה פתוחה ונמצאים בלשונית אחרת
+function updateNavDot() {
+    const dot = document.getElementById('gameNavDot');
+    const banner = document.getElementById('regBanner');
+    if (!dot || !banner) return;
+    const open = banner.classList.contains('visible') && !banner.classList.contains('soon');
+    const show = open && currentSection !== 'game';
+    dot.hidden = !show;
+    const btn = dot.closest('.gnav-btn');
+    if (show) btn.setAttribute('aria-label', 'משחק: ההרשמה פתוחה'); else btn.removeAttribute('aria-label');
+}
+
+document.getElementById('groupNav').addEventListener('click', e => {
+    const b = e.target.closest('.gnav-btn');
+    if (b) goSection(b.dataset.sec);
+});
+window.addEventListener('hashchange', () => {
+    const s = sectionFromHash();
+    if (s && s !== currentSection) goSection(s);
+});
 
 // ========== Team Generation ==========
 // ========== איזון קבוצות: פונקציית ציון ==========
@@ -3820,8 +4150,7 @@ function fillMarketForm() {
 }
 
 function openMarketPost() {
-    const tabBtn = document.querySelector('.tab-btn[onclick*="tab-market"]');
-    if (tabBtn) switchTab('tab-market', tabBtn);
+    goSection('market');
 }
 
 async function publishToMarket() {
@@ -4052,6 +4381,7 @@ function showRegBanner(regId, regData) {
     if (dateEl && regData.gameDate) dateEl.textContent = `${regData.gameDate}${regData.gameTime ? ' • ' + regData.gameTime : ''}`;
     const link = document.getElementById('regBannerLink');
     if (link) { link.href = buildRegUrl(regId); link.textContent = 'להרשמה →'; }
+    updateNavDot();
 }
 
 // הרשמה אוטומטית שעוד לא נפתחה: מתי היא נפתחת, וקישור לדף ההרשמה הקבוע
@@ -4064,10 +4394,12 @@ function showSoonBanner(reg) {
     if (dateEl) dateEl.textContent = 'למשחק ' + RegAuto.gamePhrase(reg);
     const link = document.getElementById('regBannerLink');
     if (link) { link.href = RegAuto.stableLink(currentGroupId); link.textContent = 'לדף ההרשמה →'; }
+    updateNavDot();
 }
 
 function hideRegBanner() {
     const banner = document.getElementById('regBanner'); if (banner) banner.classList.remove('visible');
+    updateNavDot();
 }
 
 function showRegOpenForm() {
@@ -4698,10 +5030,11 @@ function showToast(msg, type='success') {
         toast.style.cssText = `position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(16px); opacity:0; pointer-events:none; background:#1E293B; border:1px solid #334155; border-radius:12px; padding:12px 20px; font-weight:800; font-size:0.95rem; z-index:9999; transition:transform 0.25s ease, opacity 0.25s ease; width:max-content; max-width:calc(100vw - 32px); box-sizing:border-box; text-align:center; line-height:1.4; box-shadow:0 8px 24px rgba(0,0,0,0.5);`;
         document.body.appendChild(toast);
     }
-    // מעל סרגל הניהול התחתון כשהוא מוצג, כדי שלא יסתיר את ההודעה
+    // מעל הסרגל התחתון, ומעל סרגל החלוקה לקבוצות כשהוא מוצג, כדי שלא יסתירו את ההודעה
+    const nav = document.getElementById('groupNav');
     const bar = document.getElementById('adminBottomBar');
-    const barH = bar ? bar.offsetHeight : 0;
-    toast.style.bottom = (barH ? barH + 16 : 30) + 'px';
+    const below = (nav ? nav.offsetHeight : 0) + (bar ? bar.offsetHeight : 0);
+    toast.style.bottom = (below ? below + 12 : 30) + 'px';
     toast.textContent = msg;
     if (type === 'success') { toast.style.borderColor = 'rgba(16,185,129,0.35)'; toast.style.color = '#10B981'; }
     else if (type === 'error') { toast.style.borderColor = 'rgba(239,68,68,0.4)'; toast.style.color = '#F87171'; }
