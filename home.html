@@ -28,7 +28,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="admin-auth.js?v=20261006"></script>
-<script src="group-prefs.js?v=20261005"></script>
+<script src="group-prefs.js?v=20261007"></script>
+<script src="map-kit.js?v=20261007"></script>
 <style>
     :root {
         --bg: #0F172A; --bg-deep: #0B1220; --surface: #1E293B; --surface-2: #273449;
@@ -227,6 +228,61 @@
     .vis-opt:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
     .public-box { background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.25); border-radius: 14px; padding: 14px 14px 2px; margin-bottom: 16px; }
 
+    /* ===== הסרגל התחתון: הקבוצות שלי · מצא קבוצה · מחפשים שחקן · פרופיל ===== */
+    body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+    .hnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: rgba(15,23,42,0.97); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+    .hnav-inner { max-width: 640px; margin: 0 auto; display: flex; height: 64px; }
+    .hnav-btn { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+                color: var(--muted); font-weight: 800; font-size: .74rem; white-space: nowrap; }
+    .hnav-ic { font-size: 1.3rem; line-height: 1; filter: grayscale(0.7); opacity: .8; transition: filter .15s, opacity .15s; }
+    .hnav-btn:hover { color: var(--text); }
+    .hnav-btn[aria-current="page"] { color: var(--primary); }
+    .hnav-btn[aria-current="page"] .hnav-ic { filter: none; opacity: 1; }
+    .hnav-btn[aria-current="page"]::before { content: ''; position: absolute; top: 0; left: 24%; right: 24%; height: 3px; border-radius: 0 0 3px 3px; background: var(--primary); }
+    .hnav-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: -5px; border-radius: 12px; }
+    .hnav-badge { position: absolute; top: 6px; left: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #EF4444; color: #fff;
+                  font-size: .7rem; font-weight: 900; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--bg); }
+
+    /* ===== מצא קבוצה: מפה ורשימה ===== */
+    .find-tools { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+    .seg { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+    .seg-btn { padding: 8px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: .92rem; cursor: pointer; }
+    .seg-btn[aria-selected="true"] { background: var(--primary-soft); color: var(--primary); }
+    .near-btn { padding: 9px 14px; font-size: .92rem; }
+    .find-map { height: min(58vh, 540px); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .map-msg { height: 100%; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 20px; direction: rtl; }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: .85rem; margin: 10px 2px 0; }
+    .map-note { color: var(--muted); font-size: .85rem; margin: 8px 2px 0; }
+    .map-card { margin-top: 12px; max-width: 520px; }
+    .map-card .listing { border-color: var(--primary-line); }
+    .status-chip { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: .8rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+    .status-chip.open { background: rgba(16,185,129,0.14); color: #6EE7B7; }
+    .status-chip.looking { background: rgba(251,191,36,0.12); color: #FCD34D; }
+    .status-chip.closed { background: rgba(148,163,184,0.14); color: var(--muted); }
+    .listing .dist { color: var(--muted); font-size: .85rem; }
+
+    /* ===== מחפשים שחקן ===== */
+    .post-missing { background: rgba(239,68,68,0.15); color: #FCA5A5; border-radius: 8px; padding: 3px 10px; font-weight: 900; font-size: .85rem; white-space: nowrap; }
+
+    /* ===== פרופיל ===== */
+    .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 560px; }
+    .profile-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .avatar { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); font-size: 1.5rem; font-weight: 900; overflow: hidden; flex: none; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-name { font-weight: 900; font-size: 1.15rem; }
+    .profile-mail { color: var(--muted); font-size: .9rem; direction: ltr; text-align: right; overflow-wrap: anywhere; }
+    .profile-sub { color: var(--muted); font-size: .95rem; margin: 0 0 16px; }
+    .profile-rows { display: grid; margin-top: 4px; }
+    .profile-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 4px; background: none; border: 0; border-top: 1px solid rgba(255,255,255,0.06);
+                   color: var(--text); font: inherit; font-weight: 700; text-align: right; cursor: pointer; }
+    .profile-row:hover { color: var(--primary); }
+    .profile-row.has-new { color: #FCA5A5; }
+    .profile-row.danger { color: var(--danger); }
+    .pr-ic { width: 1.6em; text-align: center; flex: none; }
+    .profile-links { max-width: 560px; margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .92rem; }
+    .profile-links a:hover { color: var(--text); }
+
     /* ===== Responsive ===== */
     @media (max-width: 860px) {
         .hero { padding: 36px 0 44px; }
@@ -270,7 +326,6 @@
     <div class="wrap nav-inner">
         <a class="brand" href="home.html"><span class="brand-ball" aria-hidden="true">⚽</span>Soccer Manager</a>
         <nav class="nav-actions" aria-label="ניווט ראשי">
-            <a class="nav-link" id="navFind" href="#find" aria-label="מצא משחק"><span class="nav-ico" aria-hidden="true">🔎</span><span class="nav-text">מצא משחק</span></a>
             <button class="btn btn-ghost nav-btn" id="navAuthBtn" type="button">כניסה</button>
         </nav>
     </div>
@@ -336,7 +391,7 @@
                 <div class="feature"><div class="feature-icon">📝</div><h3>הרשמה עם רשימת המתנה</h3><p>מגבלת משתתפים, קדימויות שאתם קובעים, ורשימת המתנה שמתקדמת לבד כשמישהו מבטל.</p></div>
                 <div class="feature"><div class="feature-icon">⭐</div><h3>דירוגי שחקנים</h3><p>כל שחקן מדרג את החברים בקישור אישי, והציונים משפיעים על החלוקה.</p></div>
                 <div class="feature"><div class="feature-icon">🏆</div><h3>MVP, שערים וטבלאות</h3><p>הצבעת MVP אחרי כל משחק, מלכי שערים והיסטוריית משחקים.</p></div>
-                <div class="feature"><div class="feature-icon">🔄</div><h3>שוק שחקנים</h3><p>חסרים שחקנים הערב? מפרסמים בשוק ומוצאים מחליף.</p></div>
+                <div class="feature"><div class="feature-icon">🗺️</div><h3>מפת קבוצות ושוק שחקנים</h3><p>קבוצות ציבוריות מופיעות במפה. חסרים שחקנים הערב? מפרסמים מודעה ל-24 שעות ומוצאים מחליף.</p></div>
                 <div class="feature"><div class="feature-icon">🛡️</div><h3>כמה מנהלים, בלי סיסמאות</h3><p>כניסה מאובטחת עם Google, ומזמינים עוד מנהלים בקישור.</p></div>
             </div>
         </div>
@@ -347,9 +402,9 @@
             <div class="band">
                 <div>
                     <h2>מחפש קבוצה לשחק איתה?</h2>
-                    <p>קבוצות ציבוריות מפרסמות כאן איפה ומתי הן משחקות. פונים למארגן בוואטסאפ.</p>
+                    <p>במפה רואים קבוצות ציבוריות לפי אזור, ואם הן מחפשות שחקנים עכשיו. פונים למארגן בוואטסאפ.</p>
                 </div>
-                <a class="btn btn-ghost btn-lg" href="#find">🔎 מצא משחק</a>
+                <a class="btn btn-ghost btn-lg" href="#find">🗺️ למפת הקבוצות</a>
             </div>
         </div>
     </section>
@@ -362,7 +417,7 @@
                 <details><summary>כמה זה עולה?</summary><p>בתקופת ההשקה השימוש חינם, בלי הגבלה על מספר הקבוצות.</p></details>
                 <details><summary>השחקנים צריכים להירשם או להוריד אפליקציה?</summary><p>לא. רק המנהל מתחבר עם Google. השחקנים פותחים את הקישור מהוואטסאפ ונרשמים בלחיצה, והאתר זוכר להם את הקבוצה.</p></details>
                 <details><summary>אפשר כמה מנהלים לקבוצה?</summary><p>כן. בהגדרות הקבוצה יוצרים קישור הזמנה חד-פעמי ושולחים אותו למנהל הנוסף.</p></details>
-                <details><summary>מי רואה את הקבוצה שלי?</summary><p>קבוצה פרטית גלויה רק למי שקיבל ממך קישור. קבוצה ציבורית מופיעה גם ב"מצא משחק" עם עיר, זמנים ומספר לפניות, אבל הקישור לקבוצה עצמה נשאר אצלך.</p></details>
+                <details><summary>מי רואה את הקבוצה שלי?</summary><p>קבוצה פרטית גלויה רק למי שקיבל ממך קישור. קבוצה ציבורית מופיעה גם ב"מצא קבוצה" ובמפה, עם עיר, זמנים, מספר לפניות ומיקום המגרש אם סימנת אותו. אפשר לסמן בהגדרות אם הקבוצה מחפשת שחקנים או לא. הקישור לקבוצה עצמה נשאר אצלך.</p></details>
                 <details><summary>יש לי כבר קבוצה במערכת. מה עושים?</summary><p>נכנסים לקבוצה מהקישור הרגיל ולוחצים "ניהול". אחרי הכניסה הראשונה עם Google היא תופיע ב"הקבוצות שלי".</p></details>
             </div>
         </div>
@@ -394,26 +449,70 @@
             <div class="group-list" id="dashRecentList"></div>
         </div>
         <div class="page-foot">
-            <a class="linkish" href="#find">🔎 מצא משחק</a>
-            <a class="linkish" href="admin.html" id="superAdminLink" hidden>לוח בקרה גלובלי</a>
+            <a class="linkish super-admin-link" href="admin.html" id="superAdminLink" hidden>לוח בקרה גלובלי</a>
             <button class="linkish" type="button" onclick="signOut()">התנתקות</button>
         </div>
     </section>
 </main>
 
-<!-- ============ מצא משחק ============ -->
+<!-- ============ מצא קבוצה: מפה ורשימה ============ -->
 <main id="viewFind" hidden>
     <section class="wrap page">
         <div class="page-head">
             <div>
-                <h1>מצא משחק</h1>
-                <p>קבוצות שפתוחות לשחקנים חדשים. פונים למארגן בוואטסאפ.</p>
+                <h1>מצא קבוצה</h1>
+                <p>קבוצות ציבוריות, איפה הן משחקות ואם הן מחפשות שחקנים. פונים למארגן בוואטסאפ.</p>
             </div>
+        </div>
+        <div class="find-tools">
+            <div class="seg" role="tablist" aria-label="תצוגה">
+                <button class="seg-btn" type="button" role="tab" id="segMap" aria-selected="true" aria-controls="findMapWrap" onclick="setFindMode('map')">🗺️ מפה</button>
+                <button class="seg-btn" type="button" role="tab" id="segList" aria-selected="false" aria-controls="findList" onclick="setFindMode('list')">📋 רשימה</button>
+            </div>
+            <button class="btn btn-ghost near-btn" id="nearBtn" type="button" onclick="findNearMe()">📍 קרוב אליי</button>
         </div>
         <input class="search" id="findSearch" type="search" placeholder="חיפוש לפי עיר, מגרש או שם קבוצה" aria-label="חיפוש קבוצות" oninput="renderListings()">
         <div class="find-count" id="findCount" aria-live="polite"></div>
-        <div class="listing-list" id="findList"></div>
+        <div id="findMapWrap" role="tabpanel" aria-labelledby="segMap">
+            <div class="find-map" id="findMap"></div>
+            <div class="map-legend" aria-label="מקרא">
+                <span>🟢 יש משחק פתוח להרשמה</span><span>🟡 מחפשים שחקנים</span><span>⚪ לא מחפשים כרגע</span>
+            </div>
+            <p class="map-note" id="mapNote" hidden></p>
+            <div class="map-card" id="mapCard" aria-live="polite"></div>
+        </div>
+        <div class="listing-list" id="findList" role="tabpanel" aria-labelledby="segList" hidden></div>
         <p class="page-note" id="findNote" hidden>מארגן קבוצה? <button class="linkish" type="button" onclick="startCreate()">פתח קבוצה</button> וסמן אותה כציבורית כדי להופיע כאן.</p>
+    </section>
+</main>
+
+<!-- ============ מחפשים שחקן: מודעות ל-24 שעות מכל הקבוצות ============ -->
+<main id="viewMarket" hidden>
+    <section class="wrap page">
+        <div class="page-head">
+            <div>
+                <h1>מחפשים שחקן</h1>
+                <p>קבוצות שחסר להן שחקן למשחק הקרוב. פונים למארגן בוואטסאפ.</p>
+            </div>
+        </div>
+        <div class="find-count" id="marketCount" aria-live="polite"></div>
+        <div class="listing-list" id="marketList"></div>
+        <p class="page-note">מנהל קבוצה? מודעה עולה לכאן ל-24 שעות מדף הקבוצה: ☰ עוד ← מחפשים שחקן.</p>
+    </section>
+</main>
+
+<!-- ============ פרופיל ============ -->
+<main id="viewProfile" hidden>
+    <section class="wrap page">
+        <div class="page-head">
+            <div><h1>פרופיל</h1></div>
+        </div>
+        <div class="profile-card" id="profileCard"></div>
+        <nav class="profile-links" aria-label="מידע">
+            <a href="privacy.html">🔒 מדיניות פרטיות</a>
+            <a href="terms.html">📄 תנאי שימוש</a>
+            <a href="contact.html?from=home">✉️ יצירת קשר</a>
+        </nav>
     </section>
 </main>
 
@@ -421,7 +520,7 @@
     <div class="wrap">
         <span>⚽ Soccer Manager · נבנה בשביל הכדורגל השכונתי</span>
         <nav aria-label="קישורים">
-            <a href="#find">מצא משחק</a>
+            <a href="#find">מצא קבוצה</a>
             <a href="#" onclick="startCreate(); return false;">פתח קבוצה</a>
             <a href="privacy.html">מדיניות פרטיות</a>
             <a href="terms.html">תנאי שימוש</a>
@@ -429,6 +528,16 @@
         </nav>
     </div>
 </footer>
+
+<!-- הסרגל התחתון של האתר (בדף של קבוצה יש סרגל משלה) -->
+<nav class="hnav" id="homeNav" aria-label="ניווט ראשי">
+    <div class="hnav-inner">
+        <a class="hnav-btn" href="home.html" data-tab="home" onclick="return homeNav(event)"><span class="hnav-ic" aria-hidden="true">🏠</span><span>הקבוצות שלי</span></a>
+        <a class="hnav-btn" href="#find" data-tab="find"><span class="hnav-ic" aria-hidden="true">🗺️</span><span>מצא קבוצה</span></a>
+        <a class="hnav-btn" href="#market" data-tab="market"><span class="hnav-ic" aria-hidden="true">📢</span><span>מחפשים שחקן</span></a>
+        <a class="hnav-btn" href="#profile" data-tab="profile"><span class="hnav-ic" aria-hidden="true">👤</span><span>פרופיל</span><span class="hnav-badge" id="profileBadge" hidden></span></a>
+    </div>
+</nav>
 
 <!-- ============ יצירת קבוצה ============ -->
 <div class="modal" id="createModal" hidden role="dialog" aria-modal="true" aria-labelledby="createTitle">
@@ -451,7 +560,7 @@
                 <legend>מי יכול למצוא את הקבוצה?</legend>
                 <div class="vis-opts">
                     <label class="vis-opt"><input type="radio" name="cVis" value="private" checked><b>🔒 פרטית</b><small>רק מי שקיבל ממך קישור</small></label>
-                    <label class="vis-opt"><input type="radio" name="cVis" value="public"><b>🌍 ציבורית</b><small>מופיעה ב"מצא משחק" ושחקנים חדשים יכולים לפנות אליך</small></label>
+                    <label class="vis-opt"><input type="radio" name="cVis" value="public"><b>🌍 ציבורית</b><small>מופיעה ב"מצא קבוצה" ובמפה, ושחקנים חדשים יכולים לפנות אליך</small></label>
                 </div>
             </fieldset>
             <div class="public-box" id="cPublicFields" hidden>
@@ -523,10 +632,11 @@
     const CHEVRON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // ===== ניווט בין מסכים =====
+    const VIEWS = ['viewLanding', 'viewDashboard', 'viewFind', 'viewMarket', 'viewProfile'];
     function showView(id) {
         if (currentView === id) return;
         currentView = id;
-        ['viewLanding', 'viewDashboard', 'viewFind'].forEach(v => { $(v).hidden = v !== id; });
+        VIEWS.forEach(v => { $(v).hidden = v !== id; });
         window.scrollTo(0, 0);
     }
 
@@ -534,6 +644,12 @@
         if (location.hash === '#find') {
             showView('viewFind');
             loadListings();
+        } else if (location.hash === '#market') {
+            showView('viewMarket');
+            loadMarket();
+        } else if (location.hash === '#profile') {
+            showView('viewProfile');
+            renderProfile();
         } else if (AdminAuth.isRealUser(currentUser)) {
             showView('viewDashboard');
             renderDashboard();
@@ -548,13 +664,23 @@
         history.pushState(null, '', location.pathname + location.search);
         route();
     }
+    // "🏠 הקבוצות שלי" בסרגל התחתון: בלי לטעון את הדף מחדש
+    function homeNav(e) {
+        if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return true;
+        if (e) e.preventDefault();
+        if (location.hash) goHome(); else window.scrollTo({ top: 0, behavior: 'smooth' });
+        return false;
+    }
 
     function renderNav() {
         const btn = $('navAuthBtn');
         const signedIn = AdminAuth.isRealUser(currentUser);
-        btn.textContent = signedIn ? 'הקבוצות שלי' : 'כניסה';
-        btn.onclick = signedIn ? goHome : signIn;
-        $('navFind').classList.toggle('active', currentView === 'viewFind');
+        btn.textContent = signedIn ? '+ קבוצה חדשה' : 'כניסה';
+        btn.onclick = signedIn ? startCreate : signIn;
+        const tab = { viewFind: 'find', viewMarket: 'market', viewProfile: 'profile' }[currentView] || 'home';
+        document.querySelectorAll('#homeNav .hnav-btn').forEach(a => {
+            if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+        });
     }
 
     // ===== התחברות =====
@@ -578,6 +704,8 @@
     auth.onAuthStateChanged(u => {
         currentUser = u;
         if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); }
+        if (AdminAuth.isSuperAdmin(u)) watchInbox();
+        else stopInbox();
         route();
     });
     window.addEventListener('hashchange', route);
@@ -663,7 +791,7 @@
         const first = String(u.displayName || '').trim().split(/\s+/)[0];
         $('dashHello').textContent = first ? `שלום, ${first} 👋` : 'שלום 👋';
         $('superAdminLink').hidden = !AdminAuth.isSuperAdmin(u);
-        if (AdminAuth.isSuperAdmin(u)) watchInbox();
+        paintInbox();
         const list = $('myGroupsList');
         if (myGroups === undefined) {
             list.innerHTML = '<div class="empty">טוען את הקבוצות שלך…</div>';
@@ -681,19 +809,93 @@
     }
 
     // ===== פניות חדשות מטופס יצירת הקשר (מנהל-העל) =====
-    let inboxUnsub = null;
+    let inboxUnsub = null, inboxUnread = 0;
     function watchInbox() {
         if (inboxUnsub || typeof AdminAuth.watchUnreadMessages !== 'function') return;
-        inboxUnsub = AdminAuth.watchUnreadMessages(db, n => {
-            const a = $('superAdminLink');
-            a.textContent = n ? `לוח בקרה גלובלי · 📬 ${n === 1 ? 'פנייה חדשה' : n + ' פניות חדשות'}` : 'לוח בקרה גלובלי';
+        inboxUnsub = AdminAuth.watchUnreadMessages(db, n => { inboxUnread = n; paintInbox(); });
+    }
+    function stopInbox() {
+        if (inboxUnsub) { inboxUnsub(); inboxUnsub = null; }
+        inboxUnread = 0;
+        paintInbox();
+    }
+    function paintInbox() {
+        const n = inboxUnread;
+        document.querySelectorAll('.super-admin-link').forEach(a => {
+            const t = a.querySelector('.sal-tx') || a;
+            t.textContent = n ? `לוח בקרה גלובלי · 📬 ${n === 1 ? 'פנייה חדשה' : n + ' פניות חדשות'}` : 'לוח בקרה גלובלי';
             a.href = n ? 'admin.html#inboxCard' : 'admin.html';
             a.classList.toggle('has-new', n > 0);
         });
+        const badge = $('profileBadge');
+        badge.hidden = !n;
+        badge.textContent = n > 9 ? '9+' : String(n);
+        badge.closest('.hnav-btn').setAttribute('aria-label', n ? `פרופיל: ${n === 1 ? 'פנייה חדשה' : n + ' פניות חדשות'}` : 'פרופיל');
     }
 
-    // ===== מצא משחק =====
+    // ===== פרופיל =====
+    function renderProfile() {
+        const u = currentUser;
+        const el = $('profileCard');
+        if (!AdminAuth.isRealUser(u)) {
+            el.innerHTML = `<div class="profile-head"><span class="avatar" aria-hidden="true">👤</span><div><div class="profile-name">עוד לא נכנסת</div></div></div>
+                <p class="profile-sub">הכניסה עם Google היא למארגנים: פתיחת קבוצה, הרשמה למשחקים, חלוקה לקבוצות ודירוגים. שחקנים נרשמים למשחקים בלי חשבון.</p>
+                <button class="btn btn-primary btn-block" type="button" onclick="signIn()">כניסה עם Google</button>`;
+            return;
+        }
+        const name = String(u.displayName || '').trim() || 'משתמש';
+        const photo = /^https:\/\//.test(u.photoURL || '') ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : esc(name.charAt(0));
+        el.innerHTML = `<div class="profile-head"><span class="avatar" aria-hidden="true">${photo}</span><div><div class="profile-name">${esc(name)}</div><div class="profile-mail">${esc(u.email || '')}</div></div></div>
+            <div class="profile-rows">
+                <a class="profile-row" href="home.html" onclick="return homeNav(event)"><span class="pr-ic" aria-hidden="true">🏠</span>הקבוצות שלי</a>
+                <button class="profile-row" type="button" onclick="startCreate()"><span class="pr-ic" aria-hidden="true">➕</span>פתיחת קבוצה חדשה</button>
+                ${AdminAuth.isSuperAdmin(u) ? '<a class="profile-row super-admin-link" href="admin.html"><span class="pr-ic" aria-hidden="true">🛠️</span><span class="sal-tx">לוח בקרה גלובלי</span></a>' : ''}
+                <button class="profile-row danger" type="button" onclick="signOut()"><span class="pr-ic" aria-hidden="true">🚪</span>התנתקות</button>
+            </div>`;
+        paintInbox();
+    }
+
+    // ===== מחפשים שחקן: מודעות של קבוצות שחסרים להן שחקנים (24 שעות) =====
+    let marketPosts = null;
+    const tsMs = v => v && typeof v.toMillis === 'function' ? v.toMillis() : (typeof v === 'number' ? v : 0);
+    async function loadMarket() {
+        if (marketPosts) { renderMarketPosts(); return; }
+        $('marketList').innerHTML = '<div class="empty">טוען מודעות…</div>';
+        try {
+            const snap = await db.collection('market_posts').where('expiresAt', '>', Date.now()).get();
+            marketPosts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (e) {
+            console.error('market', e);
+            $('marketList').innerHTML = '<div class="empty">לא הצלחנו לטעון את המודעות. נסו לרענן את הדף.</div>';
+            return;
+        }
+        renderMarketPosts();
+    }
+    function postCardHTML(p) {
+        const phone = G.normalizePhone(p.phone);
+        const msg = `היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${p.groupName} ב${p.location}. אפשר להצטרף?`;
+        const wa = phone ? `https://wa.me/${G.phoneToIntl(phone)}?text=${encodeURIComponent(msg)}` : '';
+        const at = tsMs(p.timestamp);
+        const when = at ? new Date(at).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' }) : '';
+        const missing = Number(p.missing) || 0;
+        return `<article class="listing">
+            <div class="listing-top"><h3>${esc(p.groupName || 'קבוצה')}</h3>${missing ? `<span class="post-missing">${missing === 1 ? 'חסר שחקן' : `חסרים ${missing}`}</span>` : ''}</div>
+            <div class="meta">📍 ${esc(p.location || '')}</div>
+            ${when ? `<div class="meta">🕒 פורסם ${esc(when)}</div>` : ''}
+            ${wa ? `<a class="btn btn-wa" href="${esc(wa)}" target="_blank" rel="noopener">📩 אני רוצה להצטרף</a>` : ''}
+        </article>`;
+    }
+    function renderMarketPosts() {
+        const now = Date.now();
+        const items = (marketPosts || []).filter(p => Number(p.expiresAt) > now).sort((a, b) => tsMs(b.timestamp) - tsMs(a.timestamp));
+        $('marketCount').textContent = items.length ? (items.length === 1 ? 'מודעה אחת' : `${items.length} מודעות`) : '';
+        $('marketList').innerHTML = items.length ? items.map(postCardHTML).join('')
+            : '<div class="empty"><b>כרגע אף קבוצה לא מחפשת שחקן.</b><br>כשלקבוצה חסרים שחקנים למשחק הקרוב, המודעה שלה מופיעה כאן ל-24 שעות.</div>';
+    }
+
+    // ===== מצא קבוצה =====
     async function loadListings() {
+        applyFindMode();
         if (listings) { renderListings(); return; }
         $('findList').innerHTML = '<div class="empty">טוען קבוצות…</div>';
         try {
@@ -709,27 +911,49 @@
 
     function norm(s) { return String(s || '').toLowerCase().replace(/[\s\-־"'׳״.,]/g, ''); }
 
+    // המגרש מהמודעה, או מרכז העיר (approx) עם פיזור קטן וקבוע כדי שנעצים באותה עיר לא יסתירו זה את זה
+    function hashCode(str) { let h = 5381; for (const ch of String(str)) h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0; return h; }
+    function listingPos(l) {
+        const p = G.cleanLatLng(l.lat, l.lng);
+        if (p) return { lat: p.lat, lng: p.lng, approx: false };
+        const c = G.cityCoords(l.city);
+        if (!c) return null;
+        const h = hashCode(l.id || l.name);
+        return { lat: c[0] + ((h % 21) - 10) * 0.0012, lng: c[1] + (((h >>> 5) % 21) - 10) * 0.0012, approx: true };
+    }
+    function distText(km) { return km < 1 ? 'פחות מקילומטר ממך' : `${km < 10 ? km.toFixed(1) : Math.round(km)} ק"מ ממך`; }
+
     function listingCardHTML(l) {
         const when = G.formatSchedule({ days: l.days, time: l.time });
         const level = G.LEVELS[l.level] || '';
         const phone = G.normalizePhone(l.phone);
         const msg = `היי, ראיתי את "${l.name}" ב-Soccer Manager. אפשר להצטרף למשחק?`;
         const wa = phone ? `https://wa.me/${G.phoneToIntl(phone)}?text=${encodeURIComponent(msg)}` : '';
-        return `<article class="listing">
+        const stKey = G.listingStatus(l);
+        const st = G.LISTING_STATUS[stKey];
+        return `<article class="listing" data-id="${esc(l.id)}">
             <div class="listing-top"><span class="listing-icon" aria-hidden="true">${G.iconHTML(l.icon, true)}</span><h3>${esc(l.name)}</h3>${level ? `<span class="chip">${esc(level)}</span>` : ''}</div>
+            <span class="status-chip ${stKey}">${st.icon} ${st.text}</span>
             <div class="meta">📍 ${esc(l.city)}${l.venue ? ' · ' + esc(l.venue) : ''}</div>
             ${when ? `<div class="meta">📅 ${esc(when)}</div>` : ''}
+            ${l._dist != null ? `<div class="dist">${distText(l._dist)}</div>` : ''}
             ${l.description ? `<p class="desc">${esc(l.description)}</p>` : ''}
             ${wa ? `<a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener">💬 דבר עם המארגן</a>` : ''}
         </article>`;
     }
 
+    const STATUS_RANK = { open: 0, looking: 1, closed: 2 };
     function renderListings() {
         if (!listings) return;
         const q = norm($('findSearch').value);
         const items = listings
             .filter(l => !q || norm([l.name, l.city, l.venue].join(' ')).includes(q))
-            .sort((a, b) => String(a.city || '').localeCompare(String(b.city || ''), 'he') || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
+            .map(l => { const pos = listingPos(l); l._pos = pos; l._dist = userPos && pos ? G.distanceKm(userPos, pos) : null; return l; })
+            .sort((a, b) => {
+                if (userPos && (a._dist != null || b._dist != null)) return (a._dist == null) - (b._dist == null) || a._dist - b._dist;
+                return STATUS_RANK[G.listingStatus(a)] - STATUS_RANK[G.listingStatus(b)]
+                    || String(a.city || '').localeCompare(String(b.city || ''), 'he') || String(a.name || '').localeCompare(String(b.name || ''), 'he');
+            });
         $('findCount').textContent = listings.length ? (items.length === 1 ? 'קבוצה אחת' : `${items.length} קבוצות`) : '';
         $('findNote').hidden = !listings.length;
         if (!items.length) {
@@ -737,9 +961,111 @@
                 ? '<div class="empty">לא נמצאו קבוצות שמתאימות לחיפוש. נסה יישוב קרוב.</div>'
                 : `<div class="empty"><b>עוד אין כאן קבוצות ציבוריות.</b><br>מארגן קבוצה? פתח קבוצה וסמן אותה כציבורית, והיא תופיע כאן.<br>
                     <button class="btn btn-primary" type="button" onclick="startCreate()">פתח קבוצה</button></div>`;
-            return;
+        } else {
+            $('findList').innerHTML = items.map(listingCardHTML).join('');
         }
-        $('findList').innerHTML = items.map(listingCardHTML).join('');
+        renderMapPins(items);
+    }
+
+    // ===== המפה =====
+    let findMode = 'map';
+    try { if (localStorage.getItem('sm_find_mode') === 'list') findMode = 'list'; } catch (e) {}
+    let findMap = null, pinLayer = null, meMarker = null, mapFitted = false, mapFailed = false, selectedId = null, userPos = null;
+
+    function setFindMode(mode) {
+        findMode = mode === 'list' ? 'list' : 'map';
+        try { localStorage.setItem('sm_find_mode', findMode); } catch (e) {}
+        applyFindMode();
+    }
+    function applyFindMode() {
+        const map = findMode === 'map' && !mapFailed;
+        $('findMapWrap').hidden = !map;
+        $('findList').hidden = map;
+        $('segMap').setAttribute('aria-selected', String(map));
+        $('segList').setAttribute('aria-selected', String(!map));
+        if (map) ensureMap();
+    }
+    async function ensureMap() {
+        if (findMap) { setTimeout(() => findMap.invalidateSize(), 0); return; }
+        if (ensureMap.busy) return;
+        ensureMap.busy = true;
+        try {
+            if (!window.MapKit) throw new Error('map-kit');
+            await MapKit.load();
+            findMap = MapKit.create($('findMap'));
+            pinLayer = L.layerGroup().addTo(findMap);
+            findMap.on('click', () => selectListing(null));
+            if (userPos) showMe();
+            renderListings();
+        } catch (e) {
+            console.warn('map', e);
+            mapFailed = true;
+            $('findMap').innerHTML = '<div class="map-msg">המפה לא נטענה. הקבוצות מוצגות ברשימה.</div>';
+            applyFindMode();
+        } finally { ensureMap.busy = false; }
+    }
+    function renderMapPins(items) {
+        if (!findMap || !pinLayer) return;
+        pinLayer.clearLayers();
+        const pts = [];
+        let approx = 0, missing = 0;
+        items.forEach(l => {
+            const pos = l._pos;
+            if (!pos) { missing++; return; }
+            if (pos.approx) approx++;
+            const st = G.LISTING_STATUS[G.listingStatus(l)];
+            const m = L.marker([pos.lat, pos.lng], {
+                icon: MapKit.pinIcon(st.color, G.iconHTML(l.icon, true), { approx: pos.approx, selected: l.id === selectedId }),
+                title: `${l.name} · ${st.text}`, alt: l.name, keyboard: true, riseOnHover: true
+            });
+            m.on('click', ev => { L.DomEvent.stopPropagation(ev); selectListing(l.id); });
+            m.addTo(pinLayer);
+            pts.push([pos.lat, pos.lng]);
+        });
+        const notes = [];
+        if (approx) notes.push(approx === 1 ? 'קבוצה אחת מופיעה לפי מרכז העיר (המסגרת המקווקוות), כי עוד לא סימנה את המגרש.' : `${approx} קבוצות מופיעות לפי מרכז העיר (מסגרת מקווקוות), כי עוד לא סימנו את המגרש.`);
+        if (missing) notes.push(missing === 1 ? 'קבוצה אחת לא מופיעה במפה. היא ברשימה.' : `${missing} קבוצות לא מופיעות במפה. הן ברשימה.`);
+        $('mapNote').hidden = !notes.length;
+        $('mapNote').textContent = notes.join(' ');
+        if (!mapFitted && pts.length) {
+            mapFitted = true;
+            if (userPos) findMap.setView([userPos.lat, userPos.lng], 11);
+            else if (pts.length === 1) findMap.setView(pts[0], 12);
+            else findMap.fitBounds(pts, { padding: [40, 40], maxZoom: 12 });
+        }
+        if (selectedId && !items.some(l => l.id === selectedId)) selectListing(null);
+    }
+    function selectListing(id) {
+        if (id === selectedId) return;
+        selectedId = id;
+        const l = id && listings ? listings.find(x => x.id === id) : null;
+        $('mapCard').innerHTML = l ? listingCardHTML(l) : '';
+        renderListings();
+        if (l) {
+            const r = $('mapCard').getBoundingClientRect();
+            if (r.bottom > window.innerHeight - 80) $('mapCard').scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }
+    function showMe() {
+        if (!findMap || !userPos) return;
+        if (meMarker) meMarker.setLatLng([userPos.lat, userPos.lng]);
+        else meMarker = L.marker([userPos.lat, userPos.lng], { icon: MapKit.meIcon(), title: 'המיקום שלך', interactive: false, keyboard: false }).addTo(findMap);
+    }
+    async function findNearMe() {
+        const btn = $('nearBtn');
+        btn.disabled = true;
+        btn.textContent = '📍 מאתרים…';
+        try {
+            if (!window.MapKit) throw new Error('unsupported');
+            userPos = await MapKit.locate();
+        } catch (e) {
+            alert(window.MapKit ? MapKit.locateError(e) : 'הדפדפן הזה לא תומך באיתור מיקום.');
+        }
+        btn.disabled = false;
+        btn.textContent = '📍 קרוב אליי';
+        if (!userPos) return;
+        renderListings();
+        if (findMap) { showMe(); findMap.setView([userPos.lat, userPos.lng], 11); }
     }
 
     // ===== יצירת קבוצה =====
