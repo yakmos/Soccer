@@ -326,12 +326,20 @@
         return { deleted: total };
     }
 
+    // פניות מטופס יצירת הקשר שעוד לא נקראו (רק מנהל-העל רשאי לקרוא אותן). פנייה נקראת כשנפתחת תיבת הפניות ב-admin.html.
+    // cb(מספר) נקרא בכל שינוי. מחזיר פונקציה שמפסיקה להאזין
+    function watchUnreadMessages(db, cb) {
+        return db.collection('contact_messages').orderBy('createdAt', 'desc').limit(50).onSnapshot(
+            snap => cb(snap.docs.filter(d => !d.data().readAt).length),
+            e => { console.warn('unread messages', e); cb(0); });
+    }
+
     window.AdminAuth = {
         SUPER_ADMIN_UID,
         getUser, isRealUser, isSuperAdmin, isAdminOf, isOwnerOf, isLegacyGroup,
         displayName, errorMessage, isCancel,
         signInWithGoogle, ensureGoogleUser, loginAsAdmin,
         createInvite, inviteLink, acceptInvite, removeAdmin, signOut,
-        deleteGroup
+        deleteGroup, watchUnreadMessages
     };
 })();
