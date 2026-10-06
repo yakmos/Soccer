@@ -355,11 +355,13 @@ service cloud.firestore {
                     || isGroupAdmin(postId);
     }
 
-    // ===== "מצא משחק": מודעה שהבעלים של קבוצה ציבורית מפרסם =====
-    // המודעה לא כוללת את מזהה הקבוצה, כדי שהקישור לקבוצה יישאר אצל המארגן
+    // ===== "מצא קבוצה": מודעה שהבעלים של קבוצה ציבורית מפרסם =====
+    // המודעה לא כוללת את מזהה הקבוצה, כדי שהקישור לקבוצה יישאר אצל המארגן.
+    // looking: מחפשים שחקנים · lat/lng: המגרש במפה · regAuto: ההרשמה השבועית · openGame: הרשמה ידנית פתוחה
     function listingOk() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['ownerUid', 'name', 'city', 'venue', 'days', 'time', 'level', 'description', 'phone', 'icon', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['ownerUid', 'name', 'city', 'venue', 'days', 'time', 'level', 'description', 'phone', 'icon', 'createdAt', 'updatedAt',
+                               'looking', 'lat', 'lng', 'regAuto', 'openGame'])
         && d.ownerUid == request.auth.uid
         && d.name is string && d.name.size() > 0 && d.name.size() <= 60
         && d.city is string && d.city.size() > 0 && d.city.size() <= 40
@@ -369,7 +371,17 @@ service cloud.firestore {
         && (!('level' in d) || (d.level is string && d.level.size() <= 20))
         && (!('description' in d) || (d.description is string && d.description.size() <= 300))
         && (!('icon' in d) || (d.icon is string && d.icon.size() <= 40000))
-        && d.phone is string && d.phone.matches('^0[0-9]{8,9}$');
+        && d.phone is string && d.phone.matches('^0[0-9]{8,9}$')
+        && (!('looking' in d) || d.looking is bool)
+        && (!('lat' in d) || (d.lat is number && d.lat >= -90 && d.lat <= 90))
+        && (!('lng' in d) || (d.lng is number && d.lng >= -180 && d.lng <= 180))
+        && (!('regAuto' in d) || (d.regAuto is map
+              && d.regAuto.keys().hasOnly(['days', 'time', 'openDaysBefore', 'openTime'])
+              && d.regAuto.get('days', []) is list && d.regAuto.get('days', []).size() <= 7
+              && d.regAuto.get('time', '') is string && d.regAuto.get('time', '').size() <= 5
+              && d.regAuto.get('openTime', '') is string && d.regAuto.get('openTime', '').size() <= 5
+              && d.regAuto.get('openDaysBefore', 0) is int))
+        && (!('openGame' in d) || (d.openGame is map && d.openGame.keys().hasOnly(['at']) && d.openGame.at is timestamp));
     }
 
     match /listings/{listingId} {
