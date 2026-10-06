@@ -29,7 +29,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20260930"></script>
-    <script src="group-prefs.js?v=20261005"></script>
+    <script src="group-prefs.js?v=20261007"></script>
+    <script src="map-kit.js?v=20261007"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -289,6 +290,19 @@
         .wn-ic { font-size: 1.4rem; flex: none; width: 1.6em; text-align: center; }
         .wn-list b { display: block; }
         .wn-list small { display: block; color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+
+        /* הגדרות קבוצה ציבורית: מחפשים שחקנים, והמגרש על המפה */
+        .pub-sub { color: var(--text-main); font-weight: 800; font-size: 0.92rem; margin: 14px 0 8px; }
+        .pitch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); }
+        .pitch-state { color: var(--text-muted); font-size: 0.85rem; line-height: 1.45; }
+        .pitch-state.on { color: #6EE7B7; }
+        #pitchModalOverlay { z-index: 1100; }   /* נפתח מעל חלון ההגדרות */
+        .pitch-modal { max-width: 520px; text-align: right; }
+        .pitch-modal .modal-name { font-size: 1.3rem; margin: 0 0 6px 36px; }
+        .pitch-sub { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 10px; }
+        .pitch-map { height: min(52vh, 420px); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); margin-bottom: 10px; }
+        .pitch-acts { display: flex; gap: 8px; margin-bottom: 12px; }
+        .pitch-note { color: var(--text-muted); font-size: 0.78rem; margin-top: 10px; line-height: 1.5; }
 
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
@@ -1306,6 +1320,22 @@
         </div>
     </div>
 
+    <!-- Modal: סימון המגרש במפה (להגדרות של קבוצה ציבורית) -->
+    <div id="pitchModalOverlay" class="modal-overlay" onclick="closePitchPicker()">
+        <div class="player-card-modal pitch-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="pitchTitle">
+            <button class="close-btn" onclick="closePitchPicker()" aria-label="סגור">✕</button>
+            <h2 class="modal-name" id="pitchTitle">📍 איפה המגרש?</h2>
+            <p class="pitch-sub">לוחצים על המפה במקום של המגרש. אפשר לגרור את הסימון.</p>
+            <div class="pitch-map" id="pitchMap"></div>
+            <div class="pitch-acts">
+                <button type="button" class="link-btn" id="pitchMeBtn" onclick="pitchUseMyLocation()">📍 המיקום שלי</button>
+                <button type="button" class="link-btn" onclick="pitchClear()">🗑️ בלי סימון</button>
+            </div>
+            <button type="button" class="btn" onclick="confirmPitch()">שמירת המיקום</button>
+            <div class="pitch-note">המיקום נשמר כשלוחצים "שמור" בהגדרות, ומוצג רק אם הקבוצה ציבורית.</div>
+        </div>
+    </div>
+
     <!-- Modal: Settings -->
     <div id="settingsModalOverlay" class="modal-overlay" onclick="closeSettingsModal()">
         <div class="player-card-modal" onclick="event.stopPropagation()" style="max-width: 480px;">
@@ -1317,7 +1347,7 @@
                 <div style="color:var(--text-muted); font-size:0.85rem; margin-bottom:6px;">סמל הקבוצה</div>
                 <div id="setIcon" style="margin-bottom:12px;"></div>
                 <div style="display:flex; gap:10px;">
-                    <input type="text" id="setCity" class="form-input" maxlength="40" list="cityList" placeholder="עיר / יישוב" style="margin-bottom:10px;">
+                    <input type="text" id="setCity" class="form-input" maxlength="40" list="cityList" placeholder="עיר / יישוב" style="margin-bottom:10px;" oninput="renderPitchState()">
                     <input type="text" id="setVenue" class="form-input" maxlength="60" placeholder="מגרש" style="margin-bottom:10px;">
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -1327,13 +1357,23 @@
                 <div style="color:var(--text-main); font-weight:bold; margin:16px 0 8px;">🌍 מי יכול למצוא את הקבוצה?</div>
                 <div class="vis-opts">
                     <label class="vis-opt"><input type="radio" name="setVis" value="private" onchange="toggleSetPublic()"><b>🔒 פרטית</b><small>רק מי שקיבל ממך קישור</small></label>
-                    <label class="vis-opt"><input type="radio" name="setVis" value="public" onchange="toggleSetPublic()"><b>🌍 ציבורית</b><small>מופיעה ב"מצא משחק" עם עיר, זמנים ומספר לפניות</small></label>
+                    <label class="vis-opt"><input type="radio" name="setVis" value="public" onchange="toggleSetPublic()"><b>🌍 ציבורית</b><small>מופיעה ב"מצא קבוצה" ובמפה, עם עיר, זמנים ומספר לפניות</small></label>
                 </div>
                 <div id="setPublicFields" style="margin-top:10px; display:none;">
                     <input type="tel" id="setPhone" class="form-input" inputmode="tel" placeholder="טלפון לפניות בוואטסאפ" style="margin-bottom:10px;">
                     <select id="setLevel" class="form-input" style="margin-bottom:10px;" aria-label="רמת משחק"></select>
                     <textarea id="setDesc" class="form-input" maxlength="300" rows="2" placeholder="כמה מילים על הקבוצה (לא חובה)" style="margin-bottom:6px; resize:vertical;"></textarea>
                     <div style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.5;">המספר יוצג לכל מי שמחפש משחק. הקישור לקבוצה לא מתפרסם.</div>
+                    <div class="pub-sub">מחפשים שחקנים חדשים?</div>
+                    <div class="vis-opts">
+                        <label class="vis-opt"><input type="radio" name="setLooking" value="yes"><b>🟡 כן, מחפשים</b><small>במפה ובחיפוש מסומן שהקבוצה מחפשת שחקנים</small></label>
+                        <label class="vis-opt"><input type="radio" name="setLooking" value="no"><b>⚪ לא כרגע</b><small>הקבוצה עדיין מופיעה, עם סימון שהיא לא מחפשת</small></label>
+                    </div>
+                    <div class="pub-sub">📍 המגרש על המפה</div>
+                    <div class="pitch-row">
+                        <span id="setPitchState" class="pitch-state"></span>
+                        <button type="button" class="ra-edit-btn" id="setPitchBtn" onclick="openPitchPicker()">סימון במפה</button>
+                    </div>
                 </div>
                 <div id="publishOwnerNote" style="color: var(--text-muted); font-size: 0.8rem; margin-top:10px; display:none;">רק הבעלים של הקבוצה יכול לשנות את פרטי הקבוצה והפרסום.</div>
                 <datalist id="cityList"></datalist>
@@ -1402,7 +1442,7 @@
             <button class="btn" onclick="saveGroupSettings()" style="margin-top: 20px;">שמור הגדרות</button>
             <div id="dangerZone" style="display:none; text-align:right; margin-top:28px; padding:14px; border:1px solid rgba(239,68,68,0.45); border-radius:12px; background:rgba(239,68,68,0.06);">
                 <div style="font-weight:900; color:var(--danger); margin-bottom:6px;">⚠️ מחיקת הקבוצה</div>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 12px 0; line-height:1.5;">מוחק לצמיתות את הקבוצה, השחקנים, ההרשמות, ההיסטוריה, הדירוגים והמודעה ב"מצא משחק". אי אפשר לשחזר.</p>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 12px 0; line-height:1.5;">מוחק לצמיתות את הקבוצה, השחקנים, ההרשמות, ההיסטוריה, הדירוגים והמודעה ב"מצא קבוצה". אי אפשר לשחזר.</p>
                 <button type="button" id="deleteGroupBtn" class="btn" onclick="deleteThisGroup()" style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:12px;">🗑️ מחק את הקבוצה לצמיתות</button>
             </div>
         </div>
@@ -3260,7 +3300,7 @@ async function deleteThisGroup() {
 }
 
 // ========== Group details & publishing ==========
-let listingCache = null;   // המודעה של הקבוצה ב"מצא משחק", אם יש
+let listingCache = null;   // המודעה של הקבוצה ב"מצא קבוצה", אם יש
 
 function isGroupOwner() {
     const u = firebase.auth().currentUser;
@@ -3294,6 +3334,9 @@ async function fillGroupDetailsForm() {
         .forEach(el => { el.disabled = !owner; });
     document.getElementById('publishOwnerNote').style.display = owner ? 'none' : 'block';
     listingCache = null;
+    setLookingForm(true);
+    pitchPos = null;
+    renderPitchState();
     if (vis === 'public' && d.listingId) {
         try {
             const snap = await db.collection('listings').doc(d.listingId).get();
@@ -3302,9 +3345,81 @@ async function fillGroupDetailsForm() {
                 document.getElementById('setPhone').value = listingCache.phone || '';
                 document.getElementById('setDesc').value = listingCache.description || '';
                 document.getElementById('setLevel').innerHTML = GroupPrefs.levelOptionsHTML(listingCache.level || '', 'רמת משחק: לא צוינה');
+                setLookingForm(listingCache.looking !== false);
+                pitchPos = GroupPrefs.cleanLatLng(listingCache.lat, listingCache.lng);
+                renderPitchState();
             }
         } catch (e) { console.warn('listing load', e); }
     }
+}
+
+// ===== קבוצה ציבורית: מחפשים שחקנים, והמגרש על המפה (נשמרים במודעה ב"מצא קבוצה") =====
+let pitchPos = null;                                   // המגרש שנבחר בהגדרות, נשמר כששומרים
+let pitchDraft = null, pitchMap = null, pitchMarker = null;
+
+function setLookingForm(looking) {
+    document.querySelectorAll('input[name="setLooking"]').forEach(r => { r.checked = r.value === (looking ? 'yes' : 'no'); });
+}
+function renderPitchState() {
+    const el = document.getElementById('setPitchState');
+    if (!el) return;
+    const city = document.getElementById('setCity').value;
+    el.classList.toggle('on', !!pitchPos);
+    el.textContent = pitchPos ? '✓ המגרש מסומן במפה'
+        : (GroupPrefs.cityCoords(city) ? 'עוד לא סומן. בינתיים הקבוצה מופיעה במפה לפי מרכז העיר.' : 'עוד לא סומן. בלי סימון הקבוצה מופיעה רק ברשימה, לא במפה.');
+    document.getElementById('setPitchBtn').textContent = pitchPos ? 'שינוי' : 'סימון במפה';
+}
+async function openPitchPicker() {
+    pitchDraft = pitchPos ? Object.assign({}, pitchPos) : null;
+    document.getElementById('pitchModalOverlay').style.display = 'flex';
+    try {
+        if (!window.MapKit) throw new Error('map-kit');
+        await MapKit.load();
+    } catch (e) {
+        console.warn('pitch map', e);
+        document.getElementById('pitchMap').innerHTML = '<div class="map-msg">המפה לא נטענה. בדקו את החיבור ונסו שוב.</div>';
+        return;
+    }
+    if (!pitchMap) {
+        pitchMap = MapKit.create(document.getElementById('pitchMap'));
+        pitchMap.on('click', e => setPitchDraft(e.latlng.lat, e.latlng.lng));
+    }
+    setTimeout(() => {
+        pitchMap.invalidateSize();
+        const c = pitchDraft ? [pitchDraft.lat, pitchDraft.lng] : GroupPrefs.cityCoords(document.getElementById('setCity').value);
+        if (c) pitchMap.setView(c, pitchDraft ? 16 : 14); else pitchMap.fitBounds(MapKit.ISRAEL);
+        drawPitchMarker();
+    }, 60);
+}
+function setPitchDraft(lat, lng) { pitchDraft = GroupPrefs.cleanLatLng(lat, lng); drawPitchMarker(); }
+function drawPitchMarker() {
+    if (!pitchMap) return;
+    if (!pitchDraft) { if (pitchMarker) { pitchMarker.remove(); pitchMarker = null; } return; }
+    if (pitchMarker) { pitchMarker.setLatLng([pitchDraft.lat, pitchDraft.lng]); return; }
+    pitchMarker = L.marker([pitchDraft.lat, pitchDraft.lng], { icon: MapKit.dropIcon(), draggable: true, title: 'המגרש', keyboard: false }).addTo(pitchMap);
+    pitchMarker.on('dragend', () => { const p = pitchMarker.getLatLng(); pitchDraft = GroupPrefs.cleanLatLng(p.lat, p.lng); });
+}
+async function pitchUseMyLocation() {
+    const btn = document.getElementById('pitchMeBtn');
+    btn.disabled = true;
+    try {
+        const p = await MapKit.locate();
+        setPitchDraft(p.lat, p.lng);
+        if (pitchMap) pitchMap.setView([p.lat, p.lng], 17);
+    } catch (e) { alert(MapKit.locateError(e)); }
+    finally { btn.disabled = false; }
+}
+function pitchClear() { pitchDraft = null; drawPitchMarker(); }
+function confirmPitch() { pitchPos = pitchDraft; renderPitchState(); closePitchPicker(); }
+function closePitchPicker() { document.getElementById('pitchModalOverlay').style.display = 'none'; }
+
+// ===== מצב ההרשמה במודעה של קבוצה ציבורית (הנקודה הירוקה במפה) =====
+// רק הבעלים מעדכן את המודעה (חוקי האבטחה). כשמנהל אחר פותח הרשמה, המודעה מתעדכנת בשמירה הבאה של הבעלים
+async function syncListing(patch) {
+    const d = currentGroupData;
+    if (!d || d.visibility !== 'public' || !d.listingId || !isGroupOwner()) return;
+    try { await db.collection('listings').doc(d.listingId).update(patch); }
+    catch (e) { console.warn('listing sync', e); }
 }
 
 async function saveGroupSettings() {
@@ -3318,8 +3433,8 @@ async function saveGroupSettings() {
     // שינוי גודל הקבוצות מבטל את השיבוץ הנוכחי; שאר ההגדרות לא
     const teamsChanged = numTeams !== Number(groupSettings.numTeams) || playersPerTeam !== Number(groupSettings.playersPerTeam);
     const update = { settings: { numTeams, playersPerTeam, priorityLabel: prio.priorityLabel, regPriority: prio.regPriority } };
-    const batch = db.batch();
     let savedName = null, savedCity = null, savedIcon = null;
+    let listingRef = null, listing = null, dropListingRef = null;
 
     // פרטי הקבוצה והפרסום — לבעלים בלבד (נאכף גם בחוקי האבטחה)
     if (isGroupOwner()) {
@@ -3345,26 +3460,57 @@ async function saveGroupSettings() {
             const phone = GroupPrefs.normalizePhone(document.getElementById('setPhone').value);
             if (!phone) return alert('כדי לפרסם את הקבוצה צריך טלפון תקין לפניות, לדוגמה 050-1234567.');
             const u = firebase.auth().currentUser;
-            const listing = GroupPrefs.buildListing({
+            const lookingEl = document.querySelector('input[name="setLooking"]:checked');
+            const looking = !(lookingEl && lookingEl.value === 'no');
+            listing = GroupPrefs.buildListing({
                 ownerUid: u.uid, name, city, venue, days, time, phone, icon: savedIcon,
                 level: document.getElementById('setLevel').value,
-                description: document.getElementById('setDesc').value
+                description: document.getElementById('setDesc').value,
+                looking, lat: pitchPos ? pitchPos.lat : null, lng: pitchPos ? pitchPos.lng : null
             });
+            const FV = firebase.firestore.FieldValue;
+            const prev = listingCache || {};
+            if (looking && prev.looking === false) listing.looking = FV.delete();
+            if (!pitchPos && (prev.lat != null || prev.lng != null)) { listing.lat = FV.delete(); listing.lng = FV.delete(); }
+            // הרשמה שבועית או הרשמה פתוחה עכשיו: בשביל הנקודה הירוקה במפה
+            const auto = GroupPrefs.listingAuto(regAutoSched);
+            if (auto) listing.regAuto = auto;
+            else if (prev.regAuto) listing.regAuto = FV.delete();
+            const openAt = !regAutoSched && currentRegId && activeRegData ? RegAuto.gameAtOf(activeRegData) : null;
+            if (openAt && openAt.getTime() > Date.now()) listing.openGame = { at: firebase.firestore.Timestamp.fromDate(openAt) };
             const ts = firebase.firestore.FieldValue.serverTimestamp();
             listing.updatedAt = ts;
-            const ref = oldListingId ? db.collection('listings').doc(oldListingId) : db.collection('listings').doc();
+            listingRef = oldListingId ? db.collection('listings').doc(oldListingId) : db.collection('listings').doc();
             if (!oldListingId || !listingCache) listing.createdAt = ts;
-            batch.set(ref, listing, { merge: true });
-            update.listingId = ref.id;
+            update.listingId = listingRef.id;
         } else if (oldListingId) {
-            batch.delete(db.collection('listings').doc(oldListingId));
+            dropListingRef = db.collection('listings').doc(oldListingId);
             update.listingId = firebase.firestore.FieldValue.delete();
         }
     }
 
-    batch.set(groupRef, update, { merge: true });
-    try {
+    // השדות של המפה (מחפשים שחקנים, המגרש, מצב ההרשמה) דורשים את חוקי האבטחה המעודכנים.
+    // אם הם עוד לא פורסמו ב-Firebase, שאר ההגדרות נשמרות בלי השדות האלה
+    const MAP_FIELDS = ['looking', 'lat', 'lng', 'regAuto', 'openGame'];
+    const writeAll = async withMap => {
+        const batch = db.batch();
+        if (listingRef) {
+            const payload = Object.assign({}, listing);
+            if (!withMap) MAP_FIELDS.forEach(k => { delete payload[k]; });
+            batch.set(listingRef, payload, { merge: true });
+        } else if (dropListingRef) batch.delete(dropListingRef);
+        batch.set(groupRef, update, { merge: true });
         await batch.commit();
+    };
+    let mapSkipped = false;
+    try {
+        try { await writeAll(true); }
+        catch (e) {
+            if (!(e && e.code === 'permission-denied' && listing && MAP_FIELDS.some(k => k in listing))) throw e;
+            console.warn('listing map fields not allowed yet', e);
+            await writeAll(false);
+            mapSkipped = ['looking', 'lat', 'lng'].some(k => k in listing && !(listing[k] instanceof firebase.firestore.FieldValue));
+        }
         groupSettings = { numTeams, playersPerTeam };
         if (currentGroupData) currentGroupData.settings = Object.assign({}, currentGroupData.settings, update.settings);
         setPrioCfg(GroupPrefs.regPriority(currentGroupId, currentGroupData));
@@ -3375,7 +3521,7 @@ async function saveGroupSettings() {
         if (teamsChanged) await gameRef.delete();
         closeSettingsModal();
         render();
-        alert('ההגדרות נשמרו בהצלחה!');
+        alert(mapSkipped ? 'ההגדרות נשמרו. הסימון במפה ו"לא מחפשים כרגע" יישמרו אחרי שחוקי האבטחה יעודכנו ב-Firebase.' : 'ההגדרות נשמרו בהצלחה!');
     } catch (error) {
         console.error('save settings', error);
         alert('שגיאה בשמירת ההגדרות: ' + AdminAuth.errorMessage(error));
@@ -3452,6 +3598,7 @@ document.addEventListener('focusout', e => {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.getElementById('bulkModalOverlay').style.display === 'flex') return closeBulkAdd();
     if (e.key === 'Escape' && document.getElementById('lineupPickerOverlay').style.display === 'flex') return closeLineupPicker();
+    if (e.key === 'Escape' && document.getElementById('pitchModalOverlay').style.display === 'flex') return closePitchPicker();
     if (e.key === 'Escape' && document.getElementById('whatsNewOverlay')) return closeWhatsNew();
     const menu = document.getElementById('adminMenu');
     if (e.key !== 'Escape' || !menu || menu.hidden) return;
@@ -4289,6 +4436,7 @@ function liveGroupPost() {
 
 // ========== REGISTRATION SYSTEM ==========
 let currentRegId = null;
+let activeRegData = null;     // מסמך ההרשמה הידנית הפתוחה (תאריך ושעה למודעה ב"מצא קבוצה")
 let regEntriesUnsubscribe = null;
 // הרשמה אוטומטית כל שבוע (reg-auto.js): ההגדרות הפעילות, ההרשמות הקרובות, וטיימר לרגע השינוי הבא
 let regAutoSched = null, regAutoKey = null, autoRegs = [], autoRegTimer = null, autoRefreshSeq = 0;
@@ -4348,8 +4496,10 @@ function listenToRegistration(regId) {
 
     regRef.get().then(doc => {
         if (!doc.exists || !doc.data().open) {
+            activeRegData = null;
             hideRegBanner(); showRegOpenForm(); return;
         }
+        activeRegData = doc.data();
         showRegBanner(regId, doc.data());
         showRegActivePanel(regId);
     });
@@ -4438,6 +4588,8 @@ async function openRegistration() {
             groupId: currentGroupId
         });
         await groupRef.update({ activeRegistrationId: newRegRef.id });
+        const [hh, mm] = gameTime.split(':').map(Number);
+        syncListing({ openGame: { at: firebase.firestore.Timestamp.fromDate(new Date(+y, +m - 1, +d, hh || 0, mm || 0)) } });
         alert('ההרשמה נפתחה בהצלחה! ✅');
     } catch (e) { console.error(e); alert('שגיאה בפתיחת ההרשמה: ' + e.message); }
 }
@@ -4448,6 +4600,7 @@ async function closeRegistration() {
     try {
         await groupRef.collection('registrations').doc(currentRegId).update({ open: false });
         await groupRef.update({ activeRegistrationId: firebase.firestore.FieldValue.delete() });
+        syncListing({ openGame: firebase.firestore.FieldValue.delete() });
     } catch (e) { console.error(e); alert('שגיאה בסגירת ההרשמה.'); }
 }
 
@@ -4569,6 +4722,7 @@ async function saveAutoSchedule() {
     autoSyncedThisVisit = true;   // הסנכרון נעשה כאן, לא בעדכון של מסמך הקבוצה
     try {
         await groupRef.update({ regSchedule: v.sched });
+        syncListing({ regAuto: GroupPrefs.listingAuto(v.sched) });
         await syncAutoRegs(v.sched, true);
         autoEditorOpen = false;
         renderRegMode();
@@ -4656,6 +4810,7 @@ async function disableAutoSchedule() {
         activeRegistrationId: keepOpen ? keepOpen.id : (activeId || firebase.firestore.FieldValue.delete())
     });
     await batch.commit();
+    syncListing({ regAuto: firebase.firestore.FieldValue.delete() });
 }
 
 // ההרשמות הקרובות: איזו פתוחה עכשיו (באנר + מונה), ומתי לבדוק שוב
