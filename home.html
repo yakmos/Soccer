@@ -27,7 +27,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="admin-auth.js"></script>
+<script src="admin-auth.js?v=20261006"></script>
 <script src="group-prefs.js?v=20261005"></script>
 <style>
     :root {
@@ -61,6 +61,7 @@
     .btn-ghost:hover { background: var(--surface); }
     .btn-wa { background: var(--wa); color: #062E16; }
     .linkish { background: none; border: none; padding: 0; font: inherit; color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .linkish.has-new { color: #FCA5A5; }
 
     /* ===== Nav ===== */
     .nav { position: sticky; top: 0; z-index: 50; background: rgba(15,23,42,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid rgba(51,65,85,0.7); }
@@ -111,7 +112,7 @@
     .section.alt { background: var(--bg-deep); border-top: 1px solid rgba(51,65,85,0.5); border-bottom: 1px solid rgba(51,65,85,0.5); }
     .section-title { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900; margin-bottom: 10px; text-align: center; }
     .section-sub { color: var(--muted); text-align: center; margin: 0 auto 36px; max-width: 560px; }
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: step; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: step; }
     .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; position: relative; }
     .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); font-weight: 900; margin-bottom: 12px; }
     .step h3 { font-size: 1.15rem; margin-bottom: 6px; }
@@ -231,7 +232,8 @@
         .hero { padding: 36px 0 44px; }
         .hero-grid { grid-template-columns: 1fr; gap: 36px; }
         .mock { margin: 0 auto; transform: none; }
-        .steps, .features { grid-template-columns: 1fr; }
+        .features { grid-template-columns: 1fr; }
+        .steps { grid-template-columns: 1fr 1fr; }
         .band { flex-direction: column; align-items: stretch; text-align: center; }
         .section { padding: 48px 0; }
     }
@@ -241,7 +243,7 @@
         .nav-link { padding: 8px; }
         .brand { font-size: 1rem; }
         .nav-btn { padding: 8px 12px; }
-        .field-row, .vis-opts { grid-template-columns: 1fr; }
+        .field-row, .vis-opts, .steps { grid-template-columns: 1fr; }
         .modal { align-items: flex-end; padding: 0; }
         .modal-card { border-radius: 20px 20px 0 0; max-height: 92vh; padding: 22px 16px calc(22px + env(safe-area-inset-bottom)); }
         .group-card { padding: 14px; }
@@ -315,11 +317,12 @@
     <section class="section" id="how">
         <div class="wrap">
             <h2 class="section-title">איך זה עובד</h2>
-            <p class="section-sub">שלושה צעדים, ומהשבוע הבא ההרשמה והחלוקה לקבוצות מסתדרות לבד.</p>
+            <p class="section-sub">ארבעה צעדים קצרים, ומהשבוע הבא ההרשמה והחלוקה לקבוצות מסודרות.</p>
             <div class="steps">
                 <div class="step"><h3>פותחים קבוצה</h3><p>נותנים שם, עיר ומתי משחקים. תוך דקה היא מוכנה.</p></div>
-                <div class="step"><h3>שולחים קישור לוואטסאפ</h3><p>השחקנים פותחים ונרשמים. בלי אפליקציה ובלי סיסמה.</p></div>
-                <div class="step"><h3>יוצאים למגרש</h3><p>ההרשמה, רשימת ההמתנה והחלוקה לקבוצות קורות לבד.</p></div>
+                <div class="step"><h3>מוסיפים את השחקנים</h3><p>המנהל פותח כרטיס לכל שחקן, או מדביק רשימה מהוואטסאפ וכולם נכנסים לסגל בבת אחת.</p></div>
+                <div class="step"><h3>שולחים קישור הרשמה למשחק</h3><p>כל שחקן פותח את הקישור, מקליד את שמו, בוחר את עצמו מהרשימה ונרשם. זו הרשמה למשחק הקרוב, לא לאתר: בלי סיסמה ובלי אפליקציה.</p></div>
+                <div class="step"><h3>יוצאים למגרש</h3><p>מי שמבטל מפנה את המקום לבא בתור, והחלוקה לקבוצות מאוזנת בלחיצה.</p></div>
             </div>
         </div>
     </section>
@@ -660,6 +663,7 @@
         const first = String(u.displayName || '').trim().split(/\s+/)[0];
         $('dashHello').textContent = first ? `שלום, ${first} 👋` : 'שלום 👋';
         $('superAdminLink').hidden = !AdminAuth.isSuperAdmin(u);
+        if (AdminAuth.isSuperAdmin(u)) watchInbox();
         const list = $('myGroupsList');
         if (myGroups === undefined) {
             list.innerHTML = '<div class="empty">טוען את הקבוצות שלך…</div>';
@@ -674,6 +678,18 @@
         }
         const mine = new Set((myGroups || []).map(g => g.id));
         renderRecent($('dashRecentList'), $('dashRecentWrap'), mine);
+    }
+
+    // ===== פניות חדשות מטופס יצירת הקשר (מנהל-העל) =====
+    let inboxUnsub = null;
+    function watchInbox() {
+        if (inboxUnsub || typeof AdminAuth.watchUnreadMessages !== 'function') return;
+        inboxUnsub = AdminAuth.watchUnreadMessages(db, n => {
+            const a = $('superAdminLink');
+            a.textContent = n ? `לוח בקרה גלובלי · 📬 ${n === 1 ? 'פנייה חדשה' : n + ' פניות חדשות'}` : 'לוח בקרה גלובלי';
+            a.href = n ? 'admin.html#inboxCard' : 'admin.html';
+            a.classList.toggle('has-new', n > 0);
+        });
     }
 
     // ===== מצא משחק =====
