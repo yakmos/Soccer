@@ -212,9 +212,10 @@
         return '972' + String(phone || '').replace(/^0/, '');
     }
 
-    // מודעה ל"מצא משחק": רק השדות שחוקי האבטחה מאפשרים, בגבולות האורך
+    // מודעה ל"מצא קבוצה": רק השדות שחוקי האבטחה מאפשרים, בגבולות האורך.
+    // looking: האם הקבוצה מחפשת שחקנים חדשים. lat/lng: המגרש על המפה (לא חובה)
     function buildListing(f) {
-        return {
+        const l = {
             ownerUid: f.ownerUid,
             name: String(f.name || '').trim().slice(0, 60),
             city: String(f.city || '').trim().slice(0, 40),
@@ -226,7 +227,103 @@
             phone: f.phone,
             icon: cleanIcon(f.icon)
         };
+        // שדות חדשים נכתבים רק כשיש בהם משהו, כך שמודעה רגילה נשמרת גם לפי החוקים הקודמים
+        if (f.looking === false) l.looking = false;
+        const pos = cleanLatLng(f.lat, f.lng);
+        if (pos) { l.lat = pos.lat; l.lng = pos.lng; }
+        return l;
     }
+
+    // ===== המפה ב"מצא קבוצה" =====
+    // מיקום תקין, מעוגל ל-5 ספרות (בערך מטר), או null
+    function cleanLatLng(lat, lng) {
+        const a = Number(lat), b = Number(lng);
+        if (lat == null || lng == null || !Number.isFinite(a) || !Number.isFinite(b)) return null;
+        if (a < -90 || a > 90 || b < -180 || b > 180) return null;
+        return { lat: Math.round(a * 1e5) / 1e5, lng: Math.round(b * 1e5) / 1e5 };
+    }
+
+    // מרכז משוער של כל עיר מהרשימה, לקבוצות שעוד לא סימנו את המגרש במפה
+    const CITY_COORDS = {
+        'תל אביב-יפו': [32.0853, 34.7818], 'ירושלים': [31.7683, 35.2137], 'חיפה': [32.794, 34.9896], 'ראשון לציון': [31.973, 34.7925],
+        'פתח תקווה': [32.084, 34.8878], 'אשדוד': [31.8044, 34.6553], 'נתניה': [32.3215, 34.8532], 'באר שבע': [31.2518, 34.7913],
+        'בני ברק': [32.0807, 34.8338], 'חולון': [32.0158, 34.7874], 'רמת גן': [32.0684, 34.8248], 'אשקלון': [31.6688, 34.5743],
+        'רחובות': [31.8928, 34.8113], 'בת ים': [32.0171, 34.7454], 'בית שמש': [31.747, 34.9881], 'כפר סבא': [32.1782, 34.9076],
+        'הרצליה': [32.1663, 34.8433], 'חדרה': [32.434, 34.9196], 'מודיעין-מכבים-רעות': [31.898, 35.0104], 'לוד': [31.951, 34.8881],
+        'רמלה': [31.9293, 34.8664], 'רעננה': [32.1848, 34.8713], 'נצרת': [32.6996, 35.3035], 'ראש העין': [32.0956, 34.9566],
+        'הוד השרון': [32.15, 34.888], 'קריית גת': [31.61, 34.7642], 'נהריה': [33.0058, 35.0947], 'עפולה': [32.6078, 35.2897],
+        'קריית אתא': [32.8115, 35.1132], 'יבנה': [31.877, 34.739], 'אילת': [29.5577, 34.9519], 'עכו': [32.9281, 35.0818],
+        'נס ציונה': [31.9293, 34.7987], 'אלעד': [32.0522, 34.9512], 'קריית ביאליק': [32.8275, 35.0857], 'קריית מוצקין': [32.8371, 35.0773],
+        'קריית ים': [32.8494, 35.0689], 'קריית אונו': [32.0636, 34.8553], 'גבעתיים': [32.0722, 34.8125], 'טבריה': [32.7959, 35.531],
+        'אור יהודה': [32.0296, 34.8569], 'יהוד-מונוסון': [32.0333, 34.8833], 'דימונה': [31.07, 35.0333], 'קריית שמונה': [33.2079, 35.5702],
+        'נוף הגליל': [32.7075, 35.3236], 'כרמיאל': [32.919, 35.2901], 'צפת': [32.9646, 35.496], 'שדרות': [31.525, 34.5969],
+        'נתיבות': [31.4231, 34.5886], 'אופקים': [31.312, 34.62], 'ערד': [31.2589, 35.2128], 'מגדל העמק': [32.675, 35.241],
+        'טירת כרמל': [32.7605, 34.9714], 'נשר': [32.766, 35.044], 'זכרון יעקב': [32.5707, 34.9524], 'פרדס חנה-כרכור': [32.474, 34.974],
+        'אור עקיבא': [32.507, 34.919], 'רמת השרון': [32.146, 34.839], 'גבעת שמואל': [32.078, 34.849], 'גדרה': [31.814, 34.779],
+        'קריית מלאכי': [31.73, 34.746], 'יקנעם עילית': [32.659, 35.11], 'עתלית': [32.688, 34.94], 'אום אל-פחם': [32.519, 35.153],
+        'רהט': [31.393, 34.754], 'טייבה': [32.266, 35.009], 'שפרעם': [32.806, 35.17], 'טמרה': [32.853, 35.198],
+        'סכנין': [32.864, 35.296], 'באקה אל-גרבייה': [32.418, 35.042], 'מעלות-תרשיחא': [33.016, 35.271]
+    };
+    const cityKey = s => String(s || '').replace(/[\s\-־"'׳״.]/g, '').replace(/^קרית/, 'קריית');
+    const CITY_KEYS = Object.keys(CITY_COORDS).map(c => [cityKey(c), c]);
+
+    // [lat, lng] של העיר, גם כשהשם כתוב קצת אחרת ("תל אביב", "קרית ים"), או null
+    function cityCoords(city) {
+        const k = cityKey(city);
+        if (!k) return null;
+        const hit = CITY_KEYS.find(([ck]) => ck === k) || CITY_KEYS.find(([ck]) => ck.startsWith(k) || k.startsWith(ck));
+        return hit ? CITY_COORDS[hit[1]].slice() : null;
+    }
+
+    // מרחק בקילומטרים בין שתי נקודות
+    function distanceKm(a, b) {
+        const R = 6371, rad = x => x * Math.PI / 180;
+        const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+        const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+
+    const toMillis = v => v == null ? null : (typeof v.toMillis === 'function' ? v.toMillis() : (v instanceof Date ? v.getTime() : (Number.isFinite(Number(v)) ? Number(v) : null)));
+
+    // ההרשמה השבועית במודעה (regAuto): ימים, שעת משחק, ומתי נפתחת ההרשמה
+    function listingAuto(sched) {
+        if (!sched) return null;
+        const days = cleanDays(sched.days), time = cleanTime(sched.time), openTime = cleanTime(sched.openTime);
+        const before = Number(sched.openDaysBefore);
+        if (!days.length || !time || !openTime || !Number.isInteger(before) || before < 0 || before > 6) return null;
+        return { days, time, openDaysBefore: before, openTime };
+    }
+
+    // האם לפי ההרשמה השבועית ההרשמה פתוחה עכשיו (בין פתיחת ההרשמה לתחילת המשחק)
+    function autoOpenAt(a, t) {
+        const s = listingAuto(a);
+        if (!s) return false;
+        const [gh, gm] = s.time.split(':').map(Number), [oh, om] = s.openTime.split(':').map(Number);
+        const base = new Date(t);
+        for (let i = 0; i <= 7; i++) {
+            const day = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+            if (!s.days.includes(day.getDay())) continue;
+            const gameAt = new Date(day.getFullYear(), day.getMonth(), day.getDate(), gh, gm).getTime();
+            const opensAt = new Date(day.getFullYear(), day.getMonth(), day.getDate() - s.openDaysBefore, oh, om).getTime();
+            if (opensAt <= t && t < gameAt) return true;
+        }
+        return false;
+    }
+
+    // מצב הקבוצה במפה: open = יש משחק שפתוח להרשמה · looking = מחפשים שחקנים · closed = לא מחפשים כרגע
+    function listingStatus(l, now) {
+        const t = now == null ? Date.now() : now;
+        if (!l || l.looking === false) return 'closed';
+        const og = l.openGame ? toMillis(l.openGame.at) : null;
+        if (og && og > t) return 'open';
+        if (autoOpenAt(l.regAuto, t)) return 'open';
+        return 'looking';
+    }
+    const LISTING_STATUS = {
+        open: { icon: '🟢', text: 'יש משחק פתוח להרשמה', color: '#10B981' },
+        looking: { icon: '🟡', text: 'מחפשים שחקנים', color: '#FBBF24' },
+        closed: { icon: '⚪', text: 'לא מחפשים כרגע', color: '#94A3B8' }
+    };
 
     // ===== רכיבי טופס משותפים =====
     function renderDayChips(container, selected) {
@@ -457,6 +554,7 @@
         cleanPlayerName, playerNameKey, parsePlayerList, PLAYER_NAME_MAX, BULK_MAX,
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
         cleanDays, cleanTime, formatSchedule, normalizePhone, phoneToIntl, buildListing,
+        cleanLatLng, cityCoords, distanceKm, listingAuto, listingStatus, LISTING_STATUS,
         renderDayChips, readDayChips, fillCityList, levelOptionsHTML,
         getRecentGroups, rememberGroup, updateRecentGroup, forgetGroup,
         DEFAULT_ICON, GROUP_ICONS, cleanIcon, isImageIcon, iconHTML, resizeIcon,
