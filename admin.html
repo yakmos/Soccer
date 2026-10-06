@@ -9,7 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="admin-auth.js?v=20260930"></script>
+    <script src="admin-auth.js?v=20261006"></script>
 
     <style>
         :root {
@@ -59,6 +59,8 @@
         #migrateStatus { font-size: 0.85rem; color: var(--muted); margin-top: 8px; min-height: 18px; }
         .badge-topic { background: rgba(96,165,250,0.12); color: #93C5FD; border: 1px solid rgba(96,165,250,0.35); margin-right: 0; margin-left: 6px; }
         .badge-old { background: rgba(239,68,68,0.12); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.35); }
+        .badge-new { background: #EF4444; color: #fff; border: 1px solid #EF4444; }
+        .row-new { border-color: rgba(239,68,68,0.55) !important; }
         .msg-meta a { color: #93C5FD; }
         .msg-text { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: 0.95rem; line-height: 1.6; }
         .card-note { font-size: 0.8rem; color: var(--muted); margin: 10px 0 0; }
@@ -475,8 +477,13 @@
                 return;
             }
             const yearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+            // פנייה שעוד לא נקראה מסומנת "חדש", ומסומנת כנקראה כשתיבת הפניות נפתחת (בשביל הנקודה האדומה בתפריט הניהול)
+            const unread = snap.docs.filter(d => !d.data().readAt);
+            const fresh = unread.length ? ` · <b style="color:#FCA5A5;">${unread.length} חדשות</b>` : '';
+            document.getElementById('inboxCount').innerHTML = `(${snap.size}${snap.size === 500 ? '+' : ''})${fresh}`;
             el.innerHTML = snap.docs.map(d => {
                 const m = d.data();
+                const isNew = !m.readAt;
                 const at = m.createdAt ? m.createdAt.toDate() : null;
                 const when = at ? at.toLocaleString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '---';
                 const old = at && at.getTime() < yearAgo ? '<span class="badge badge-old">מעל שנה</span>' : '';
@@ -485,18 +492,29 @@
                     ? ` | קבוצה: <a href="index.html?group=${encodeURIComponent(m.groupId)}" target="_blank" rel="noopener">${esc(g ? (g.data().name || m.groupId) : m.groupId)}</a>`
                     : '';
                 const page = m.page ? ` | נשלח מ: ${esc(PAGE_LABELS[m.page] || m.page)}` : '';
-                return `<div class="group-row">
+                return `<div class="group-row${isNew ? ' row-new' : ''}">
                     <div class="group-info">
-                        <div class="group-name"><span class="badge badge-topic">${esc(TOPIC_LABELS[m.topic] || m.topic)}</span>${esc(m.name || 'ללא שם')} ${old}</div>
+                        <div class="group-name">${isNew ? '<span class="badge badge-new">חדש</span>' : ''}<span class="badge badge-topic">${esc(TOPIC_LABELS[m.topic] || m.topic)}</span>${esc(m.name || 'ללא שם')} ${old}</div>
                         <div class="group-meta msg-meta">${esc(when)}${page}${groupLink}<br>לחזרה: ${replyHTML(m.replyTo)}</div>
                         <div class="msg-text">${esc(m.message)}</div>
                     </div>
                     <div class="actions"><button class="btn-danger" onclick="deleteMessage('${esc(d.id)}')">מחק</button></div>
                 </div>`;
             }).join('');
+            markMessagesRead(unread.map(d => d.ref));
         } catch (e) {
             el.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
         }
+    }
+
+    async function markMessagesRead(refs) {
+        try {
+            for (let i = 0; i < refs.length; i += 400) {
+                const batch = db.batch();
+                refs.slice(i, i + 400).forEach(ref => batch.update(ref, { readAt: firebase.firestore.FieldValue.serverTimestamp() }));
+                await batch.commit();
+            }
+        } catch (e) { console.warn('mark read', e); }
     }
 
     // ===== "מחפשים שחקן": מוחקים מודעות שפג תוקפן, ומודעות בפורמט הישן (המזהה שלהן הוא מזהה הקבוצה) =====
