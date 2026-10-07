@@ -333,17 +333,27 @@ service cloud.firestore {
     }
 
     // לוח "מחפשים שחקן": מודעה עם מזהה אקראי ובלי מזהה הקבוצה, כדי שהמודעה לא תחשוף את הקישור לקבוצה.
-    // מוצגת 24 שעות (expiresAt). מודעות ישנות נשמרו עם מזהה הקבוצה כמזהה — מנהלי הקבוצה מוחקים אותן
+    // expiresAt: עד מתי מוצגת — 24 שעות, או מודעה קבועה (permanent) שנשארת עד שמורידים אותה, ולכל היותר כשנה (400 יום).
+    // מודעות ישנות נשמרו עם מזהה הקבוצה כמזהה — מנהלי הקבוצה מוחקים אותן
     function marketPostOk() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['ownerUid', 'groupName', 'location', 'phone', 'missing', 'timestamp', 'expiresAt'])
+      return d.keys().hasOnly(['ownerUid', 'groupName', 'location', 'phone', 'missing', 'timestamp', 'expiresAt', 'permanent'])
         && d.ownerUid == request.auth.uid
         && d.groupName is string && d.groupName.size() <= 100
         && d.location is string && d.location.size() > 0 && d.location.size() <= 100
         && d.phone is string && d.phone.size() <= 20
         && d.missing is int && d.missing > 0 && d.missing <= 99
         && d.timestamp == request.time
-        && d.expiresAt is int && d.expiresAt <= request.time.toMillis() + 172800000;
+        && (!('permanent' in d) || d.permanent is bool)
+        && d.expiresAt is int
+        && (d.expiresAt <= request.time.toMillis() + 172800000
+            || (d.get('permanent', false) == true && d.expiresAt <= request.time.toMillis() + 34560000000));
+    }
+
+    // לאיזו קבוצה שייכת המודעה (market_posts/{postId}/private/group). כל מנהל בקבוצה רשאי להוריד אותה
+    function marketPostGroupAdmin(postId) {
+      let p = /databases/$(database)/documents/market_posts/$(postId)/private/group;
+      return exists(p) && isGroupAdmin(get(p).data.gid);
     }
 
     match /market_posts/{postId} {
@@ -352,7 +362,21 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if isSuperAdmin()
                     || (resource != null && resource.data.get('ownerUid', '') == request.auth.uid)
+                    || marketPostGroupAdmin(postId)
                     || isGroupAdmin(postId);
+
+      // הקישור לקבוצה מוסתר מכולם: המודעה ציבורית, ומזהה הקבוצה הוא המפתח לדף הקבוצה. רק חוקי האבטחה קוראים אותו.
+      // נוצר פעם אחת, בידי מי שפרסם את המודעה, ורק אם הוא מנהל בקבוצה
+      match /private/group {
+        allow read, update: if false;
+        allow create: if isRealUser()
+          && request.resource.data.keys().hasOnly(['gid'])
+          && request.resource.data.gid is string
+          && request.resource.data.gid.matches('^[A-Za-z0-9_-]{1,40}$')
+          && isGroupAdmin(request.resource.data.gid)
+          && getAfter(/databases/$(database)/documents/market_posts/$(postId)).data.ownerUid == request.auth.uid;
+        allow delete: if isSuperAdmin() || isGroupAdmin(resource.data.gid);
+      }
     }
 
     // ===== "מצא קבוצה": מודעה שהבעלים של קבוצה ציבורית מפרסם =====
