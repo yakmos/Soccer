@@ -386,6 +386,22 @@
         .prio-info p { margin-top: 8px; }
         .prio-info ol { margin: 6px 0 0; padding-right: 22px; color: var(--text); font-weight: 700; }
         .prio-info li { margin-bottom: 2px; }
+
+        /* הרשמה בלחיצה אחת: הכרטיס מחובר לפרופיל השחקן שנכנס עם Google */
+        .me-box { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--primary-dim); border: 1px solid var(--primary-border); margin-bottom: 10px; }
+        .me-box.wait { background: var(--waiting-dim); border-color: var(--waiting-border); }
+        .me-av { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex: none; display: grid; place-items: center; background: var(--surface2); font-size: 1.2rem; }
+        .me-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .me-tx { flex: 1; min-width: 0; }
+        .me-tx b { display: block; font-size: 1.02rem; }
+        .me-tx small { color: var(--muted); font-size: 0.82rem; }
+        .me-go { flex: none; background: var(--primary); color: #04241A; border: 0; border-radius: 12px; padding: 11px 16px; font: 900 1rem Heebo, sans-serif; cursor: pointer; }
+        .me-go:disabled { opacity: 0.6; cursor: default; }
+        .me-or { color: var(--muted); font-size: 0.85rem; font-weight: 700; margin: 2px 0 8px; }
+        .link-tip { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.3); font-size: 0.88rem; line-height: 1.55; }
+        .link-tip b { display: block; color: #93C5FD; }
+        .link-tip a { color: #93C5FD; font-weight: 800; text-decoration: none; }
+        .link-tip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; flex: none; }
     </style>
 </head>
 <body>
@@ -471,6 +487,7 @@
 
         <div class="card" style="margin-top:16px;">
             <div class="card-title">✍️ הרשמה למשחק</div>
+            <div id="meBoxWrap"></div>
             <div class="search-wrap">
                 <input type="text" id="playerSearchInput" class="search-input"
                     placeholder="הקלד את שמך..." autocomplete="off"
@@ -480,6 +497,7 @@
             <button class="register-btn" id="registerBtn" disabled onclick="registerPlayer()">
                 הירשם למשחק ⚽
             </button>
+            <div id="linkTipWrap"></div>
         </div>
 
         <div class="card" id="playersCard">
@@ -555,6 +573,7 @@ let prioCfg        = null; // מי נכנס כשהרשימה מלאה (GroupPref
 let priorityLabel  = '';   // שם קבוצת העדיפות כשהכלל פועל ('' = אין)
 let cancelled      = [];
 let customParams   = [];
+let authUser       = null;   // החשבון המחובר: אם הכרטיס שלו מחובר לפרופיל, נרשמים בלחיצה אחת
 
 window.onload = async () => {
     if (!groupId) { showClosed(); return; }
@@ -595,6 +614,7 @@ window.onload = async () => {
         // מצב מנהל לפי חשבון Google המחובר (משותף לכל דפי האתר)
         try {
             const user = await AdminAuth.getUser();
+            authUser = AdminAuth.isRealUser(user) ? user : null;
             if (AdminAuth.isAdminOf(groupData, user, false)) {
                 isAdmin = true;
                 document.body.classList.add("is-admin");
@@ -611,6 +631,7 @@ window.onload = async () => {
                 allPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderPlayersList();
                 updateCapacityBar();
+                renderMeBox();
                 resolve();
             });
         });
@@ -639,6 +660,7 @@ window.onload = async () => {
                 registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderPlayersList();
                 updateCapacityBar();
+                renderMeBox();
             });
 
         db.collection('groups').doc(groupId)
@@ -980,8 +1002,60 @@ document.addEventListener('click', e => {
     if (!e.target.closest('.search-wrap') && !e.target.closest('.autocomplete-list')) hideAutocomplete();
 });
 
+// ===== הרשמה בלחיצה אחת: הכרטיס של השחקן מחובר לפרופיל שלו (players/{pid}.uid) =====
+function myPlayer() {
+    return authUser ? allPlayers.find(p => p.uid === authUser.uid) || null : null;
+}
+function renderMeBox() {
+    const wrap = document.getElementById('meBoxWrap');
+    if (!wrap) return;
+    const me = myPlayer();
+    if (!me) {
+        // בקבוצה יש כבר שחקנים עם פרופיל: מי שלא מחובר במכשיר הזה יכול להיכנס ולהירשם בלחיצה אחת
+        wrap.innerHTML = !authUser && allPlayers.some(p => p.uid)
+            ? '<div class="me-or">יש לך פרופיל שחקן? <button type="button" class="linkish" onclick="signInForMe()" style="background:none; border:0; padding:0; color:var(--primary); font:inherit; font-weight:800; text-decoration:underline; cursor:pointer;">כניסה</button> להרשמה בלחיצה אחת</div>'
+            : '';
+        return;
+    }
+    const reg = registrations.find(r => r.playerId === me.id);
+    const av = typeof me.imgUrl === 'string' && /^(data:image\/|https:\/\/)/.test(me.imgUrl) ? `<img src="${escHtml(me.imgUrl)}" alt="">` : '👤';
+    if (reg) {
+        const first = escHtml(String(me.name || '').trim().split(/\s+/)[0]);
+        wrap.innerHTML = reg.isWaiting
+            ? `<div class="me-box wait"><span class="me-av">${av}</span><div class="me-tx"><b>⏳ ${first}, אתה ברשימת ההמתנה</b><small>אם יתפנה מקום, תיכנס לרשימה.</small></div></div><div class="me-or">הרשמה של שחקן אחר:</div>`
+            : `<div class="me-box"><span class="me-av">${av}</span><div class="me-tx"><b>✅ ${first}, אתה ברשימה</b><small>נתראה במגרש!</small></div></div><div class="me-or">הרשמה של שחקן אחר:</div>`;
+        return;
+    }
+    if (document.getElementById('meGoBtn') && document.getElementById('meGoBtn').disabled) return;   // באמצע הרשמה
+    wrap.innerHTML = `<div class="me-box"><span class="me-av">${av}</span><div class="me-tx"><b>👋 ${escHtml(me.name)}</b><small>הכרטיס שלך מחובר לפרופיל</small></div><button type="button" class="me-go" id="meGoBtn" onclick="registerMe()">אני מגיע ✅</button></div><div class="me-or">או הרשמה של שחקן אחר:</div>`;
+}
+async function signInForMe() {
+    try { await AdminAuth.signInWithGoogle(); }
+    catch (e) { if (!AdminAuth.isCancel(e)) showToast('ההתחברות נכשלה: ' + AdminAuth.errorMessage(e), 'error'); return; }
+    location.reload();   // מצב מנהל, הכרטיס המחובר וכל השאר נטענים מחדש לפי החשבון
+}
+async function registerMe() {
+    const me = myPlayer();
+    if (!me) return;
+    const b = document.getElementById('meGoBtn');
+    if (b) { b.disabled = true; b.textContent = 'רושם… ⏳'; }
+    selectedPlayer = me;
+    await registerPlayer();
+    if (b) b.disabled = false;
+    renderMeBox();
+}
+// אחרי הרשמה רגילה (חיפוש שם): פעם אחת לכל קבוצה, הצעה לחבר את הכרטיס לפרופיל
+function maybeShowLinkTip() {
+    const key = 'sm_linktip_' + groupId;
+    try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch (e) { return; }
+    const wrap = document.getElementById('linkTipWrap');
+    if (!wrap) return;
+    wrap.innerHTML = `<div class="link-tip"><div style="flex:1"><b>💡 בפעם הבאה, בלחיצה אחת</b>חבר את הכרטיס שלך לפרופיל שחקן, ותירשם בלי לחפש את השם. <a href="index.html?group=${encodeURIComponent(groupId)}#me">לחיבור הכרטיס ←</a></div><button type="button" aria-label="סגירה" onclick="this.closest('.link-tip').remove()">✕</button></div>`;
+}
+
 async function registerPlayer() {
     if (!selectedPlayer) return;
+    const regPlayer = selectedPlayer;
     const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.textContent = 'רושם... ⏳';
@@ -1060,6 +1134,7 @@ async function registerPlayer() {
         if (isWaiting)              showToast('נרשמת לרשימת המתנה ⏳', 'info');
         else if (bumpedPlayerDocId) showToast('נרשמת! שחקן אחר עבר להמתנה ✅', 'success');
         else                        showToast('נרשמת בהצלחה! ✅', 'success');
+        if (!isAdmin && !myPlayer() && !regPlayer.uid) maybeShowLinkTip();
 
     } catch(e) {
         console.error(e);
