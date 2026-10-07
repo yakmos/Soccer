@@ -28,7 +28,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
-    <script src="admin-auth.js?v=20260930"></script>
+    <script src="admin-auth.js?v=20261007"></script>
     <script src="group-prefs.js?v=20261007"></script>
     <script src="map-kit.js?v=20261007"></script>
     <script src="reg-auto.js?v=1"></script>
@@ -148,6 +148,12 @@
             background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.35); color: #6EE7B7; font-size: 0.88rem; font-weight: 800; }
         .mp-mine[hidden] { display: none; }
         .mp-mine button { background: transparent; border: 1px solid rgba(239,68,68,0.5); color: #FCA5A5; border-radius: 8px; padding: 5px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        /* כמה זמן המודעה באוויר: 24 שעות או עד שמורידים */
+        .mp-dur { margin: 0 0 14px; }
+        .mp-dur-label { display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); margin-bottom: 5px; }
+        .mp-dur .vis-opts { grid-template-columns: 1fr 1fr; }
+        .mp-dur .vis-opt:has(input:checked) { border-color: #3B82F6; background: rgba(59,130,246,0.12); }
+        .mp-dur .vis-opt:has(input:focus-visible) { outline: 2px solid #60A5FA; outline-offset: 2px; }
         /* הוספה למסך הבית (בטלפון) */
         .a2hs { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
         .a2hs[hidden], .a2hs-help[hidden] { display: none; }
@@ -188,7 +194,8 @@
         .bulk-note { color: var(--text-muted); font-size: 0.78rem; line-height: 1.5; margin-top: 10px; }
         .squad-empty { text-align: center; color: var(--text-muted); padding: 18px 10px; border: 1px dashed var(--border-color); border-radius: 12px; line-height: 1.6; font-size: 0.9rem; }
         .squad-empty button { display: block; margin: 10px auto 4px; }
-        .mp-mine-tag { display: inline-block; margin-top: 6px; background: rgba(16,185,129,0.15); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.35); border-radius: 6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 800; }
+        .mp-mine-tag { display: inline-block; margin-top: 6px; margin-inline-end: 6px; background: rgba(16,185,129,0.15); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.35); border-radius: 6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 800; }
+        .mp-keep-tag { display: inline-block; margin-top: 6px; margin-inline-end: 6px; background: rgba(59,130,246,0.15); color: #93C5FD; border: 1px solid rgba(59,130,246,0.35); border-radius: 6px; padding: 1px 8px; font-size: 0.78rem; font-weight: 800; }
 
         #lobbyContainer { display: none; text-align: center; margin-top: 50px; }
         .lobby-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px 20px; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -760,7 +767,7 @@
         <button type="button" class="am-item" onclick="adminMenuGo('settings')"><span class="am-ic" aria-hidden="true">⚙️</span><span class="am-tx">הגדרות הקבוצה<small>גודל הקבוצות, מי נכנס כשההרשמה מלאה, מנהלים</small></span></button>
         <a class="am-item voters-link" href="voters_admin.html"><span class="am-ic" aria-hidden="true">🔗</span><span class="am-tx">קישורים אישיים לדירוג<small>לכל שחקן קישור משלו, כדי שאף אחד לא ידרג פעמיים</small></span></a>
         <a class="am-item activity-link" href="activity.html"><span class="am-ic" aria-hidden="true">📊</span><span class="am-tx">פעילות שחקנים<small>מי מגיע, מי מבטל ומי נעלם</small></span></a>
-        <button type="button" class="am-item" onclick="adminMenuGo('market')"><span class="am-ic" aria-hidden="true">🤝</span><span class="am-tx">חסרים שחקנים? פרסום מודעה<small>ל-24 שעות, ב"עוד ← מחפשים שחקן"</small></span></button>
+        <button type="button" class="am-item" onclick="adminMenuGo('market')"><span class="am-ic" aria-hidden="true">🤝</span><span class="am-tx">חסרים שחקנים? פרסום מודעה<small>ל-24 שעות או עד שתורידו, ב"עוד ← מחפשים שחקן"</small></span></button>
         <button type="button" class="am-item" data-act="clear" onclick="adminMenuGo('clear')"><span class="am-ic" aria-hidden="true">🧹</span><span class="am-tx">איפוס ההרכב הנוכחי<small>מוריד את כולם מההרכב של המשחק</small></span></button>
         <div class="am-sep" aria-hidden="true"></div>
         <button type="button" class="am-item" onclick="adminMenuGo('logout')"><span class="am-ic" aria-hidden="true">🚪</span><span class="am-tx">יציאה ממצב ניהול</span></button>
@@ -1223,15 +1230,22 @@
         <div id="tab-market" class="tab-content">
             <div class="container">
                 <button type="button" class="back-row" onclick="goSection('more')"><span aria-hidden="true">→</span> חזרה ל"עוד"</button>
-                <!-- למנהלים: מודעה ל-24 שעות כשחסרים שחקנים -->
+                <!-- למנהלים: מודעה כשחסרים שחקנים, ל-24 שעות או עד שמורידים אותה -->
                 <div class="card admin-only market-post-card" id="marketPostCard">
                     <h2 class="card-title" style="margin-bottom:4px;">📢 חסרים לכם שחקנים?</h2>
-                    <p class="mp-sub">פרסמו כאן מודעה ל-24 שעות. מי שרוצה להצטרף שולח לכם הודעה בוואטסאפ.</p>
+                    <p class="mp-sub">פרסמו כאן מודעה למשחק הקרוב, או מודעה קבועה עד שתורידו אותה. מי שרוצה להצטרף שולח לכם הודעה בוואטסאפ.</p>
                     <div id="marketMine" class="mp-mine" hidden></div>
                     <div class="mp-grid">
                         <label class="mp-field mp-num"><span>כמה חסרים?</span><input type="number" id="mpMissing" min="1" max="99" step="1" inputmode="numeric"></label>
                         <label class="mp-field"><span>איפה משחקים?</span><input type="text" id="mpLocation" maxlength="100" placeholder="עיר ומגרש"></label>
                         <label class="mp-field"><span>טלפון לוואטסאפ</span><input type="tel" id="mpPhone" inputmode="tel" maxlength="20" placeholder="050-1234567"></label>
+                    </div>
+                    <div class="mp-dur" role="radiogroup" aria-labelledby="mpDurLabel">
+                        <span class="mp-dur-label" id="mpDurLabel">כמה זמן המודעה באוויר?</span>
+                        <div class="vis-opts">
+                            <label class="vis-opt"><input type="radio" name="mpDuration" value="day" checked onchange="mpDurTouched = true"><b>⏱️ 24 שעות</b><small>למשחק הקרוב</small></label>
+                            <label class="vis-opt"><input type="radio" name="mpDuration" value="keep" onchange="mpDurTouched = true"><b>📌 עד שנוריד</b><small>מודעה קבועה, עד שנה</small></label>
+                        </div>
                     </div>
                     <button type="button" class="btn" id="mpPublishBtn" onclick="publishToMarket()" style="background:#3B82F6;">📢 פרסם מודעה</button>
                     <div class="mp-note">שם הקבוצה, המקום והטלפון יוצגו לכל מי שנכנס ל"מחפשים שחקן". הקישור לקבוצה לא מתפרסם.</div>
@@ -1239,7 +1253,7 @@
                 <div class="card" style="border-top: 4px solid #3B82F6;">
                     <h2 class="card-title" style="justify-content: center; margin-bottom: 20px;">🏃‍♂️ קבוצות מחפשות שחקנים</h2>
                     <p style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                        כאן מופיעות קבוצות שחסר להן שחקן למשחק הקרוב. <br>לחיצה על המודעה תפתח שיחת וואטסאפ עם המנהל.
+                        כאן מופיעות קבוצות שמחפשות שחקנים, למשחק הקרוב או באופן קבוע. <br>לחיצה על המודעה תפתח שיחת וואטסאפ עם המנהל.
                     </p>
                     <div id="marketList" style="display: flex; flex-direction: column; gap: 15px;">
                         <div style="text-align:center; color:var(--text-muted); padding:20px;">טוען מודעות...</div>
@@ -4267,10 +4281,40 @@ function startLaundryListener() {
 }
 
 // ========== Market ==========
-// המנהל מפרסם מהלשונית "מחפשים שחקן" (או מתפריט הניהול): כמה חסרים, איפה, וטלפון לוואטסאפ
+// המנהל מפרסם מהלשונית "מחפשים שחקן" (או מתפריט הניהול): כמה חסרים, איפה, וטלפון לוואטסאפ.
+// מודעה ל-24 שעות (למשחק הקרוב), או מודעה קבועה (permanent) שנשארת עד שמנהל בקבוצה מוריד אותה,
+// ולכל היותר שנה, כדי שמודעות נטושות לא יישארו בלוח לנצח
 const MP_PHONE_KEY = 'sm_market_phone';   // הטלפון האחרון שפורסם מהמכשיר הזה, למילוי בפעם הבאה
+const MP_KEEP_KEY = 'sm_market_keep';     // '1' אם בפעם האחרונה בחרו מהמכשיר הזה מודעה קבועה
 const MP_DAY_MS = 24 * 60 * 60 * 1000;
+const MP_KEEP_MS = 365 * MP_DAY_MS;
 let publishingMarket = false;
+let mpDurTouched = false;   // המנהל בחר משך בעצמו, ולכן לא משנים לו את הבחירה
+
+const isKeepPost = d => !!(d && d.permanent === true);
+function mpKeepChosen() {
+    const r = document.querySelector('input[name="mpDuration"]:checked');
+    return !!(r && r.value === 'keep');
+}
+// ברירת המחדל: כמו המודעה שכבר באוויר (פרסום מחדש נשאר באותו משך), ואם אין — הבחירה האחרונה במכשיר הזה
+function syncMpDuration() {
+    if (mpDurTouched) return;
+    const live = liveGroupPost();
+    let keep = false;
+    if (live) keep = isKeepPost(live.data);
+    else { try { keep = localStorage.getItem(MP_KEEP_KEY) === '1'; } catch (e) { /* אין גישה לאחסון */ } }
+    document.querySelectorAll('input[name="mpDuration"]').forEach(r => { r.checked = r.value === (keep ? 'keep' : 'day'); });
+}
+// "היום ב-21:30" / "אתמול ב-21:30" / "ב-12.9" (מודעה קבועה יכולה להיות בת כמה שבועות)
+function mpPostedLabel(d) {
+    const time = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const day = new Date(d); day.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const daysAgo = Math.round((today - day) / MP_DAY_MS);
+    if (daysAgo <= 0) return `היום ב-${time}`;
+    if (daysAgo === 1) return `אתמול ב-${time}`;
+    return 'ב-' + d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+}
 
 // כמה חסרים: לפי ההרשמה הפתוחה, ואם אין — לפי ההרכב שנבחר
 function suggestedMissing() {
@@ -4294,6 +4338,7 @@ function fillMarketForm() {
         loc.value = [l.city, l.venue].map(s => String(s || '').trim()).filter(Boolean).join(', ').slice(0, 100);
     }
     if (!phone.value) { try { phone.value = localStorage.getItem(MP_PHONE_KEY) || ''; } catch (e) { /* אין גישה לאחסון */ } }
+    syncMpDuration();
 }
 
 function openMarketPost() {
@@ -4310,34 +4355,54 @@ async function publishToMarket() {
     if (!location) return alert('איפה משחקים? כתבו עיר או מגרש.');
     const phone = GroupPrefs.normalizePhone(document.getElementById('mpPhone').value);
     if (!phone) return alert('צריך טלפון תקין לוואטסאפ, לדוגמה 050-1234567.');
+    const wantKeep = mpKeepChosen();
+    let keep = wantKeep, fellBack = false, removedId = null;
     const live = liveGroupPost();
-    if (live && live.data.ownerUid !== u.uid) return alert('מנהל אחר כבר פרסם מודעה לקבוצה. רק הוא יכול להחליף או להוריד אותה, והיא יורדת לבד אחרי 24 שעות.');
     const btn = document.getElementById('mpPublishBtn');
     publishingMarket = true;
     btn.disabled = true;
     btn.textContent = 'מפרסם… ⏳';
     try {
+        // מודעה שמנהל אחר פרסם יורדת קודם. מודעה ישנה, בלי קישור לקבוצה, רק מי שפרסם אותה יכול להוריד
+        if (live && live.data.ownerUid !== u.uid) {
+            try { await deleteMarketPost(live.id); removedId = live.id; }
+            catch (e) {
+                if (e && e.code === 'permission-denied') return alert('מנהל אחר פרסם את המודעה הנוכחית של הקבוצה, ורק הוא יכול להחליף או להוריד אותה.');
+                throw e;
+            }
+        }
         // מזהה אקראי למודעה: המודעה גלויה לכולם, ומזהה הקבוצה הוא המפתח לדף הקבוצה
         const postRef = db.collection('market_posts').doc();
-        await postRef.set({
+        const base = {
             ownerUid: u.uid,
             groupName: String(currentGroupName() || '').slice(0, 100),
             location,
             phone,
             missing,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            expiresAt: Date.now() + MP_DAY_MS
-        });
-        try { localStorage.setItem(MP_PHONE_KEY, phone); } catch (e) { /* לא קריטי */ }
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        const write = () => postRef.set(Object.assign({}, base, keep ? { permanent: true, expiresAt: Date.now() + MP_KEEP_MS } : { expiresAt: Date.now() + MP_DAY_MS }));
+        try { await write(); }
+        catch (e) {
+            // עד שחוקי האבטחה החדשים מתפרסמים ב-Firebase אין מודעה קבועה: מפרסמים ל-24 שעות ואומרים למנהל
+            if (!(keep && e && e.code === 'permission-denied')) throw e;
+            keep = false; fellBack = true;
+            await write();
+        }
+        // לאיזו קבוצה שייכת המודעה, כדי שכל מנהל בקבוצה יוכל להוריד אותה. רק חוקי האבטחה קוראים את זה
+        await postRef.collection('private').doc('group').set({ gid: currentGroupId }).catch(e => console.warn('market post group link not saved', e));
+        try { localStorage.setItem(MP_PHONE_KEY, phone); localStorage.setItem(MP_KEEP_KEY, wantKeep ? '1' : '0'); } catch (e) { /* לא קריטי */ }
         // המודעה הקודמת של הקבוצה, ומודעה בפורמט הישן (שמזהה הקבוצה היה המזהה שלה), יורדות
         const prevSnap = await groupRef.get();
         const prevId = prevSnap.exists ? prevSnap.data().marketPostId : null;
         await groupRef.update({ marketPostId: postRef.id });
         if (currentGroupData) currentGroupData.marketPostId = postRef.id;
-        if (prevId && prevId !== postRef.id) db.collection('market_posts').doc(prevId).delete().catch(e => console.warn('previous market post not removed', e));
+        if (prevId && prevId !== postRef.id && prevId !== removedId) deleteMarketPost(prevId).catch(e => console.warn('previous market post not removed', e));
         db.collection('market_posts').doc(currentGroupId).delete().catch(() => {});
+        mpDurTouched = false;   // מכאן ברירת המחדל היא המשך של המודעה שבאוויר
         paintMarket();
-        showToast('✅ המודעה פורסמה ל-24 שעות', 'success');
+        if (fellBack) alert('המודעה פורסמה ל-24 שעות. מודעה קבועה תהיה אפשרית אחרי שחוקי האבטחה יעודכנו ב-Firebase.');
+        else showToast(keep ? '✅ המודעה פורסמה ותישאר עד שתורידו אותה' : '✅ המודעה פורסמה ל-24 שעות', 'success');
     } catch (e) {
         console.error(e);
         alert('שגיאה בפרסום המודעה: ' + AdminAuth.errorMessage(e));
@@ -4349,12 +4414,19 @@ async function publishToMarket() {
     }
 }
 
-// המנהל שפרסם יכול להוריד את המודעה כשכבר לא חסרים שחקנים
+// מוחק מודעה, ואחריה את הקישור שלה לקבוצה (חוקי האבטחה בודקים את הקישור כשמנהל אחר מוריד את המודעה)
+async function deleteMarketPost(id) {
+    const ref = db.collection('market_posts').doc(id);
+    await ref.delete();
+    await ref.collection('private').doc('group').delete().catch(() => {});   // למודעות ישנות אין קישור
+}
+
+// כל מנהל בקבוצה יכול להוריד את המודעה כשכבר לא חסרים שחקנים
 async function removeMarketPost(id) {
     if (!/^[A-Za-z0-9]{1,40}$/.test(id)) return;
     if (!confirm('להוריד את המודעה מ"מחפשים שחקן"?')) return;
     try {
-        await db.collection('market_posts').doc(id).delete();
+        await deleteMarketPost(id);
         if (currentGroupData && currentGroupData.marketPostId === id) {
             await groupRef.update({ marketPostId: firebase.firestore.FieldValue.delete() });
             delete currentGroupData.marketPostId;
@@ -4362,6 +4434,7 @@ async function removeMarketPost(id) {
         paintMarket();
         showToast('המודעה ירדה', 'info');
     } catch (e) {
+        if (e && e.code === 'permission-denied') return alert('רק המנהל שפרסם את המודעה יכול להוריד אותה.');
         console.error(e);
         alert('לא הצלחנו להוריד את המודעה: ' + AdminAuth.errorMessage(e));
     }
@@ -4373,7 +4446,7 @@ function renderMarket() {
     const container = document.getElementById('marketList'); if(!container) return;
     if (marketListenerStarted) { paintMarket(); return; } // מאזין אחד בלבד — לא נרשמים מחדש בכל לחיצה על הטאב
     marketListenerStarted = true;
-    // רק מודעות מ-24 השעות האחרונות
+    // רק מודעות שעוד באוויר: 24 שעות, או מודעה קבועה עד שמורידים אותה
     db.collection('market_posts').where('expiresAt', '>', Date.now()).onSnapshot(snap => {
         marketDocs = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
         paintMarket();
@@ -4386,9 +4459,10 @@ function paintMarket() {
     if (!container || !marketDocs) return;
     const now = Date.now();
     const ms = d => (d.timestamp && d.timestamp.toMillis ? d.timestamp.toMillis() : now);
+    // קודם מודעות למשחק הקרוב (דחופות), ואחריהן מודעות קבועות. בכל סוג — החדשות קודם
     const docs = marketDocs
         .filter(doc => doc.data.expiresAt > now)
-        .sort((a, b) => ms(b.data) - ms(a.data));
+        .sort((a, b) => (isKeepPost(a.data) - isKeepPost(b.data)) || (ms(b.data) - ms(a.data)));
     const mineId = currentGroupData && currentGroupData.marketPostId;
     const mine = docs.find(doc => doc.id === mineId) || null;
     renderMarketMine(mine);
@@ -4396,12 +4470,17 @@ function paintMarket() {
     const esc = escAdminText;
     container.innerHTML = docs.map(doc => {
         const data = doc.data;
-        const timeStr = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'}) : 'עכשיו';
-        const waMsg = encodeURIComponent(`היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
+        const keep = isKeepPost(data);
+        const posted = data.timestamp && data.timestamp.toDate ? mpPostedLabel(data.timestamp.toDate()) : 'עכשיו';
+        const waMsg = encodeURIComponent(keep
+            ? `היי, ראיתי ב-Soccer Manager שאתם מחפשים שחקנים ל${data.groupName} ב${data.location}. אפשר להצטרף?`
+            : `היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${data.groupName} ב${data.location}. אפשר להצטרף?`);
         const phoneDigits = String(data.phone || '').replace(/\D/g, '').replace(/^0/, '');
         const waLink = `https://wa.me/972${phoneDigits}?text=${waMsg}`;
+        const n = Number(data.missing) || 0;
+        const keepTag = keep ? `<div class="mp-keep-tag">📌 מודעה קבועה</div>` : '';
         const mineTag = doc === mine ? `<div class="mp-mine-tag">המודעה שלכם</div>` : '';
-        return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${esc(data.location)}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${esc(data.groupName)}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ב-${esc(timeStr)}</div>${mineTag}</div><div style="background:var(--danger); color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem;">חסרים: ${esc(data.missing)}</div></div><a href="${esc(waLink)}" target="_blank" rel="noopener" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
+        return `<div class="card" style="margin-bottom:0; background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2);"><div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><div style="font-weight:900; font-size:1.1rem; color:#60A5FA;">📍 ${esc(data.location)}</div><div style="font-weight:700; color:var(--text-main); margin:5px 0;">קבוצת: ${esc(data.groupName)}</div><div style="font-size:0.85rem; color:var(--text-muted);">פורסם ${esc(posted)}</div>${keepTag}${mineTag}</div><div style="background:${keep ? '#2563EB' : 'var(--danger)'}; color:white; padding:5px 10px; border-radius:8px; font-weight:900; font-size:0.9rem; white-space:nowrap;">${keep ? 'מחפשים' : 'חסרים:'} ${n}</div></div><a href="${esc(waLink)}" target="_blank" rel="noopener" class="btn" style="margin-top:15px; background:#25D366; text-decoration:none; font-size:0.95rem;">📩 אני רוצה להצטרף</a></div>`;
     }).join('');
 }
 
@@ -4409,19 +4488,23 @@ function paintMarket() {
 function renderMarketMine(mine) {
     const box = document.getElementById('marketMine');
     if (!box) return;
+    syncMpDuration();
     const btn = document.getElementById('mpPublishBtn');
     const u = firebase.auth().currentUser;
-    // מודעה שמנהל אחר פרסם: רק הוא יכול להוריד או להחליף אותה (חוקי האבטחה), ולכן אין פרסום נוסף עד שתרד
+    // כל מנהל בקבוצה יכול להחליף או להוריד את המודעה של הקבוצה (חוקי האבטחה בודקים לאיזו קבוצה היא שייכת)
     const mineIsMine = !!(mine && u && mine.data.ownerUid === u.uid);
     if (btn && !publishingMarket) {
-        btn.disabled = !!mine && !mineIsMine;
-        btn.textContent = !mine ? '📢 פרסם מודעה' : mineIsMine ? '📢 פרסום מחדש (מחליף את המודעה)' : '📢 כבר יש לקבוצה מודעה באוויר';
+        btn.disabled = false;
+        btn.textContent = mine ? '📢 פרסום מחדש (מחליף את המודעה)' : '📢 פרסם מודעה';
     }
     if (!mine) { box.hidden = true; box.innerHTML = ''; return; }
-    const until = new Date(mine.data.expiresAt);
-    const time = until.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-    const when = until.toDateString() === new Date().toDateString() ? `עד ${time}` : `עד מחר ב-${time}`;
-    const canRemove = mineIsMine && /^[A-Za-z0-9]{1,40}$/.test(mine.id);
+    let when = 'עד שתורידו אותה';
+    if (!isKeepPost(mine.data)) {
+        const until = new Date(mine.data.expiresAt);
+        const time = until.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        when = until.toDateString() === new Date().toDateString() ? `עד ${time}` : `עד מחר ב-${time}`;
+    }
+    const canRemove = /^[A-Za-z0-9]{1,40}$/.test(mine.id);
     box.innerHTML = `<span>✅ ${mineIsMine ? 'המודעה שלכם' : 'מודעה של הקבוצה (פרסם מנהל אחר)'} באוויר ${escAdminText(when)} · חסרים ${Number(mine.data.missing) || 0}</span>`
         + (canRemove ? `<button type="button" onclick="removeMarketPost('${mine.id}')">הורדת המודעה</button>` : '');
     box.hidden = false;
