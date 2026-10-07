@@ -305,8 +305,13 @@
             if (l && l.exists) listingRef = l.ref;
         }
 
-        // מודעת "מחפשים שחקן" של הקבוצה (מזהה אקראי). אם מנהל אחר פרסם אותה, היא תרד מהלוח לבד אחרי 24 שעות
-        if (data.marketPostId) await db.collection('market_posts').doc(data.marketPostId).delete().catch(() => null);
+        // מודעת "מחפשים שחקן" של הקבוצה (מזהה אקראי) והקישור שלה לקבוצה. כל מנהל בקבוצה רשאי להוריד אותה,
+        // ולכן זה קורה לפני שמסמך הקבוצה נמחק. מודעה ישנה שמנהל אחר פרסם (בלי קישור) תרד לבד כשהזמן שלה ייגמר
+        if (data.marketPostId) {
+            const post = db.collection('market_posts').doc(data.marketPostId);
+            await post.delete().catch(() => null);
+            await post.collection('private').doc('group').delete().catch(() => null);
+        }
 
         const total = refs.length + 1;
         const report = n => { if (onProgress) { try { onProgress(n, total); } catch (e) { /* תצוגה בלבד */ } } };
