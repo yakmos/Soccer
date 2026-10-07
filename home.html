@@ -30,6 +30,8 @@
 <script src="admin-auth.js?v=20261006"></script>
 <script src="group-prefs.js?v=20261007"></script>
 <script src="map-kit.js?v=20261007"></script>
+<script src="profile-kit.js?v=20261007"></script>
+<script src="tour.js?v=20261007"></script>
 <style>
     :root {
         --bg: #0F172A; --bg-deep: #0B1220; --surface: #1E293B; --surface-2: #273449;
@@ -284,6 +286,51 @@
     .pr-ic { width: 1.6em; text-align: center; flex: none; }
     .profile-links { max-width: 560px; margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .92rem; }
     .profile-links a:hover { color: var(--text); }
+    /* פרופיל שחקן בדף הפרופיל */
+    .pp-block { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .pp-block h2 { font-size: 1.05rem; font-weight: 900; margin: 0 0 8px; }
+    .pp-head { display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; }
+    .pp-head .pk-av-lg { width: 56px; height: 56px; font-size: 1.3rem; }
+    .pp-sub { color: var(--muted); font-size: .9rem; }
+    .pp-groups { display: grid; gap: 6px; margin: 10px 0 4px; }
+    .pp-group { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); font-size: .92rem; }
+    .pp-group a { font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pp-group a:hover { color: var(--primary); }
+    .badge-linked { color: #6EE7B7; background: rgba(16,185,129,0.12); }
+    .badge-pending { color: var(--amber); background: rgba(252,211,77,0.1); }
+
+    /* ===== מי אתה? (בביקור הראשון בדף הבית) ===== */
+    body.boot-wait main { visibility: hidden; }
+    .role-page { max-width: 660px; margin: 0 auto; text-align: center; }
+    .role-ball { font-size: 2.6rem; line-height: 1; }
+    .role-page h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 900; margin: 12px 0 6px; }
+    .role-lead { color: var(--muted); margin: 0 0 26px; font-size: 1.05rem; }
+    .role-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .role-opt { display: flex; flex-direction: column; gap: 6px; padding: 22px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface);
+                color: var(--text); font: inherit; text-align: right; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+    .role-opt:hover { border-color: var(--primary-line); background: #22304A; transform: translateY(-2px); }
+    .role-opt:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+    .role-ic { font-size: 2rem; line-height: 1; margin-bottom: 4px; }
+    .role-opt b { font-size: 1.2rem; font-weight: 900; }
+    .role-opt small { color: var(--muted); font-size: .92rem; line-height: 1.55; }
+    .role-foot { margin-top: 20px; color: var(--muted); font-size: .9rem; }
+
+    /* ===== דף הבית לשחקן ===== */
+    .pp-card { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--primary-line);
+               background: linear-gradient(135deg, rgba(16,185,129,0.1), var(--surface) 70%); }
+    .pp-card[hidden] { display: none; }
+    .pp-card .pp-tx { flex: 1; min-width: 0; }
+    .pp-card b { display: block; font-size: 1.02rem; }
+    .pp-card small { display: block; color: var(--muted); font-size: .88rem; line-height: 1.5; margin-top: 2px; }
+    .pp-card .btn { flex: none; }
+    .pp-card .pk-av-lg { width: 52px; height: 52px; font-size: 1.2rem; }
+    .pp-bolt { font-size: 1.8rem; line-height: 1; flex: none; }
+    .quick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+    .quick { display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); transition: border-color .15s, background .15s; }
+    .quick:hover { border-color: var(--primary-line); background: #22304A; }
+    .quick-ic { font-size: 1.5rem; line-height: 1; margin-bottom: 4px; }
+    .quick b { font-size: 1.02rem; }
+    .quick small { color: var(--muted); font-size: .85rem; line-height: 1.45; }
 
     /* ===== Responsive ===== */
     @media (max-width: 860px) {
@@ -310,6 +357,9 @@
         .club-pills { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; padding-block: 2px; scrollbar-width: none; scroll-snap-type: x proximity; }
         .club-pills::-webkit-scrollbar { display: none; }
         .club-pill { flex: none; scroll-snap-align: start; }
+        .role-opts { grid-template-columns: 1fr; }
+        .pp-card { flex-wrap: wrap; }
+        .pp-card .btn { width: 100%; }
     }
     @media (max-width: 420px) { .nav-ico { display: inline; font-size: 1.1rem; } .nav-text { display: none; } }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .group-card { transition: none; } }
@@ -332,6 +382,48 @@
         </nav>
     </div>
 </header>
+
+<!-- ============ מי אתה? — בביקור הראשון בדף הבית (נשמר במכשיר, ומחליפים בפרופיל) ============ -->
+<main id="viewRole" hidden>
+    <section class="wrap page role-page">
+        <div class="role-ball" aria-hidden="true">⚽</div>
+        <h1>ברוכים הבאים!</h1>
+        <p class="role-lead">מה מביא אותך לכאן?</p>
+        <div class="role-opts">
+            <button class="role-opt" type="button" data-role="player" onclick="chooseRole('player')">
+                <span class="role-ic" aria-hidden="true">🏃</span>
+                <b>אני שחקן</b>
+                <small>מחפש קבוצה באזור, או רוצה להירשם מהר יותר למשחקים של הקבוצה שלי</small>
+            </button>
+            <button class="role-opt" type="button" data-role="manager" onclick="chooseRole('manager')">
+                <span class="role-ic" aria-hidden="true">📋</span>
+                <b>אני מארגן משחקים</b>
+                <small>פותח קבוצה ומנהל הרשמה, חלוקה מאוזנת לקבוצות ודירוגים</small>
+            </button>
+        </div>
+        <p class="role-foot">אפשר להחליף בכל רגע, בפרופיל.</p>
+    </section>
+</main>
+
+<!-- ============ דף הבית לשחקן ============ -->
+<main id="viewPlayer" hidden>
+    <section class="wrap page">
+        <div class="page-head">
+            <div>
+                <h1 id="playerHello">שלום 👋</h1>
+                <p>הקבוצות שלך, וקבוצות שמחפשות שחקנים.</p>
+            </div>
+        </div>
+        <h2 class="block-title">הקבוצות שלי</h2>
+        <div class="group-list" id="playerGroupsList"></div>
+        <div class="pp-card" id="playerProfileCard" hidden></div>
+        <div class="quick-row">
+            <a class="quick" href="#find"><span class="quick-ic" aria-hidden="true">🗺️</span><b>מצא קבוצה</b><small>קבוצות ציבוריות במפה, ומי מהן מחפשת שחקנים</small></a>
+            <a class="quick" href="#market"><span class="quick-ic" aria-hidden="true">📢</span><b>מחפשים שחקן</b><small>קבוצות שחסר להן שחקן, למשחק הקרוב או באופן קבוע</small></a>
+        </div>
+        <p class="page-note">מארגן משחקים? <button class="linkish" type="button" onclick="chooseRole('manager')">לדף של המארגנים</button></p>
+    </section>
+</main>
 
 <!-- ============ דף נחיתה ============ -->
 <main id="viewLanding">
@@ -417,7 +509,7 @@
             <p class="section-sub">התשובות הקצרות לשאלות שכולם שואלים.</p>
             <div class="faq">
                 <details><summary>כמה זה עולה?</summary><p>בתקופת ההשקה השימוש חינם, בלי הגבלה על מספר הקבוצות.</p></details>
-                <details><summary>השחקנים צריכים להירשם או להוריד אפליקציה?</summary><p>לא. רק המנהל מתחבר עם Google. השחקנים פותחים את הקישור מהוואטסאפ ונרשמים בלחיצה, והאתר זוכר להם את הקבוצה.</p></details>
+                <details><summary>השחקנים צריכים להירשם או להוריד אפליקציה?</summary><p>לא. השחקנים פותחים את הקישור מהוואטסאפ ונרשמים, והאתר זוכר להם את הקבוצה. מי שרוצה יכול ליצור פרופיל שחקן עם Google: אחרי שהמנהל מאשר את החיבור לכרטיס שלו, ההרשמה היא בלחיצה אחת והתמונה שלו מופיעה בהרכב.</p></details>
                 <details><summary>אפשר כמה מנהלים לקבוצה?</summary><p>כן. בהגדרות הקבוצה יוצרים קישור הזמנה חד-פעמי ושולחים אותו למנהל הנוסף.</p></details>
                 <details><summary>מי רואה את הקבוצה שלי?</summary><p>קבוצה פרטית גלויה רק למי שקיבל ממך קישור. קבוצה ציבורית מופיעה גם ב"מצא קבוצה" ובמפה, עם עיר, זמנים, מספר לפניות ומיקום המגרש אם סימנת אותו. אפשר לסמן בהגדרות אם הקבוצה מחפשת שחקנים או לא. הקישור לקבוצה עצמה נשאר אצלך.</p></details>
                 <details><summary>יש לי כבר קבוצה במערכת. מה עושים?</summary><p>נכנסים לקבוצה מהקישור הרגיל ולוחצים "ניהול". אחרי הכניסה הראשונה עם Google היא תופיע ב"הקבוצות שלי".</p></details>
@@ -598,6 +690,10 @@
     let listings = null;
     let currentView = 'viewLanding';
     let recentChecked = false;   // הקבוצות האחרונות מוצגות רק אחרי שווידאנו שהן עדיין קיימות
+    let authKnown = false;       // עד שמצב ההתחברות משוחזר לא יודעים אם להציג את "מי אתה?"
+    let myProfile;               // פרופיל השחקן: undefined = טוען, null = אין, אובייקט = הפרופיל
+    let profileLoad = null;
+    let profileStates = {};      // gid -> 'linked' | 'pending', אחרי בדיקה מול הקבוצה
 
     const $ = id => document.getElementById(id);
     const IN_APP = /FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|MicroMessenger/i.test(navigator.userAgent);
@@ -633,8 +729,44 @@
     captureSource();
     const CHEVRON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+    // ===== מי אתה? שחקן או מארגן (נשמר במכשיר; בלי אחסון — כמו מארגן, כמו פעם) =====
+    const ROLE_KEY = 'sm_role';
+    function getRole() {
+        try { const r = localStorage.getItem(ROLE_KEY); return r === 'player' || r === 'manager' ? r : null; }
+        catch (e) { return 'manager'; }
+    }
+    function setRole(r) { try { localStorage.setItem(ROLE_KEY, r); } catch (e) { /* לא קריטי */ } }
+    function chooseRole(r) {
+        setRole(r);
+        if (location.hash) history.pushState(null, '', location.pathname + location.search);
+        route();
+        setTimeout(() => runHomeTour(r), 400);
+    }
+    function switchRole() { chooseRole(getRole() === 'player' ? 'manager' : 'player'); }
+
+    // סיור קצר אחרי הבחירה (פעם אחת למכשיר)
+    function runHomeTour(role) {
+        if (!window.Tour) return;
+        if (role === 'player') {
+            Tour.run('home-player', [
+                { el: '#homeNav [data-tab="find"]', title: '🗺️ מצא קבוצה', text: 'קבוצות ציבוריות על המפה. רואים מי מחפשת שחקנים ומי פתחה הרשמה, ופונים למארגן בוואטסאפ.' },
+                { el: '#homeNav [data-tab="market"]', title: '📢 מחפשים שחקן', text: 'קבוצות שחסר להן שחקן, למשחק הקרוב או באופן קבוע.' },
+                { el: '#playerProfileCard', title: '⚡ הרשמה בלחיצה אחת', text: 'לא חובה: עם פרופיל שחקן נרשמים למשחקים בלחיצה, והחברים רואים את התמונה שלך בהרכב.' },
+                { el: '#homeNav [data-tab="home"]', title: '🏠 הקבוצות שלי', text: 'כל קבוצה שפתחת מהקישור שלה נשמרת כאן, כדי לחזור אליה בקלות.' }
+            ]);
+        } else {
+            Tour.run('home-manager', [
+                { el: '#viewLanding .hero-ctas .btn-primary', title: '⚽ פותחים קבוצה', text: 'שם, עיר ומתי משחקים. אחר כך מוסיפים שחקנים ושולחים קישור אחד לקבוצת הוואטסאפ.' },
+                { el: '#viewDashboard .page-head .btn-primary', title: '⚽ קבוצה חדשה', text: 'שם, עיר ומתי משחקים. אחר כך מוסיפים שחקנים ושולחים קישור אחד לקבוצת הוואטסאפ.' },
+                { el: '#homeNav [data-tab="find"]', title: '🗺️ מצא קבוצה', text: 'קבוצה ציבורית מופיעה על המפה, ושחקנים חדשים פונים אליך בוואטסאפ.' },
+                { el: '#homeNav [data-tab="market"]', title: '📢 חסרים שחקנים?', text: 'מפרסמים מודעה מדף הקבוצה, ל-24 שעות או עד שתורידו אותה.' },
+                { el: '#homeNav [data-tab="profile"]', title: '👤 פרופיל', text: 'כניסה עם Google, ומעבר לתצוגה של שחקן.' }
+            ]);
+        }
+    }
+
     // ===== ניווט בין מסכים =====
-    const VIEWS = ['viewLanding', 'viewDashboard', 'viewFind', 'viewMarket', 'viewProfile'];
+    const VIEWS = ['viewRole', 'viewPlayer', 'viewLanding', 'viewDashboard', 'viewFind', 'viewMarket', 'viewProfile'];
     function showView(id) {
         if (currentView === id) return;
         currentView = id;
@@ -643,6 +775,8 @@
     }
 
     function route() {
+        const signedIn = AdminAuth.isRealUser(currentUser);
+        const role = getRole();
         if (location.hash === '#find') {
             showView('viewFind');
             loadListings();
@@ -652,9 +786,14 @@
         } else if (location.hash === '#profile') {
             showView('viewProfile');
             renderProfile();
-        } else if (AdminAuth.isRealUser(currentUser)) {
+        } else if (role === 'player') {
+            showView('viewPlayer');
+            renderPlayerHome();
+        } else if (signedIn) {
             showView('viewDashboard');
             renderDashboard();
+        } else if (!role && authKnown) {
+            showView('viewRole');
         } else {
             showView('viewLanding');
             renderRecent($('recentList'), $('recentStrip'), new Set());
@@ -677,8 +816,13 @@
     function renderNav() {
         const btn = $('navAuthBtn');
         const signedIn = AdminAuth.isRealUser(currentUser);
-        btn.textContent = signedIn ? '+ קבוצה חדשה' : 'כניסה';
-        btn.onclick = signedIn ? startCreate : signIn;
+        if (signedIn && getRole() === 'player') {
+            btn.textContent = 'הפרופיל שלי';
+            btn.onclick = () => { location.hash = '#profile'; };
+        } else {
+            btn.textContent = signedIn ? '+ קבוצה חדשה' : 'כניסה';
+            btn.onclick = signedIn ? startCreate : signIn;
+        }
         const tab = { viewFind: 'find', viewMarket: 'market', viewProfile: 'profile' }[currentView] || 'home';
         document.querySelectorAll('#homeNav .hnav-btn').forEach(a => {
             if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -705,7 +849,10 @@
 
     auth.onAuthStateChanged(u => {
         currentUser = u;
-        if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); }
+        authKnown = true;
+        document.body.classList.remove('boot-wait');
+        if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); loadMyProfile(); }
+        else { myProfile = null; profileLoad = null; profileStates = {}; }
         if (AdminAuth.isSuperAdmin(u)) watchInbox();
         else stopInbox();
         route();
@@ -729,13 +876,14 @@
             myGroups = null;
         }
         if (currentView === 'viewDashboard') renderDashboard();
+        else if (currentView === 'viewPlayer') renderPlayerHome();
     }
 
-    function groupCardHTML(g, uid) {
+    function groupCardHTML(g, uid, extraBadges) {
         const city = (g.location && g.location.city) || '';
         const when = G.formatSchedule(g.schedule);
         const meta = [city && '📍 ' + esc(city), when && '📅 ' + esc(when)].filter(Boolean).join('<span class="dot">·</span>');
-        let badges = '';
+        let badges = extraBadges || '';
         if (uid) {
             badges += g.ownerUid === uid ? '<span class="badge badge-owner">👑 בעלים</span>' : '<span class="badge">🛡️ מנהל</span>';
             badges += g.visibility === 'public' ? '<span class="badge badge-public">🌍 ציבורית</span>' : '<span class="badge">🔒 פרטית</span>';
@@ -767,6 +915,7 @@
     function refreshRecentViews() {
         if (currentView === 'viewLanding') renderRecent($('recentList'), $('recentStrip'), new Set());
         else if (currentView === 'viewDashboard') renderDashboard();
+        else if (currentView === 'viewPlayer') renderPlayerHome();
     }
 
     // קבוצות שנמחקו יוצאות מהרשימה, ושם/עיר/סמל מתעדכנים לפי מה שיש היום
@@ -835,25 +984,176 @@
         badge.closest('.hnav-btn').setAttribute('aria-label', n ? `פרופיל: ${n === 1 ? 'פנייה חדשה' : n + ' פניות חדשות'}` : 'פרופיל');
     }
 
+    // ===== פרופיל שחקן (לא חובה): שם, תאריך לידה ותמונה, וחיבור לכרטיסים בקבוצות. ראה profile-kit.js =====
+    function loadMyProfile() {
+        const uid = currentUser && currentUser.uid;
+        if (!uid) return Promise.resolve(null);
+        myProfile = undefined;
+        profileLoad = (async () => {
+            let p = null;
+            try { p = await ProfileKit.load(db, uid); }
+            catch (e) { console.warn('player profile', e); }   // לפני שחוקי האבטחה מתעדכנים: כאילו אין פרופיל
+            if (!currentUser || currentUser.uid !== uid) return null;
+            myProfile = p;
+            profileStates = {};
+            refreshProfileViews();
+            checkProfileGroups();
+            return p;
+        })();
+        return profileLoad;
+    }
+    function refreshProfileViews() {
+        if (currentView === 'viewPlayer') renderPlayerHome();
+        else if (currentView === 'viewProfile') renderProfile();
+    }
+    // לכל קבוצה ברשימה: הכרטיס מחובר, הבקשה מחכה למנהל, או שנדחתה/נותקה ואז היא יורדת מהרשימה
+    async function checkProfileGroups() {
+        const p = myProfile, uid = currentUser && currentUser.uid;
+        if (!p || !p.groups || !uid) return;
+        const gids = Object.keys(p.groups);
+        if (!gids.length) return;
+        const states = await Promise.all(gids.map(gid => ProfileKit.groupState(db, uid, gid, p.groups[gid] && p.groups[gid].pid).catch(() => 'unknown')));
+        if (myProfile !== p) return;
+        gids.forEach((gid, i) => {
+            if (states[i] === 'linked' || states[i] === 'pending') profileStates[gid] = states[i];
+            else if (states[i] === null) {
+                delete p.groups[gid];
+                ProfileKit.dropGroup(db, uid, gid).catch(() => {});
+            }
+        });
+        refreshProfileViews();
+    }
+
+    async function ensureSignedIn() {
+        if (AdminAuth.isRealUser(auth.currentUser)) return true;
+        try { await AdminAuth.signInWithGoogle(); }
+        catch (e) { if (!AdminAuth.isCancel(e)) authErrorAlert(e); return false; }
+        return AdminAuth.isRealUser(auth.currentUser);
+    }
+    async function createProfile() {
+        if (!(await ensureSignedIn())) return;
+        const user = auth.currentUser;
+        // בודקים מול השרת, כדי לא לדרוס פרופיל שכבר קיים לחשבון הזה (למשל אחרי כניסה ממכשיר אחר)
+        let existing = myProfile || null;
+        if (!existing) { try { existing = await ProfileKit.load(db, user.uid); } catch (e) { existing = null; } }
+        if (existing) { myProfile = existing; refreshProfileViews(); return; }
+        const saved = await ProfileKit.openEditor({ db, user, profile: null });
+        if (saved) { myProfile = saved; refreshProfileViews(); }
+    }
+    async function editProfile() {
+        if (!myProfile) return createProfile();
+        const saved = await ProfileKit.openEditor({ db, user: auth.currentUser, profile: myProfile });
+        if (saved) { myProfile = saved; refreshProfileViews(); }
+    }
+    async function deleteProfile() {
+        if (!myProfile || !AdminAuth.isRealUser(currentUser)) return;
+        if (!confirm('למחוק את פרופיל השחקן?\nהכרטיסים שלך בקבוצות יתנתקו מהחשבון, ובקשות שעוד מחכות לאישור יבוטלו.')) return;
+        try {
+            await ProfileKit.removeAll(db, currentUser.uid, myProfile);
+            myProfile = null;
+            profileStates = {};
+            refreshProfileViews();
+        } catch (e) {
+            console.error('delete profile', e);
+            alert('הפרופיל לא נמחק: ' + AdminAuth.errorMessage(e));
+        }
+    }
+
+    // ===== דף הבית לשחקן: הקבוצות שלי, הפרופיל, ומעבר למפה וללוח =====
+    function renderPlayerHome() {
+        const u = currentUser, signedIn = AdminAuth.isRealUser(u);
+        const p = signedIn && myProfile ? myProfile : null;
+        const first = String((p && p.name) || (signedIn && u.displayName) || '').trim().split(/\s+/)[0];
+        $('playerHello').textContent = first ? `שלום, ${first} 👋` : 'שלום 👋';
+
+        // קבוצות שאני מנהל, קבוצות שהפרופיל מחובר אליהן, וקבוצות שביקרתי בהן — כל קבוצה פעם אחת
+        const recent = recentChecked ? G.getRecentGroups() : [];
+        const items = [], seen = new Set();
+        const add = (g, extra) => { if (!g || !g.id || seen.has(g.id)) return; seen.add(g.id); items.push(Object.assign({}, g, extra)); };
+        if (signedIn && Array.isArray(myGroups)) myGroups.forEach(g => add(g, { role: g.ownerUid === u.uid ? 'owner' : 'admin' }));
+        if (p && p.groups) Object.keys(p.groups).forEach(gid => {
+            const r = G.getRecentGroups().find(x => x.id === gid) || {};
+            add({ id: gid, name: p.groups[gid].name || r.name, icon: r.icon, location: { city: r.city } }, { link: profileStates[gid] || null });
+        });
+        recent.forEach(r => add({ id: r.id, name: r.name, icon: r.icon, location: { city: r.city } }));
+        const list = $('playerGroupsList');
+        if (!items.length && (!recentChecked || (signedIn && myGroups === undefined))) {
+            list.innerHTML = '<div class="empty">טוען…</div>';
+        } else {
+            list.innerHTML = items.length ? items.map(g => {
+                let b = '';
+                if (g.role === 'owner') b += '<span class="badge badge-owner">👑 בעלים</span>';
+                else if (g.role === 'admin') b += '<span class="badge">🛡️ מנהל</span>';
+                if (g.link === 'linked') b += '<span class="badge badge-linked">🔗 הכרטיס שלך מחובר</span>';
+                else if (g.link === 'pending') b += '<span class="badge badge-pending">⏳ מחכה לאישור המנהל</span>';
+                return groupCardHTML(g, null, b);
+            }).join('') : `<div class="empty"><b>עוד אין כאן קבוצות.</b><br>כשתפתח קישור של קבוצה, היא תופיע כאן.</div>`;
+        }
+
+        const card = $('playerProfileCard');
+        if (signedIn && myProfile === undefined) {
+            card.hidden = true;
+        } else if (p) {
+            const a = ProfileKit.age(p.birthDate);
+            const linked = Object.values(profileStates).includes('linked');
+            card.innerHTML = `${ProfileKit.avatarHTML(p, 'pk-av-lg')}<div class="pp-tx"><b>${esc(p.name)}</b><small>${a !== null ? `גיל ${a} · ` : ''}${linked
+                ? 'בקבוצות שהכרטיס שלך מחובר אליהן נרשמים בלחיצה אחת.'
+                : 'כדי להירשם בלחיצה אחת, חבר את הפרופיל לכרטיס שלך בדף הקבוצה: ☰ עוד ← הכרטיס שלי.'}</small></div><a class="btn btn-ghost" href="#profile">עריכה</a>`;
+            card.hidden = false;
+        } else {
+            card.innerHTML = `<span class="pp-bolt" aria-hidden="true">⚡</span><div class="pp-tx"><b>הרשמה בלחיצה אחת</b><small>עם פרופיל שחקן נרשמים למשחקים בלחיצה, והחברים רואים את התמונה שלך בהרכב. לא חובה.</small></div><button class="btn btn-primary" type="button" onclick="createProfile()">יצירת פרופיל</button>`;
+            card.hidden = false;
+        }
+    }
+
     // ===== פרופיל =====
+    function playerProfileBlockHTML() {
+        if (myProfile === undefined) return '<div class="pp-block"><h2>🏃 פרופיל שחקן</h2><p class="pp-sub">טוען…</p></div>';
+        if (!myProfile) {
+            return `<div class="pp-block"><h2>🏃 פרופיל שחקן</h2>
+                <p class="profile-sub">לא חובה. עם פרופיל נרשמים למשחקים בלחיצה אחת, והחברים מזהים אותך בהרכב.</p>
+                <button class="btn btn-primary" type="button" onclick="createProfile()">יצירת פרופיל שחקן</button></div>`;
+        }
+        const p = myProfile, a = ProfileKit.age(p.birthDate);
+        const gids = p.groups ? Object.keys(p.groups) : [];
+        const groups = gids.map(gid => {
+            const st = profileStates[gid];
+            const chip = st === 'linked' ? '<span class="badge badge-linked">🔗 מחובר</span>' : st === 'pending' ? '<span class="badge badge-pending">⏳ מחכה לאישור</span>' : '<span class="badge">…</span>';
+            return `<div class="pp-group"><a href="${groupUrl(gid)}">${esc(p.groups[gid].name || 'קבוצה')}</a>${chip}</div>`;
+        }).join('');
+        return `<div class="pp-block"><h2>🏃 פרופיל שחקן</h2>
+            <div class="pp-head">${ProfileKit.avatarHTML(p, 'pk-av-lg')}<div><div class="profile-name">${esc(p.name)}</div><div class="pp-sub">${a !== null ? 'גיל ' + a : 'בלי תאריך לידה'}</div></div></div>
+            ${groups ? `<div class="pp-groups">${groups}</div>` : '<p class="pp-sub">כדי להירשם בלחיצה אחת, חבר את הפרופיל לכרטיס שלך בדף הקבוצה: ☰ עוד ← הכרטיס שלי.</p>'}
+            <div class="profile-rows">
+                <button class="profile-row" type="button" onclick="editProfile()"><span class="pr-ic" aria-hidden="true">✏️</span>עריכת הפרופיל</button>
+                <button class="profile-row danger" type="button" onclick="deleteProfile()"><span class="pr-ic" aria-hidden="true">🗑️</span>מחיקת הפרופיל</button>
+            </div></div>`;
+    }
+
     function renderProfile() {
         const u = currentUser;
         const el = $('profileCard');
+        const roleRow = `<button class="profile-row" type="button" onclick="switchRole()"><span class="pr-ic" aria-hidden="true">🔄</span>${getRole() === 'player' ? 'לתצוגה של מארגן משחקים' : 'לתצוגה של שחקן'}</button>`;
         if (!AdminAuth.isRealUser(u)) {
             el.innerHTML = `<div class="profile-head"><span class="avatar" aria-hidden="true">👤</span><div><div class="profile-name">עוד לא נכנסת</div></div></div>
-                <p class="profile-sub">הכניסה עם Google היא למארגנים: פתיחת קבוצה, הרשמה למשחקים, חלוקה לקבוצות ודירוגים. שחקנים נרשמים למשחקים בלי חשבון.</p>
-                <button class="btn btn-primary btn-block" type="button" onclick="signIn()">כניסה עם Google</button>`;
+                <p class="profile-sub">כניסה עם Google: למארגנים, כדי לנהל קבוצות, ולשחקנים שרוצים פרופיל כדי להירשם למשחקים בלחיצה אחת. אפשר גם להירשם למשחקים בלי חשבון.</p>
+                <button class="btn btn-primary btn-block" type="button" onclick="signIn()">כניסה עם Google</button>
+                <div class="profile-rows" style="margin-top:12px">${roleRow}</div>`;
             return;
         }
         const name = String(u.displayName || '').trim() || 'משתמש';
         const photo = /^https:\/\//.test(u.photoURL || '') ? `<img src="${esc(u.photoURL)}" alt="" referrerpolicy="no-referrer">` : esc(name.charAt(0));
+        const player = getRole() === 'player';
         el.innerHTML = `<div class="profile-head"><span class="avatar" aria-hidden="true">${photo}</span><div><div class="profile-name">${esc(name)}</div><div class="profile-mail">${esc(u.email || '')}</div></div></div>
-            <div class="profile-rows">
+            ${player ? playerProfileBlockHTML() : ''}
+            <div class="profile-rows"${player ? ' style="margin-top:6px"' : ''}>
                 <a class="profile-row" href="home.html" onclick="return homeNav(event)"><span class="pr-ic" aria-hidden="true">🏠</span>הקבוצות שלי</a>
-                <button class="profile-row" type="button" onclick="startCreate()"><span class="pr-ic" aria-hidden="true">➕</span>פתיחת קבוצה חדשה</button>
+                ${player ? '' : '<button class="profile-row" type="button" onclick="startCreate()"><span class="pr-ic" aria-hidden="true">➕</span>פתיחת קבוצה חדשה</button>'}
                 ${AdminAuth.isSuperAdmin(u) ? '<a class="profile-row super-admin-link" href="admin.html"><span class="pr-ic" aria-hidden="true">🛠️</span><span class="sal-tx">לוח בקרה גלובלי</span></a>' : ''}
+                ${roleRow}
                 <button class="profile-row danger" type="button" onclick="signOut()"><span class="pr-ic" aria-hidden="true">🚪</span>התנתקות</button>
-            </div>`;
+            </div>
+            ${player ? '' : playerProfileBlockHTML()}`;
         paintInbox();
     }
 
@@ -1186,6 +1486,12 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('createModal').hidden) closeCreate(); });
     G.fillCityList($('cityList'));
     if (IN_APP) $('inAppBanner').hidden = false;
+    if (window.ProfileKit) ProfileKit.injectCSS();
+    // ביקור ראשון: לא מציגים את דף הנחיתה לרגע לפני "מי אתה?" — מחכים לשחזור ההתחברות (עד שנייה וחצי)
+    if (!getRole() && !location.hash) {
+        document.body.classList.add('boot-wait');
+        setTimeout(() => { if (!authKnown) { authKnown = true; document.body.classList.remove('boot-wait'); route(); } }, 1500);
+    }
     route();
     refreshRecentGroups();
 </script>
