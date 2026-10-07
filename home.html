@@ -264,6 +264,8 @@
 
     /* ===== מחפשים שחקן ===== */
     .post-missing { background: rgba(239,68,68,0.15); color: #FCA5A5; border-radius: 8px; padding: 3px 10px; font-weight: 900; font-size: .85rem; white-space: nowrap; }
+    .post-keep .post-missing { background: rgba(59,130,246,0.15); color: #93C5FD; }
+    .post-keep-tag { align-self: flex-start; font-size: .78rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: rgba(59,130,246,0.12); color: #93C5FD; border: 1px solid rgba(59,130,246,0.3); }
 
     /* ===== פרופיל ===== */
     .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 560px; }
@@ -391,7 +393,7 @@
                 <div class="feature"><div class="feature-icon">📝</div><h3>הרשמה עם רשימת המתנה</h3><p>מגבלת משתתפים, קדימויות שאתם קובעים, ורשימת המתנה שמתקדמת לבד כשמישהו מבטל.</p></div>
                 <div class="feature"><div class="feature-icon">⭐</div><h3>דירוגי שחקנים</h3><p>כל שחקן מדרג את החברים בקישור אישי, והציונים משפיעים על החלוקה.</p></div>
                 <div class="feature"><div class="feature-icon">🏆</div><h3>MVP, שערים וטבלאות</h3><p>הצבעת MVP אחרי כל משחק, מלכי שערים והיסטוריית משחקים.</p></div>
-                <div class="feature"><div class="feature-icon">🗺️</div><h3>מפת קבוצות ושוק שחקנים</h3><p>קבוצות ציבוריות מופיעות במפה. חסרים שחקנים הערב? מפרסמים מודעה ל-24 שעות ומוצאים מחליף.</p></div>
+                <div class="feature"><div class="feature-icon">🗺️</div><h3>מפת קבוצות ושוק שחקנים</h3><p>קבוצות ציבוריות מופיעות במפה. חסרים שחקנים? מפרסמים מודעה למשחק הקרוב, או מודעה קבועה עד שמוצאים.</p></div>
                 <div class="feature"><div class="feature-icon">🛡️</div><h3>כמה מנהלים, בלי סיסמאות</h3><p>כניסה מאובטחת עם Google, ומזמינים עוד מנהלים בקישור.</p></div>
             </div>
         </div>
@@ -486,18 +488,18 @@
     </section>
 </main>
 
-<!-- ============ מחפשים שחקן: מודעות ל-24 שעות מכל הקבוצות ============ -->
+<!-- ============ מחפשים שחקן: מודעות של קבוצות, ל-24 שעות או קבועות ============ -->
 <main id="viewMarket" hidden>
     <section class="wrap page">
         <div class="page-head">
             <div>
                 <h1>מחפשים שחקן</h1>
-                <p>קבוצות שחסר להן שחקן למשחק הקרוב. פונים למארגן בוואטסאפ.</p>
+                <p>קבוצות שמחפשות שחקנים, למשחק הקרוב או באופן קבוע. פונים למארגן בוואטסאפ.</p>
             </div>
         </div>
         <div class="find-count" id="marketCount" aria-live="polite"></div>
         <div class="listing-list" id="marketList"></div>
-        <p class="page-note">מנהל קבוצה? מודעה עולה לכאן ל-24 שעות מדף הקבוצה: ☰ עוד ← מחפשים שחקן.</p>
+        <p class="page-note">מנהל קבוצה? מפרסמים מודעה מדף הקבוצה (☰ עוד ← מחפשים שחקן), ל-24 שעות או עד שתורידו אותה.</p>
     </section>
 </main>
 
@@ -855,9 +857,10 @@
         paintInbox();
     }
 
-    // ===== מחפשים שחקן: מודעות של קבוצות שחסרים להן שחקנים (24 שעות) =====
+    // ===== מחפשים שחקן: מודעות של קבוצות שחסרים להן שחקנים (24 שעות, או קבועה עד שמורידים) =====
     let marketPosts = null;
     const tsMs = v => v && typeof v.toMillis === 'function' ? v.toMillis() : (typeof v === 'number' ? v : 0);
+    const isKeepPost = p => !!(p && p.permanent === true);
     async function loadMarket() {
         if (marketPosts) { renderMarketPosts(); return; }
         $('marketList').innerHTML = '<div class="empty">טוען מודעות…</div>';
@@ -872,14 +875,22 @@
         renderMarketPosts();
     }
     function postCardHTML(p) {
+        const keep = isKeepPost(p);
         const phone = G.normalizePhone(p.phone);
-        const msg = `היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${p.groupName} ב${p.location}. אפשר להצטרף?`;
+        const msg = keep
+            ? `היי, ראיתי ב-Soccer Manager שאתם מחפשים שחקנים ל${p.groupName} ב${p.location}. אפשר להצטרף?`
+            : `היי, ראיתי ב-Soccer Manager שחסר לכם שחקן ל${p.groupName} ב${p.location}. אפשר להצטרף?`;
         const wa = phone ? `https://wa.me/${G.phoneToIntl(phone)}?text=${encodeURIComponent(msg)}` : '';
         const at = tsMs(p.timestamp);
-        const when = at ? new Date(at).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' }) : '';
+        // מודעה מהשבוע האחרון: יום ושעה. מודעה קבועה ותיקה יותר: תאריך
+        const when = !at ? '' : Date.now() - at < 6 * 864e5
+            ? new Date(at).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' })
+            : new Date(at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long' });
         const missing = Number(p.missing) || 0;
-        return `<article class="listing">
-            <div class="listing-top"><h3>${esc(p.groupName || 'קבוצה')}</h3>${missing ? `<span class="post-missing">${missing === 1 ? 'חסר שחקן' : `חסרים ${missing}`}</span>` : ''}</div>
+        const need = !missing ? '' : keep ? (missing === 1 ? 'מחפשים שחקן' : `מחפשים ${missing}`) : (missing === 1 ? 'חסר שחקן' : `חסרים ${missing}`);
+        return `<article class="listing${keep ? ' post-keep' : ''}">
+            <div class="listing-top"><h3>${esc(p.groupName || 'קבוצה')}</h3>${need ? `<span class="post-missing">${need}</span>` : ''}</div>
+            ${keep ? '<span class="post-keep-tag">📌 מודעה קבועה</span>' : ''}
             <div class="meta">📍 ${esc(p.location || '')}</div>
             ${when ? `<div class="meta">🕒 פורסם ${esc(when)}</div>` : ''}
             ${wa ? `<a class="btn btn-wa" href="${esc(wa)}" target="_blank" rel="noopener">📩 אני רוצה להצטרף</a>` : ''}
@@ -887,10 +898,12 @@
     }
     function renderMarketPosts() {
         const now = Date.now();
-        const items = (marketPosts || []).filter(p => Number(p.expiresAt) > now).sort((a, b) => tsMs(b.timestamp) - tsMs(a.timestamp));
+        // קודם מודעות למשחק הקרוב (דחופות), ואחריהן מודעות קבועות. בכל סוג — החדשות קודם
+        const items = (marketPosts || []).filter(p => Number(p.expiresAt) > now)
+            .sort((a, b) => (isKeepPost(a) - isKeepPost(b)) || (tsMs(b.timestamp) - tsMs(a.timestamp)));
         $('marketCount').textContent = items.length ? (items.length === 1 ? 'מודעה אחת' : `${items.length} מודעות`) : '';
         $('marketList').innerHTML = items.length ? items.map(postCardHTML).join('')
-            : '<div class="empty"><b>כרגע אף קבוצה לא מחפשת שחקן.</b><br>כשלקבוצה חסרים שחקנים למשחק הקרוב, המודעה שלה מופיעה כאן ל-24 שעות.</div>';
+            : '<div class="empty"><b>כרגע אף קבוצה לא מחפשת שחקן.</b><br>כשלקבוצה חסרים שחקנים, המודעה שלה מופיעה כאן.</div>';
     }
 
     // ===== מצא קבוצה =====
