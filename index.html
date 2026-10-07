@@ -31,6 +31,8 @@
     <script src="admin-auth.js?v=20261007"></script>
     <script src="group-prefs.js?v=20261007"></script>
     <script src="map-kit.js?v=20261007"></script>
+    <script src="profile-kit.js?v=20261007"></script>
+    <script src="tour.js?v=20261007"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -288,6 +290,50 @@
         .pi-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pi-mark { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--border-color); font-weight: 900; }
         .picker-item.on .pi-mark { background: var(--primary-color); color: #fff; }
+
+        /* הכרטיס שלי: חיבור הכרטיס בקבוצה לפרופיל שחקן */
+        .me-modal .modal-name { margin-bottom: 10px; }
+        .me-text { color: var(--text-main); font-size: 0.95rem; line-height: 1.6; margin: 0 0 12px; }
+        .me-small { color: var(--text-muted); font-size: 0.82rem; line-height: 1.5; margin: 10px 0 0; }
+        .me-prof { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 14px; }
+        .me-prof b { display: block; }
+        .me-prof small { color: var(--text-muted); font-size: 0.82rem; }
+        .me-status { padding: 12px 14px; border-radius: 12px; line-height: 1.55; font-weight: 700; margin-bottom: 12px; }
+        .me-status.linked { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); color: #6EE7B7; }
+        .me-status.pending { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.35); color: #FDE68A; }
+        .me-check { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+        .me-check input { width: 18px; height: 18px; accent-color: var(--primary-color); flex: none; }
+        .me-outline { width: 100%; margin-top: 4px; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 12px; padding: 11px; font: 800 0.95rem 'Heebo', sans-serif; cursor: pointer; }
+        .me-outline.danger { border-color: rgba(239,68,68,0.45); color: #FCA5A5; }
+        .me-modal .picker-list { max-height: 36vh; }
+        .picker-item:disabled { opacity: 0.55; cursor: default; }
+        .pi-av { flex: none; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: rgba(255,255,255,0.06); font-size: 0.85rem; }
+        .pi-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pi-note { flex: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; }
+        /* בקשות לחבר כרטיס (למנהלים, בלשונית הסגל) */
+        .link-req-card { border-color: rgba(16,185,129,0.55) !important; }
+        body.is-admin .link-req-card[hidden] { display: none; }
+        .lr-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: -6px 0 12px; }
+        .lr-item { padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 10px; }
+        .lr-top { display: flex; align-items: center; gap: 12px; }
+        .lr-top > div { min-width: 0; }
+        .lr-top b { display: block; }
+        .lr-top small { color: var(--text-muted); font-size: 0.84rem; line-height: 1.45; }
+        .lr-top small b { display: inline; color: var(--text-main); }
+        .lr-warn { margin-top: 8px; color: #FDE68A; font-size: 0.82rem; font-weight: 700; }
+        .lr-opt { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.86rem; font-weight: 700; cursor: pointer; }
+        .lr-opt input { width: 17px; height: 17px; accent-color: var(--primary-color); flex: none; }
+        .lr-acts { display: flex; gap: 8px; margin-top: 10px; }
+        .lr-ok, .lr-no { border-radius: 10px; padding: 9px 14px; font: 900 0.9rem 'Heebo', sans-serif; cursor: pointer; }
+        .lr-ok { flex: 1; background: var(--primary-color); color: #04241A; border: 0; }
+        .lr-no { background: transparent; color: #FCA5A5; border: 1px solid rgba(239,68,68,0.45); }
+        .lr-ok:disabled, .lr-no:disabled { opacity: 0.6; cursor: default; }
+        .link-badge { font-size: 0.8rem; }
+        .acct-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 15px; }
+        .acct-row[hidden] { display: none; }
+        .acct-title { font-weight: 800; color: #6EE7B7; font-size: 0.95rem; }
+        .acct-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+        .acct-unlink { background: transparent; color: #FCA5A5; border: 1px solid rgba(239,68,68,0.45); border-radius: 8px; padding: 4px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; flex: none; }
 
         /* חלון "מה חדש" (פעם אחת, למי שהכיר את הדף הקודם) */
         .wn-modal { max-width: 420px; text-align: right; }
@@ -993,6 +1039,15 @@
                             <div id="imgPreviewText" style="font-size:0.8rem; color:var(--primary-color); display:none;">✓ תמונה קיימת שמורה במערכת</div>
                         </div>
 
+                        <!-- הכרטיס מחובר לפרופיל שחקן (השחקן נרשם בלחיצה אחת) -->
+                        <div class="acct-row" id="acctRow" hidden>
+                            <div>
+                                <div class="acct-title">🔗 מחובר לפרופיל שחקן</div>
+                                <div class="acct-sub">השחקן נרשם למשחקים בלחיצה אחת, מהחשבון שלו.</div>
+                            </div>
+                            <button type="button" class="acct-unlink" onclick="adminUnlinkCard()">ניתוק</button>
+                        </div>
+
                         <!-- Player Classification Toggles: רק לכללי העדיפות שפועלים בקבוצה (applyPriorityUI) -->
                         <div id="flagRows" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
                             <!-- Active toggle -->
@@ -1117,6 +1172,12 @@
                     </div>
                 </div>
 
+                <div class="card admin-only link-req-card" id="linkReqCard" hidden>
+                    <h2 class="card-title">🔗 בקשות לחבר כרטיס <span class="squad-count" id="linkReqCount"></span></h2>
+                    <p class="lr-sub">שחקנים שיצרו פרופיל ומבקשים לחבר אותו לכרטיס שלהם בסגל. אחרי האישור הם נרשמים למשחקים בלחיצה אחת.</p>
+                    <div id="linkReqList"></div>
+                </div>
+
                 <div class="card admin-only">
                     <h2 class="card-title">👥 כל הסגל <span class="squad-count" id="squadCount"></span></h2>
                     <input type="search" id="squadSearch" class="form-input squad-search" placeholder="🔍 חיפוש שחקן לפי שם" oninput="render()" aria-label="חיפוש שחקן בסגל" autocomplete="off" hidden>
@@ -1192,6 +1253,11 @@
             <!-- לשונית: עוד — כביסה, מחפשים שחקן, הקישור לקבוצה וקיצורי ניהול -->
             <div id="tab-more" class="tab-content">
                 <div class="more-list">
+                    <button type="button" class="more-item" id="meMoreItem" onclick="openMe()">
+                        <span class="more-ic" aria-hidden="true">👤</span>
+                        <span class="more-tx"><b>הכרטיס שלי</b><small>חיבור לפרופיל שחקן: הרשמה בלחיצה אחת</small></span>
+                        <span class="more-go" aria-hidden="true">‹</span>
+                    </button>
                     <button type="button" class="more-item" onclick="goSection('laundry')">
                         <span class="more-ic" aria-hidden="true">👕</span>
                         <span class="more-tx"><b>תורנות כביסה</b><small>מי לוקח את הגופיות הביתה הערב</small></span>
@@ -1292,7 +1358,7 @@
         <nav class="gnav" id="groupNav" aria-label="ניווט בדף הקבוצה">
             <div class="gnav-inner">
                 <button type="button" class="gnav-btn" data-sec="game" aria-current="page"><span class="gnav-ic" aria-hidden="true">⚽</span><span class="gnav-tx">משחק</span><span class="gnav-dot" id="gameNavDot" hidden></span></button>
-                <button type="button" class="gnav-btn admin-nav" data-sec="squad"><span class="gnav-ic" aria-hidden="true">👥</span><span class="gnav-tx">סגל</span></button>
+                <button type="button" class="gnav-btn admin-nav" data-sec="squad"><span class="gnav-ic" aria-hidden="true">👥</span><span class="gnav-tx">סגל</span><span class="gnav-dot" id="squadNavDot" hidden></span></button>
                 <button type="button" class="gnav-btn" data-sec="ratings"><span class="gnav-ic" aria-hidden="true">⭐</span><span class="gnav-tx">דירוגים</span></button>
                 <button type="button" class="gnav-btn" data-sec="history"><span class="gnav-ic" aria-hidden="true">📅</span><span class="gnav-tx">היסטוריה</span></button>
                 <button type="button" class="gnav-btn" data-sec="more"><span class="gnav-ic gnav-more" aria-hidden="true">☰</span><span class="gnav-tx">עוד</span></button>
@@ -1319,6 +1385,15 @@
             <div id="bulkPreview" class="bulk-preview" aria-live="polite"></div>
             <button type="button" class="btn" id="bulkAddBtn" onclick="bulkAddPlayers()" disabled>הוסף שחקנים</button>
             <div class="bulk-note">המדדים של כולם מתחילים ב-5. אפשר לערוך כל שחקן אחר כך, או לשלוח לשחקנים קישורים אישיים לדירוג (בתפריט הניהול).</div>
+        </div>
+    </div>
+
+    <!-- Modal: הכרטיס שלי — חיבור הכרטיס בקבוצה לפרופיל שחקן (profile-kit.js) -->
+    <div id="meOverlay" class="modal-overlay" onclick="closeMe()">
+        <div class="player-card-modal picker-modal me-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="meTitle">
+            <button class="close-btn" onclick="closeMe()" aria-label="סגור">✕</button>
+            <h2 class="modal-name" id="meTitle">👤 הכרטיס שלי</h2>
+            <div id="meBody"></div>
         </div>
     </div>
 
@@ -1495,6 +1570,7 @@ let players = [], activeTeams = null, activeGkIds = [], activeHasFixedGk = [], a
 let historyCache = [];
 let gamesHistoryCache = [];
 let editingId = null, currentEditingImg = null, scrollToTeamsFlag = false;
+let linkRequests = [], linkReqUnsub = null;   // בקשות של שחקנים לחבר את הפרופיל לכרטיס (למנהלים)
 
 // ========== Utilities ==========
 function updateGroupLinkUI() {
@@ -1564,7 +1640,10 @@ window.onload = async () => {
         document.getElementById('lobbyContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('adminBtnHeader').style.display = 'block';
-        goSection(sectionFromHash() || 'game', { initial: true });
+        if (window.ProfileKit) ProfileKit.injectCSS();
+        // #me: הקישור מדף ההרשמה לחיבור הכרטיס לפרופיל שחקן ("עוד" ← "הכרטיס שלי")
+        var wantMe = location.hash === '#me';
+        goSection(wantMe ? 'more' : (sectionFromHash() || 'game'), { initial: true });
         // הקבוצה כבר הייתה ב"קבוצות האחרונות" במכשיר הזה: מכירים את הדף הקודם (בשביל "מה חדש")
         knownGroupBefore = GroupPrefs.getRecentGroups().some(g => g.id === currentGroupId);
 
@@ -1610,8 +1689,12 @@ window.onload = async () => {
                 showInviteBanner(inviteCode);
             }
         } catch (e) { console.warn('auth init', e); }
-        if (urlParams.get('welcome')) showWelcomeBanner();
-        else maybeShowWhatsNew();
+        if (wantMe) openMe();
+        else if (urlParams.get('welcome')) showWelcomeBanner();
+        else {
+            maybeShowWhatsNew();
+            if (!document.getElementById('whatsNewOverlay')) setTimeout(maybeTourMe, 1500);
+        }
     }
 };
 
@@ -1687,6 +1770,7 @@ function setAdminMode(on) {
         if (wantedSection && SECTIONS[wantedSection].admin) goSection(wantedSection, { keepScroll: true });
         else updateBottomBar();
         if (currentSection === 'market') fillMarketForm();   // נכנסו ישר ל-#market לפני שזוהה המנהל
+        startLinkRequestsListener();
         ensureAdminUids();
         migrateCareerStats();
         maybeSyncAutoRegs();
@@ -1702,6 +1786,7 @@ function setAdminMode(on) {
         }
         if (SECTIONS[currentSection].admin) goSection('game');
         else updateBottomBar();
+        stopLinkRequestsListener();
     }
     render();
 }
@@ -1928,6 +2013,8 @@ function startRealtimeListeners() {
         // חלון "כמה בבת אחת" פתוח: מי שנוסף עכשיו עובר ל"כבר בסגל"
         if (document.getElementById('bulkModalOverlay').style.display === 'flex') renderBulkPreview();
         if (document.getElementById('lineupPickerOverlay').style.display === 'flex') renderLineupPicker();
+        if (document.getElementById('meOverlay').style.display === 'flex') refreshMeOnPlayers();
+        if (linkRequests.length) renderLinkRequests();
         if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
     });
@@ -2538,6 +2625,7 @@ function startEdit(id, p) {
     document.getElementById('pName').value = p.name;
     document.getElementById('imgPreviewText').style.display = currentEditingImg ? 'block' : 'none';
     document.getElementById('pImage').value = '';
+    document.getElementById('acctRow').hidden = !p.uid;
 
     const isActive = !!p.isActive;
     const isNew = !!p.isNew;
@@ -2593,6 +2681,7 @@ function cancelEdit() {
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
     document.getElementById('saveBtn').innerText = "שמור שחקן";
     document.getElementById('cancelBtn').style.display = "none";
+    document.getElementById('acctRow').hidden = true;
     resetLockedParamsUI();
     resetBirthdayField();
 }
@@ -3079,6 +3168,7 @@ function render() {
                 <div class="squad-info">
                     <div class="squad-name">
                         ${p.name}
+                        ${p.uid ? '<span class="link-badge" title="מחובר לפרופיל שחקן" aria-label="מחובר לפרופיל שחקן">🔗</span>' : ''}
                         ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''}
                         ${playerBadges}
                         ${lockTag}
@@ -3693,8 +3783,18 @@ function updateBottomBar() {
     document.body.classList.toggle('has-bar', show);
 }
 
-// נקודה ירוקה על "משחק" כשההרשמה פתוחה ונמצאים בלשונית אחרת
+// נקודה ירוקה על "משחק" כשההרשמה פתוחה ונמצאים בלשונית אחרת, ועל "סגל" כשיש בקשות לחבר כרטיס
+function updateSquadDot() {
+    const dot = document.getElementById('squadNavDot');
+    if (!dot) return;
+    const show = isAdminNow() && linkRequests.length > 0 && currentSection !== 'squad';
+    dot.hidden = !show;
+    const btn = dot.closest('.gnav-btn');
+    if (show) btn.setAttribute('aria-label', `סגל: ${linkRequests.length === 1 ? 'בקשה חדשה לחבר כרטיס' : linkRequests.length + ' בקשות לחבר כרטיס'}`);
+    else btn.removeAttribute('aria-label');
+}
 function updateNavDot() {
+    updateSquadDot();
     const dot = document.getElementById('gameNavDot');
     const banner = document.getElementById('regBanner');
     if (!dot || !banner) return;
@@ -4515,6 +4615,312 @@ function liveGroupPost() {
     const id = currentGroupData && currentGroupData.marketPostId;
     const p = id && marketDocs ? marketDocs.find(d => d.id === id) : null;
     return p && p.data.expiresAt > Date.now() ? p : null;
+}
+
+// ========== הכרטיס שלי: חיבור הכרטיס בקבוצה לפרופיל שחקן (profile-kit.js) ==========
+// שחקן עם פרופיל בוחר את הכרטיס שלו ושולח בקשה; מנהל מאשר בלשונית הסגל. מנהל מחבר את הכרטיס שלו בלי בקשה.
+// אחרי החיבור players/{pid}.uid הוא החשבון של השחקן, ובדף ההרשמה נרשמים בלחיצה אחת
+let meState = null;     // { user, profile, link }
+let mePickId = null;
+let meShownKey = '';
+
+const SAFE_ID = /^[A-Za-z0-9_-]{1,128}$/;
+function myCard(uid) { return uid ? players.find(p => p.uid === uid) || null : null; }
+function cardAvatarHTML(p) {
+    const url = p && typeof p.imgUrl === 'string' && /^(data:image\/|https:\/\/)/.test(p.imgUrl) ? p.imgUrl : '';
+    return url ? `<span class="pi-av"><img src="${escAdminText(url)}" alt=""></span>` : '<span class="pi-av" aria-hidden="true">👤</span>';
+}
+function fmtYmd(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    return m ? `${+m[3]}.${+m[2]}.${m[1]}` : '';
+}
+
+async function openMe() {
+    document.getElementById('meOverlay').style.display = 'flex';
+    paintMe('<p class="me-text">טוען… ⏳</p>');
+    await refreshMe();
+}
+function closeMe() { document.getElementById('meOverlay').style.display = 'none'; }
+function paintMe(html) { document.getElementById('meBody').innerHTML = html; }
+
+async function refreshMe() {
+    await AdminAuth.getUser();
+    const u = firebase.auth().currentUser;
+    if (!AdminAuth.isRealUser(u)) { meState = { user: null }; return renderMe(); }
+    let profile = null, link = null;
+    try { profile = await ProfileKit.load(db, u.uid); } catch (e) { console.warn('player profile', e); }
+    if (profile && !myCard(u.uid)) {
+        try { link = await ProfileKit.getLink(db, currentGroupId, u.uid); } catch (e) { console.warn('link request', e); }
+    }
+    meState = { user: u, profile, link };
+    renderMe();
+}
+
+// מצב החלון: לא מחובר / אין פרופיל / בחירת כרטיס / ממתין לאישור / מחובר
+function meKey() {
+    const s = meState || {};
+    if (!s.user) return 'signin';
+    const c = myCard(s.user.uid);
+    if (c) return 'linked:' + c.id;
+    if (!s.profile) return 'noprofile';
+    return s.link ? 'pending:' + s.link.pid : 'pick';
+}
+function renderMe() {
+    const s = meState || {};
+    const esc = escAdminText;
+    meShownKey = meKey();
+    if (!s.user) {
+        return paintMe(`<p class="me-text">חבר את הכרטיס שלך בקבוצה לפרופיל שחקן, ותירשם למשחקים בלחיצה אחת. אם תרצה, התמונה מהפרופיל תופיע בהרכב ובחלוקה.</p>
+            <button type="button" class="btn" onclick="meSignIn()">כניסה עם Google</button>
+            <p class="me-small">לא חובה: אפשר להמשיך להירשם כרגיל, בלי חשבון.</p>`);
+    }
+    const card = myCard(s.user.uid);
+    if (card) {
+        return paintMe(`<div class="me-status linked">✅ הכרטיס של <b>${esc(card.name)}</b> מחובר לפרופיל שלך.</div>
+            <p class="me-text">בדף ההרשמה של הקבוצה תופיע לך הרשמה בלחיצה אחת, בכל מכשיר שבו נכנסת עם החשבון הזה.</p>
+            <button type="button" class="me-outline danger" onclick="meUnlink()">ניתוק הכרטיס מהפרופיל</button>`);
+    }
+    if (!s.profile) {
+        return paintMe(`<p class="me-text">קודם יוצרים פרופיל שחקן: שם, תמונה ותאריך לידה. זה לוקח חצי דקה, ואפשר למחוק אותו בכל רגע.</p>
+            <button type="button" class="btn" onclick="meCreateProfile()">יצירת פרופיל שחקן</button>`);
+    }
+    const a = ProfileKit.age(s.profile.birthDate);
+    const prof = `<div class="me-prof">${ProfileKit.avatarHTML(s.profile)}<div><b>${esc(s.profile.name)}</b><small>${a !== null ? 'גיל ' + a + ' · ' : ''}הפרופיל שלך</small></div></div>`;
+    if (s.link) {
+        const lc = players.find(p => p.id === s.link.pid);
+        return paintMe(`${prof}<div class="me-status pending">⏳ ביקשת לחבר את הכרטיס של <b>${esc(lc ? lc.name : 'שחקן')}</b>. מחכים לאישור של מנהל הקבוצה.</div>
+            <button type="button" class="me-outline" onclick="meCancel()">ביטול הבקשה</button>`);
+    }
+    const admin = isAdminNow();
+    paintMe(`${prof}<p class="me-text" style="margin-bottom:8px">מי אתה בקבוצה? בחר את הכרטיס שלך:</p>
+        <input type="search" id="meSearch" class="form-input" placeholder="🔍 חיפוש לפי שם" oninput="renderMePick()" autocomplete="off" aria-label="חיפוש הכרטיס שלך">
+        <div class="picker-list" id="meList"></div>
+        ${ProfileKit.photoOk(s.profile.photo) ? '<label class="me-check"><input type="checkbox" id="mePhoto" checked> להציג בכרטיס את התמונה מהפרופיל</label>' : ''}
+        <button type="button" class="btn" id="meSendBtn" onclick="meSend()" disabled>${admin ? 'חיבור הכרטיס' : 'שליחת בקשה למנהל'}</button>
+        <p class="me-small">${admin ? 'אתה מנהל בקבוצה, ולכן החיבור מיידי.' : 'מנהל הקבוצה יאשר שזה באמת אתה. עד אז נרשמים כרגיל.'}</p>`);
+    mePickId = null;
+    renderMePick();
+}
+function renderMePick() {
+    const list = document.getElementById('meList');
+    if (!list) return;
+    const q = squadSearchKey((document.getElementById('meSearch') || {}).value || '');
+    const uid = meState && meState.user && meState.user.uid;
+    const shown = (q ? players.filter(p => squadSearchKey(p.name).includes(q)) : players.slice())
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'he'));
+    list.innerHTML = shown.length ? shown.map(p => {
+        if (!SAFE_ID.test(p.id)) return '';
+        const taken = !!(p.uid && p.uid !== uid);
+        const on = p.id === mePickId;
+        return `<button type="button" class="picker-item${on ? ' on' : ''}" aria-pressed="${on}"${taken ? ' disabled' : ''} onclick="mePick('${p.id}')">
+            ${cardAvatarHTML(p)}<span class="pi-name">${escAdminText(p.name)}</span>${taken ? '<span class="pi-note">מחובר לחשבון אחר</span>' : `<span class="pi-mark" aria-hidden="true">${on ? '✓' : ''}</span>`}</button>`;
+    }).join('') : `<div class="squad-none">${players.length ? 'אין בסגל שחקן בשם הזה' : 'עוד אין שחקנים בסגל'}</div>`;
+    const btn = document.getElementById('meSendBtn');
+    if (btn) btn.disabled = !mePickId;
+}
+function mePick(id) { mePickId = id; renderMePick(); }
+// הסגל השתנה בזמן שהחלון פתוח (למשל מנהל אישר): מציירים מחדש רק אם המצב השתנה
+function refreshMeOnPlayers() {
+    if (!meState) return;
+    if (meKey() !== meShownKey) renderMe(); else renderMePick();
+}
+
+async function meSignIn() {
+    try { await AdminAuth.signInWithGoogle(); }
+    catch (e) { if (!AdminAuth.isCancel(e)) alert('ההתחברות נכשלה: ' + AdminAuth.errorMessage(e)); return; }
+    const u = firebase.auth().currentUser;
+    if (!isAdminNow() && AdminAuth.isAdminOf(currentGroupData, u, false)) setAdminMode(true);   // נכנס מנהל של הקבוצה
+    paintMe('<p class="me-text">טוען… ⏳</p>');
+    await refreshMe();
+}
+async function meCreateProfile() {
+    const u = firebase.auth().currentUser;
+    if (!AdminAuth.isRealUser(u)) return meSignIn();
+    let existing = null;
+    try { existing = await ProfileKit.load(db, u.uid); } catch (e) { existing = null; }
+    const saved = existing || await ProfileKit.openEditor({ db, user: u, profile: null });
+    if (!saved) return;
+    meState = Object.assign({}, meState, { user: u, profile: saved });
+    renderMe();
+}
+async function meSend() {
+    const s = meState;
+    if (!s || !s.user || !s.profile || !mePickId) return;
+    const card = players.find(p => p.id === mePickId);
+    if (!card) return;
+    const withPhoto = !!(document.getElementById('mePhoto') || {}).checked;
+    const admin = isAdminNow();
+    const btn = document.getElementById('meSendBtn');
+    btn.disabled = true;
+    btn.textContent = admin ? 'מחבר… ⏳' : 'שולח… ⏳';
+    try {
+        if (admin) {
+            // מנהל מחבר את הכרטיס שלו בלי בקשה. כרטיס אחר שהיה מחובר לחשבון הזה מתנתק
+            const batch = db.batch();
+            const upd = { uid: s.user.uid };
+            if (withPhoto && ProfileKit.photoOk(s.profile.photo)) upd.imgUrl = s.profile.photo;
+            if (!card.birthDate && ProfileKit.validBirthDate(s.profile.birthDate)) upd.birthDate = s.profile.birthDate;
+            batch.update(playersRef.doc(card.id), upd);
+            players.filter(p => p.uid === s.user.uid && p.id !== card.id)
+                .forEach(p => batch.update(playersRef.doc(p.id), { uid: firebase.firestore.FieldValue.delete() }));
+            await batch.commit();
+            await ProfileKit.setGroup(db, s.user.uid, currentGroupId, card.id, currentGroupName()).catch(e => console.warn('profile groups', e));
+            card.uid = s.user.uid;   // עד שהסגל מתעדכן מהשרת
+            showToast(`✅ הכרטיס של ${card.name} מחובר לפרופיל שלך`, 'success');
+        } else {
+            await ProfileKit.requestLink(db, s.user.uid, currentGroupId, currentGroupName(), card.id, s.profile, withPhoto);
+            s.link = { pid: card.id };
+            showToast('📨 הבקשה נשלחה למנהלי הקבוצה', 'success');
+        }
+        renderMe();
+    } catch (e) {
+        console.error('link card', e);
+        btn.disabled = false;
+        btn.textContent = admin ? 'חיבור הכרטיס' : 'שליחת בקשה למנהל';
+        alert(e && e.code === 'permission-denied'
+            ? 'החיבור לא נשמר: חוקי האבטחה ב-Firebase עוד לא עודכנו.'
+            : 'החיבור לא נשמר: ' + AdminAuth.errorMessage(e));
+    }
+}
+async function meCancel() {
+    const s = meState;
+    if (!s || !s.user) return;
+    try {
+        await ProfileKit.cancelLink(db, s.user.uid, currentGroupId);
+        s.link = null;
+        renderMe();
+        showToast('הבקשה בוטלה', 'info');
+    } catch (e) {
+        console.error('cancel link', e);
+        alert('לא הצלחנו לבטל את הבקשה: ' + AdminAuth.errorMessage(e));
+    }
+}
+async function meUnlink() {
+    const s = meState;
+    const card = s && s.user && myCard(s.user.uid);
+    if (!card) return;
+    if (!confirm(`לנתק את הכרטיס של ${card.name} מהפרופיל שלך?\nאפשר לחבר אותו שוב בכל רגע.`)) return;
+    try {
+        await ProfileKit.unlinkSelf(db, s.user.uid, currentGroupId, card.id);
+        delete card.uid;
+        renderMe();
+        showToast('הכרטיס נותק מהפרופיל', 'info');
+    } catch (e) {
+        console.error('unlink card', e);
+        alert('לא הצלחנו לנתק: ' + AdminAuth.errorMessage(e));
+    }
+}
+
+// טיפ חד-פעמי: לשחקנים — "הכרטיס שלי" ב"עוד"; למנהלים — שהבקשות מגיעות ללשונית הסגל
+function maybeTourMe() {
+    if (!window.Tour || currentSection !== 'game') return;
+    if ([...document.querySelectorAll('.modal-overlay')].some(o => o.style.display === 'flex')) return;
+    if (isAdminNow()) {
+        Tour.run('group-admin-links', [{ el: '#groupNav [data-sec="squad"]', title: '🔗 חדש: פרופיל שחקן',
+            text: 'שחקנים יכולים לחבר את הכרטיס שלהם לפרופיל שחקן, ולהירשם למשחקים בלחיצה אחת. הבקשות מגיעות ללשונית הסגל, ושם מאשרים.' }]);
+        return;
+    }
+    const u = firebase.auth().currentUser;
+    if (AdminAuth.isRealUser(u) && myCard(u.uid)) return;
+    Tour.run('group-me', [{ el: '#groupNav [data-sec="more"]', title: '👤 חדש: הכרטיס שלי',
+        text: 'ב"עוד" אפשר לחבר את הכרטיס שלך בקבוצה לפרופיל שחקן, ולהירשם למשחקים בלחיצה אחת. לא חובה.' }]);
+}
+
+// ========== בקשות לחבר כרטיס (למנהלים, בלשונית הסגל) ==========
+function startLinkRequestsListener() {
+    if (linkReqUnsub || !groupRef) return;
+    linkReqUnsub = groupRef.collection('links').onSnapshot(snap => {
+        const ms = v => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
+        linkRequests = snap.docs.map(d => Object.assign({}, d.data(), { uid: d.id }))
+            .filter(r => SAFE_ID.test(r.uid))
+            .sort((a, b) => ms(a.createdAt) - ms(b.createdAt));
+        renderLinkRequests();
+    }, e => {
+        console.warn('link requests', e);   // לפני שחוקי האבטחה החדשים מתפרסמים
+        linkRequests = [];
+        renderLinkRequests();
+    });
+}
+function stopLinkRequestsListener() {
+    if (linkReqUnsub) { linkReqUnsub(); linkReqUnsub = null; }
+    linkRequests = [];
+    renderLinkRequests();
+}
+function renderLinkRequests() {
+    updateSquadDot();
+    const box = document.getElementById('linkReqCard'), list = document.getElementById('linkReqList');
+    if (!box || !list) return;
+    const n = linkRequests.length;
+    box.hidden = !n;
+    document.getElementById('linkReqCount').textContent = n > 1 ? `${n} בקשות` : '';
+    if (!n) { list.innerHTML = ''; return; }
+    const esc = escAdminText;
+    list.innerHTML = linkRequests.map(r => {
+        const c = players.find(p => p.id === r.pid);
+        const a = ProfileKit.age(r.birthDate);
+        const photo = ProfileKit.photoOk(r.photo) ? r.photo : '';
+        const other = c && c.uid && c.uid !== r.uid;
+        const bd = c && ProfileKit.validBirthDate(r.birthDate) && c.birthDate !== r.birthDate;
+        return `<div class="lr-item" data-uid="${r.uid}">
+            <div class="lr-top">${ProfileKit.avatarHTML({ photo, name: r.name })}<div><b>${esc(r.name)}</b><small>${a !== null ? `גיל ${a} · ` : ''}${c ? `מבקש להתחבר לכרטיס של <b>${esc(c.name)}</b>` : 'הכרטיס שביקש כבר לא בסגל'}</small></div></div>
+            ${other ? '<div class="lr-warn">⚠️ הכרטיס הזה כבר מחובר לחשבון אחר. אישור יחליף אותו.</div>' : ''}
+            ${c && photo ? '<label class="lr-opt"><input type="checkbox" data-opt="photo" checked> להחליף את התמונה בכרטיס בתמונה מהפרופיל</label>' : ''}
+            ${bd ? `<label class="lr-opt"><input type="checkbox" data-opt="birth"${c.birthDate ? '' : ' checked'}> ${c.birthDate ? 'לעדכן את' : 'להוסיף'} תאריך הלידה בכרטיס: ${fmtYmd(r.birthDate)}</label>` : ''}
+            <div class="lr-acts">${c ? `<button type="button" class="lr-ok" onclick="approveLink('${r.uid}')">✓ זה הוא, לאשר</button>` : ''}<button type="button" class="lr-no" onclick="rejectLink('${r.uid}')">${c ? 'דחייה' : 'מחיקת הבקשה'}</button></div>
+        </div>`;
+    }).join('');
+}
+async function approveLink(uid) {
+    const r = linkRequests.find(x => x.uid === uid);
+    if (!r) return;
+    const card = players.find(p => p.id === r.pid);
+    if (!card) return;
+    const row = document.querySelector(`.lr-item[data-uid="${uid}"]`);
+    const opt = k => !!(row && row.querySelector(`[data-opt="${k}"]`) && row.querySelector(`[data-opt="${k}"]`).checked);
+    if (row) row.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    try {
+        const batch = db.batch();
+        const upd = { uid };
+        if (opt('photo') && ProfileKit.photoOk(r.photo)) upd.imgUrl = r.photo;
+        if (opt('birth') && ProfileKit.validBirthDate(r.birthDate)) upd.birthDate = r.birthDate;
+        batch.update(playersRef.doc(card.id), upd);
+        // לחשבון יש כרטיס אחד בקבוצה: כרטיס אחר שהיה מחובר אליו מתנתק
+        players.filter(p => p.uid === uid && p.id !== card.id)
+            .forEach(p => batch.update(playersRef.doc(p.id), { uid: firebase.firestore.FieldValue.delete() }));
+        batch.delete(groupRef.collection('links').doc(uid));
+        await batch.commit();
+        showToast(`✅ הכרטיס של ${card.name} חובר לפרופיל של השחקן`, 'success');
+    } catch (e) {
+        console.error('approve link', e);
+        if (row) row.querySelectorAll('button').forEach(b => { b.disabled = false; });
+        alert('האישור לא נשמר: ' + AdminAuth.errorMessage(e));
+    }
+}
+async function rejectLink(uid) {
+    const r = linkRequests.find(x => x.uid === uid);
+    if (!r) return;
+    if (players.some(p => p.id === r.pid) && !confirm(`לדחות את הבקשה של ${r.name}?`)) return;
+    try {
+        await groupRef.collection('links').doc(uid).delete();
+        showToast('הבקשה נמחקה', 'info');
+    } catch (e) {
+        console.error('reject link', e);
+        alert('לא הצלחנו למחוק את הבקשה: ' + AdminAuth.errorMessage(e));
+    }
+}
+// ניתוק מכרטיס השחקן בטופס העריכה
+async function adminUnlinkCard() {
+    const p = players.find(x => x.id === editingId);
+    if (!p || !p.uid) return;
+    if (!confirm(`לנתק את הכרטיס של ${p.name} מהפרופיל של השחקן?\nהוא יוכל לבקש להתחבר שוב.`)) return;
+    try {
+        await playersRef.doc(p.id).update({ uid: firebase.firestore.FieldValue.delete() });
+        document.getElementById('acctRow').hidden = true;
+        showToast('הכרטיס נותק מהפרופיל', 'info');
+    } catch (e) {
+        console.error('unlink card', e);
+        alert('לא הצלחנו לנתק: ' + AdminAuth.errorMessage(e));
+    }
 }
 
 // ========== REGISTRATION SYSTEM ==========
