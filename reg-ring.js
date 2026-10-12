@@ -47,13 +47,26 @@
         if (el.__counting === 'pending') { el.__counting = false; el.querySelector('.rr-num').textContent = el.dataset.n || '0'; }
     }
 
+    // רשת ביטחון: אם הטבעת כבר על המסך שנייה וחצי והמילוי עוד לא התחיל, מציגים את המספר הסופי בלי האנימציה
+    function watchPending(el) {
+        let seen = 0;
+        const tick = () => {
+            if (el.__counting !== 'pending') return;
+            const shown = document.visibilityState === 'visible' && el.getClientRects().length > 0;
+            seen = shown ? seen + 1 : 0;
+            if (seen >= 3) { endIntro(el); return; }
+            setTimeout(tick, 500);
+        };
+        setTimeout(tick, 500);
+    }
+
     function mount(el) {
         injectCSS();
         const gid = 'rrGrad' + (++seq);
         const calm = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
         el.classList.add('rr');
         // עד שהמילוי מתחיל (הטבעת עוד מוסתרת, או בהשהיה הקצרה) המספר נשאר 0, כדי שלא יקפוץ לסוף ואז יחזור לאפס
-        if (!calm) { el.classList.add('rr-intro'); el.__counting = 'pending'; }
+        if (!calm) { el.classList.add('rr-intro'); el.__counting = 'pending'; watchPending(el); }
         el.setAttribute('role', 'img');
         // הקשת מתחילה למעלה ומתמלאת עם כיוון השעון: ירוק, תכלת, ובסוף סגול
         el.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
