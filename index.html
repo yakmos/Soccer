@@ -33,6 +33,7 @@
     <script src="map-kit.js?v=20261007"></script>
     <script src="profile-kit.js?v=20261007"></script>
     <script src="tour.js?v=20261007"></script>
+    <script src="reg-ring.js?v=20261008"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -80,6 +81,24 @@
         }
 
         h1 { font-weight: 800; font-size: 1.2rem; margin: 0; }
+        header { gap: 10px; }
+        /* שם ארוך של קבוצה: עד שתי שורות, ואז שלוש נקודות */
+        #headerTitle { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; line-height: 1.3; }
+        .header-acts { flex: none; display: flex; align-items: center; gap: 10px; }
+        #adminBtnHeader { white-space: nowrap; }
+        @media (max-width: 360px) {
+            .header-acts { gap: 6px; }
+            h1 { font-size: 1.08rem; }
+            /* בטלפון צר מנהל כבר רואה "✅ ניהול", ואת "הכרטיס שלי" יש ב"עוד" — העיגול מפנה מקום לשם הקבוצה */
+            body.is-admin .acct-btn { display: none; }
+        }
+        /* מי מחובר: עיגול עם התמונה או האות הראשונה. לחיצה פותחת את "הכרטיס שלי" */
+        .acct-btn, .acct-av { flex: none; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: inline-grid; place-items: center;
+            background: var(--surface-color); border: 2px solid var(--primary-color); color: var(--text-main); font: 900 0.95rem 'Heebo', sans-serif; }
+        .acct-btn { padding: 0; cursor: pointer; }
+        .acct-btn[hidden] { display: none; }
+        .acct-btn img, .acct-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .acct-btn:focus-visible { outline: 2px solid #6EE7B7; outline-offset: 2px; }
         .admin-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 5px; transition: 0.2s;}
         .admin-btn:active { transform: scale(0.9); }
         a.admin-btn { text-decoration: none; display: inline-flex; align-items: center; }
@@ -295,9 +314,14 @@
         .me-modal .modal-name { margin-bottom: 10px; }
         .me-text { color: var(--text-main); font-size: 0.95rem; line-height: 1.6; margin: 0 0 12px; }
         .me-small { color: var(--text-muted); font-size: 0.82rem; line-height: 1.5; margin: 10px 0 0; }
-        .me-prof { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 14px; }
-        .me-prof b { display: block; }
-        .me-prof small { color: var(--text-muted); font-size: 0.82rem; }
+        /* החשבון המחובר בראש החלון: תמונה, שם, עם איזה חשבון Google, והתנתקות */
+        .me-acct { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border-color); margin-bottom: 14px; }
+        .me-acct .acct-av { width: 42px; height: 42px; font-size: 1.05rem; }
+        .me-acct-tx { flex: 1; min-width: 0; line-height: 1.4; }
+        .me-acct-tx b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .me-acct-tx small { display: block; color: var(--text-muted); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .me-acct-tx small[dir="ltr"] { text-align: right; }
+        .me-acct-out { flex: none; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 9px; padding: 6px 10px; font: 800 0.82rem 'Heebo', sans-serif; cursor: pointer; }
         .me-status { padding: 12px 14px; border-radius: 12px; line-height: 1.55; font-weight: 700; margin-bottom: 12px; }
         .me-status.linked { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); color: #6EE7B7; }
         .me-status.pending { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.35); color: #FDE68A; }
@@ -641,10 +665,16 @@
         }
         @keyframes regBannerIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
         .reg-banner.visible { display: block; }
-        .reg-banner-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+        /* הפרטים מימין, ומשמאל טבעת שמתמלאת לפי מספר הנרשמים (reg-ring.js) */
+        .reg-banner-main { display: flex; align-items: center; gap: 14px; }
+        .reg-banner-info { flex: 1; min-width: 0; }
         .reg-banner-title { font-weight: 900; font-size: 1rem; color: var(--primary-color); display: flex; align-items: center; gap: 7px; }
-        .reg-banner-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; }
-        .reg-banner-counts { display: flex; gap: 8px; flex-wrap: wrap; }
+        .reg-banner-date { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; margin-top: 4px; }
+        .reg-banner-counts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .reg-spots { font-size: 0.9rem; font-weight: 800; color: #A7F3D0; }
+        .reg-spots.full { color: #FBBF24; }
+        .reg-banner-ring { --rr-size: 92px; }
+        .reg-banner.soon .reg-banner-ring { display: none; }
         .reg-count-chip { background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.3); padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 900; }
         .reg-count-chip.waiting { background: rgba(249,115,22,0.12); color: #F97316; border-color: rgba(249,115,22,0.3); }
         .reg-open-btn { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 900; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none; margin-top: 10px; }
@@ -800,10 +830,12 @@
 
     <header>
         <h1 id="headerTitle"><span id="headerIcon" aria-hidden="true">⚽</span> <span id="headerName">SOCCER MANAGER</span></h1>
-        <div style="display:flex; gap:10px;">
+        <div class="header-acts">
             <a href="home.html" class="admin-btn" title="הקבוצות שלי" aria-label="הקבוצות שלי">🏠</a>
             <button id="settingsBtnHeader" class="admin-btn admin-only" onclick="openSettingsModal()" title="הגדרות קבוצה">⚙️</button>
             <button id="adminBtnHeader" class="admin-btn" style="display:none;" onclick="onAdminBtn(event)">ניהול 🔒</button>
+            <!-- מי מחובר במכשיר הזה (updateAcctChip). לחיצה פותחת את "הכרטיס שלי", ושם גם מתנתקים -->
+            <button type="button" id="acctBtnHeader" class="acct-btn" hidden onclick="openMe()"></button>
         </div>
     </header>
 
@@ -844,13 +876,17 @@
                     </div>
 
                     <div class="reg-banner" id="regBanner">
-                        <div class="reg-banner-top">
-                            <div class="reg-banner-title">🟢 הרשמה פתוחה למשחק!</div>
-                            <div class="reg-banner-date" id="regBannerDate"></div>
-                        </div>
-                        <div class="reg-banner-counts">
-                            <div class="reg-count-chip" id="regBannerConfirmed">0 / 0 נרשמו</div>
-                            <div class="reg-count-chip waiting" id="regBannerWaiting" style="display:none;">0 ממתינים</div>
+                        <div class="reg-banner-main">
+                            <div class="reg-banner-info">
+                                <div class="reg-banner-title">🟢 הרשמה פתוחה למשחק!</div>
+                                <div class="reg-banner-date" id="regBannerDate"></div>
+                                <div class="reg-banner-counts">
+                                    <span class="reg-spots" id="regBannerSpots"></span>
+                                    <span class="reg-count-chip waiting" id="regBannerWaiting" style="display:none;">0 ממתינים</span>
+                                </div>
+                            </div>
+                            <!-- כמה נרשמו מתוך כמה: טבעת שמתמלאת (reg-ring.js) -->
+                            <div class="reg-banner-ring" id="regBannerRing"></div>
                         </div>
                         <a class="reg-open-btn" id="regBannerLink" href="#" target="_blank">
                             להרשמה →
@@ -1681,6 +1717,9 @@ window.onload = async () => {
         // מצב מנהל נקבע לפי חשבון Google המחובר — לא לפי סיסמה
         try {
             const user = await AdminAuth.getUser();
+            // העיגול בכותרת עוקב אחרי כניסה ויציאה, גם כשהן קורות מחלון אחר של האתר
+            updateAcctChip();
+            firebase.auth().onAuthStateChanged(() => updateAcctChip());
             const inviteCode = urlParams.get('adminInvite');
             if (AdminAuth.isAdminOf(currentGroupData, user, false)) {
                 setAdminMode(true);
@@ -2014,6 +2053,7 @@ function startRealtimeListeners() {
         if (document.getElementById('bulkModalOverlay').style.display === 'flex') renderBulkPreview();
         if (document.getElementById('lineupPickerOverlay').style.display === 'flex') renderLineupPicker();
         if (document.getElementById('meOverlay').style.display === 'flex') refreshMeOnPlayers();
+        updateAcctChip();   // הכרטיס המחובר אולי קיבל תמונה
         if (linkRequests.length) renderLinkRequests();
         if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
@@ -3637,11 +3677,12 @@ async function saveGroupSettings() {
 async function promptAdmin() {
     if (document.body.classList.contains('is-admin')) return logoutAdmin();
     const res = await AdminAuth.loginAsAdmin(db, currentGroupId, currentGroupData);
-    if (!res.ok) return;
+    if (!res.ok) { updateAcctChip(); return; }   // נכנס עם חשבון שאינו מנהל: עדיין רואים שהוא מחובר
     if (res.claimed) {
         try { const fresh = await groupRef.get(); if (fresh.exists) currentGroupData = fresh.data(); } catch (e) {}
     }
     setAdminMode(true);
+    updateAcctChip();
     showToast('נכנסת כמנהל ✅', 'success');
 }
 
@@ -3650,6 +3691,7 @@ async function logoutAdmin() {
     if (!confirm(`לצאת ממצב ניהול${u && u.email ? ' (' + u.email + ')' : ''}?`)) return;
     await AdminAuth.signOut();
     setAdminMode(false);
+    updateAcctChip();
     showToast('יצאת ממצב ניהול', 'info');
 }
 
@@ -4646,14 +4688,59 @@ function paintMe(html) { document.getElementById('meBody').innerHTML = html; }
 async function refreshMe() {
     await AdminAuth.getUser();
     const u = firebase.auth().currentUser;
-    if (!AdminAuth.isRealUser(u)) { meState = { user: null }; return renderMe(); }
+    if (!AdminAuth.isRealUser(u)) { meState = { user: null }; updateAcctChip(); return renderMe(); }
     let profile = null, link = null;
     try { profile = await ProfileKit.load(db, u.uid); } catch (e) { console.warn('player profile', e); }
     if (profile && !myCard(u.uid)) {
         try { link = await ProfileKit.getLink(db, currentGroupId, u.uid); } catch (e) { console.warn('link request', e); }
     }
     meState = { user: u, profile, link };
+    acctProfile = { uid: u.uid, data: profile };
+    updateAcctChip();
     renderMe();
+}
+
+// ========== מי מחובר: עיגול בכותרת (פותח את "הכרטיס שלי"), ובחלון עצמו גם "התנתקות" ==========
+let acctProfile = null;   // { uid, data }: פרופיל השחקן של החשבון המחובר, אחרי שנטען בחלון "הכרטיס שלי"
+function acctName(u) { return String((u && (u.displayName || u.email)) || '').trim(); }
+function acctAvatarHTML(u) {
+    const prof = acctProfile && acctProfile.uid === u.uid ? acctProfile.data : null;
+    const card = myCard(u.uid);
+    const cardPhoto = card && typeof card.imgUrl === 'string' && /^(data:image\/|https:\/\/)/.test(card.imgUrl) ? card.imgUrl : '';
+    const photo = cardPhoto || (prof && ProfileKit.photoOk(prof.photo) ? prof.photo : '');
+    if (photo) return `<img src="${escAdminText(photo)}" alt="">`;
+    const ch = Array.from(String((prof && prof.name) || (card && card.name) || acctName(u)).trim())[0];
+    return ch ? escAdminText(ch) : '👤';
+}
+function updateAcctChip() {
+    const btn = document.getElementById('acctBtnHeader');
+    if (!btn) return;
+    const u = firebase.auth().currentUser;
+    if (!AdminAuth.isRealUser(u)) { btn.hidden = true; btn.innerHTML = ''; return; }
+    btn.innerHTML = acctAvatarHTML(u);
+    const label = `מחובר בתור ${acctName(u) || 'משתמש'} · הכרטיס שלי`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.hidden = false;
+}
+// השורה העליונה בחלון: מי מחובר ועם איזה חשבון Google, ואיך מתנתקים
+function acctRowHTML(u, profile) {
+    const name = (profile && profile.name) || acctName(u) || 'משתמש';
+    // הכתובת בשורה משלה ומשמאל לימין, כך שכתובת ארוכה נחתכת בסופה ולא בתחילתה
+    const via = u.email ? `<small dir="ltr">${escAdminText(u.email)}</small>` : '<small>מחובר עם Google</small>';
+    return `<div class="me-acct"><span class="acct-av" aria-hidden="true">${acctAvatarHTML(u)}</span>
+        <div class="me-acct-tx"><b>${escAdminText(name)}</b>${via}</div>
+        <button type="button" class="me-acct-out" onclick="meSignOut()">התנתקות</button></div>`;
+}
+async function meSignOut() {
+    try { await AdminAuth.signOut(); }
+    catch (e) { alert('ההתנתקות נכשלה: ' + AdminAuth.errorMessage(e)); return; }
+    if (isAdminNow()) setAdminMode(false);
+    acctProfile = null;
+    meState = { user: null };
+    renderMe();
+    updateAcctChip();
+    showToast('התנתקת מהחשבון', 'info');
 }
 
 // מצב החלון: לא מחובר / אין פרופיל / בחירת כרטיס / ממתין לאישור / מחובר
@@ -4674,18 +4761,17 @@ function renderMe() {
             <button type="button" class="btn" onclick="meSignIn()">כניסה עם Google</button>
             <p class="me-small">לא חובה: אפשר להמשיך להירשם כרגיל, בלי חשבון.</p>`);
     }
+    const prof = acctRowHTML(s.user, s.profile);
     const card = myCard(s.user.uid);
     if (card) {
-        return paintMe(`<div class="me-status linked">✅ הכרטיס של <b>${esc(card.name)}</b> מחובר לפרופיל שלך.</div>
+        return paintMe(`${prof}<div class="me-status linked">✅ הכרטיס של <b>${esc(card.name)}</b> מחובר לפרופיל שלך.</div>
             <p class="me-text">בדף ההרשמה של הקבוצה תופיע לך הרשמה בלחיצה אחת, בכל מכשיר שבו נכנסת עם החשבון הזה.</p>
             <button type="button" class="me-outline danger" onclick="meUnlink()">ניתוק הכרטיס מהפרופיל</button>`);
     }
     if (!s.profile) {
-        return paintMe(`<p class="me-text">קודם יוצרים פרופיל שחקן: שם, תמונה ותאריך לידה. זה לוקח חצי דקה, ואפשר למחוק אותו בכל רגע.</p>
+        return paintMe(`${prof}<p class="me-text">קודם יוצרים פרופיל שחקן: שם, תמונה ותאריך לידה. זה לוקח חצי דקה, ואפשר למחוק אותו בכל רגע.</p>
             <button type="button" class="btn" onclick="meCreateProfile()">יצירת פרופיל שחקן</button>`);
     }
-    const a = ProfileKit.age(s.profile.birthDate);
-    const prof = `<div class="me-prof">${ProfileKit.avatarHTML(s.profile)}<div><b>${esc(s.profile.name)}</b><small>${a !== null ? 'גיל ' + a + ' · ' : ''}הפרופיל שלך</small></div></div>`;
     if (s.link) {
         const lc = players.find(p => p.id === s.link.pid);
         return paintMe(`${prof}<div class="me-status pending">⏳ ביקשת לחבר את הכרטיס של <b>${esc(lc ? lc.name : 'שחקן')}</b>. מחכים לאישור של מנהל הקבוצה.</div>
@@ -4730,6 +4816,7 @@ async function meSignIn() {
     catch (e) { if (!AdminAuth.isCancel(e)) alert('ההתחברות נכשלה: ' + AdminAuth.errorMessage(e)); return; }
     const u = firebase.auth().currentUser;
     if (!isAdminNow() && AdminAuth.isAdminOf(currentGroupData, u, false)) setAdminMode(true);   // נכנס מנהל של הקבוצה
+    updateAcctChip();
     paintMe('<p class="me-text">טוען… ⏳</p>');
     await refreshMe();
 }
@@ -4741,6 +4828,8 @@ async function meCreateProfile() {
     const saved = existing || await ProfileKit.openEditor({ db, user: u, profile: null });
     if (!saved) return;
     meState = Object.assign({}, meState, { user: u, profile: saved });
+    acctProfile = { uid: u.uid, data: saved };
+    updateAcctChip();
     renderMe();
 }
 async function meSend() {
@@ -4994,16 +5083,29 @@ function listenToRegistration(regId) {
     });
 }
 
+function waitingText(n) { return n === 1 ? 'ממתין אחד' : `${n} ממתינים`; }
+function spotsText(confirmed, maxP) {
+    const left = maxP - confirmed;
+    if (left <= 0) return 'ההרשמה מלאה';
+    return left === 1 ? 'נשאר מקום אחד' : `נשארו ${left} מקומות`;
+}
+
 function updateRegCounts(confirmed, waiting) {
     const maxP = (groupSettings.numTeams || 3) * (groupSettings.playersPerTeam || 6);
-    const bc = document.getElementById('regBannerConfirmed');
+    const ring = document.getElementById('regBannerRing');
+    const bs = document.getElementById('regBannerSpots');
     const bw = document.getElementById('regBannerWaiting');
     const sc = document.getElementById('regStatConfirmed');
     const sw = document.getElementById('regStatWaiting');
-    if (bc) bc.textContent = `${confirmed} / ${maxP} נרשמו`;
-    if (bw) { bw.style.display = waiting > 0 ? 'block' : 'none'; bw.textContent = `${waiting} ממתינים`; }
+    if (ring && window.RegRing) RegRing.set(ring, confirmed, maxP);
+    if (bs) {
+        // בלי הטבעת (הקובץ לא נטען) המספרים עצמם מופיעים בשורה הזו
+        bs.textContent = (window.RegRing ? '' : `${confirmed} / ${maxP} נרשמו · `) + spotsText(confirmed, maxP);
+        bs.classList.toggle('full', confirmed >= maxP);
+    }
+    if (bw) { bw.style.display = waiting > 0 ? 'inline-block' : 'none'; bw.textContent = waitingText(waiting); }
     if (sc) sc.textContent = `${confirmed} / ${maxP} נרשמו`;
-    if (sw) { sw.style.display = waiting > 0 ? 'block' : 'none'; sw.textContent = `${waiting} ממתינים`; }
+    if (sw) { sw.style.display = waiting > 0 ? 'block' : 'none'; sw.textContent = waitingText(waiting); }
     // השורה של ההרשמה הפתוחה ברשימת ההרשמה האוטומטית
     lastRegCounts = { confirmed, waiting, max: maxP };
     const cs = document.getElementById('raCurState');
