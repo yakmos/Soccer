@@ -44,6 +44,7 @@
         .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; margin-left: 4px; }
         .badge-claimed { background: rgba(16,185,129,0.15); color: var(--primary-color); border: 1px solid rgba(16,185,129,0.35); }
         .badge-unclaimed { background: rgba(252,211,77,0.12); color: var(--warn); border: 1px solid rgba(252,211,77,0.3); }
+        .badge-card { background: rgba(59,130,246,0.14); color: #93C5FD; border: 1px solid rgba(59,130,246,0.4); }
         .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
         .mini-btn { border: 1px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-main); border-radius: 8px; padding: 8px 10px; font-family: 'Heebo', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
         .mini-btn.wa { background: rgba(16,185,129,0.12); color: #25D366; border-color: rgba(37,211,102,0.35); }
@@ -88,6 +89,7 @@
             <button class="btn btn-wa" onclick="shareSummaryWa()">📊 שתף סיכום דירוגים בוואטסאפ 💬</button>
             <div class="note">
                 🟢 <b>שויך</b> = הקישור נפתח ונקשר למכשיר. 🟡 <b>ממתין</b> = טרם נפתח.<br>
+                🔗 <b>דרך הכרטיס</b> = שחקן שמחובר לכרטיס שלו ומדרג מדף הקבוצה, בלי קישור. אם כבר היה לו קישור על שמו, הוא ממשיך ממנו ולא מדרג פעמיים.<br>
                 <b>שחרר מכשיר</b> — למי שהחליף טלפון או ניקה נתונים; הקישור יישאר זהה וייתפס מחדש בכניסה הבאה.
             </div>
         </div>
@@ -119,6 +121,7 @@
     let groupData = null;
     let votersRef = null;
     let playersCount = 0;
+    let playerIds = new Set();
     let squadNames = [];   // שמות השחקנים בסגל, ליצירת קישור לכל אחד
     let voters = [];
 
@@ -164,6 +167,7 @@
         document.getElementById('adminArea').style.display = 'block';
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         playersCount = playersSnap.size;
+        playerIds = new Set(playersSnap.docs.map(d => d.id));
         squadNames = playersSnap.docs.map(d => String((d.data() || {}).name || '').trim()).filter(Boolean);
         await loadVoters();
     }
@@ -211,20 +215,27 @@
             return;
         }
         el.innerHTML = voters.map(v => {
+            // viaCard: נוצר דרך הכרטיס, בלי קישור (אין מה לשלוח או לשחרר). acct: שחקן שמחובר לכרטיס ומדרג גם עם הקישור הזה
+            const viaCard = !!v.pid;
             const claimed = !!v.uid;
-            const progress = `${Number(v.votedCount) || 0}/${playersCount}`;
+            // דרך הכרטיס לא מדרגים את עצמך, ולכן אחד פחות
+            const total = viaCard && playerIds.has(v.pid) ? Math.max(playersCount - 1, 0) : playersCount;
+            const progress = `${Number(v.votedCount) || 0}/${total}`;
+            const badge = viaCard ? '<span class="badge badge-card">🔗 דרך הכרטיס</span>'
+                : `<span class="badge ${claimed ? 'badge-claimed' : 'badge-unclaimed'}">${claimed ? '🟢 שויך' : '🟡 ממתין'}</span>`
+                  + (v.acct ? ' <span class="badge badge-card">🔗 גם דרך הכרטיס</span>' : '');
             return `
             <div class="voter-row">
                 <div class="voter-info">
                     <div class="voter-name">${esc(v.name || '(ללא שם)')}
-                        <span class="badge ${claimed ? 'badge-claimed' : 'badge-unclaimed'}">${claimed ? '🟢 שויך' : '🟡 ממתין'}</span>
+                        ${badge}
                     </div>
                     <div class="voter-status">📊 דירג ${progress} שחקנים</div>
                 </div>
                 <div class="row-actions">
-                    <button class="mini-btn" onclick="copyLink('${v.token}')">📋 העתק</button>
-                    <button class="mini-btn wa" onclick="shareWa('${v.token}')">💬 וואטסאפ</button>
-                    ${claimed ? `<button class="mini-btn release" onclick="releaseVoter('${v.token}')">🔓 שחרר מכשיר</button>` : ''}
+                    ${viaCard ? '' : `<button class="mini-btn" onclick="copyLink('${v.token}')">📋 העתק</button>
+                    <button class="mini-btn wa" onclick="shareWa('${v.token}')">💬 וואטסאפ</button>`}
+                    ${(claimed || v.acct) && !viaCard ? `<button class="mini-btn release" onclick="releaseVoter('${v.token}')">🔓 שחרר מכשיר</button>` : ''}
                     <button class="mini-btn del" onclick="deleteVoter('${v.token}')">🗑️</button>
                 </div>
             </div>`;
@@ -350,14 +361,17 @@
 
     async function releaseVoter(token) {
         if (!confirm("לשחרר את הקישור מהמכשיר הנוכחי? הכניסה הבאה תתפוס אותו מחדש.")) return;
-        await votersRef.doc(token).update({ uid: null });
+        // גם החשבון שהצטרף לקישור דרך הכרטיס (acct) משתחרר; אם הכרטיס עדיין מחובר אליו, הוא יצטרף שוב בכניסה הבאה
+        await votersRef.doc(token).update({ uid: null, acct: firebase.firestore.FieldValue.delete() });
         setStatus("🔓 הקישור שוחרר");
         await loadVoters();
     }
 
     async function deleteVoter(token) {
         const name = voterName(token) || '(ללא שם)';
-        if (!confirm(`למחוק את ${name}? ההצבעות שכבר נקלטו בממוצעים יישארו, אך הוא לא יוכל לערוך אותן יותר.`)) return;
+        const v = voters.find(x => x.token === token);
+        const again = v && (v.pid || v.acct) ? '\nהוא מחובר לכרטיס שלו, ולכן יוכל להתחיל לדרג מחדש, והדירוגים החדשים ייספרו בנוסף לישנים.' : '';
+        if (!confirm(`למחוק את ${name}? ההצבעות שכבר נקלטו בממוצעים יישארו, אך הוא לא יוכל לערוך אותן יותר.${again}`)) return;
         const votesSnap = await votersRef.doc(token).collection('votes').get();
         const batch = db.batch();
         votesSnap.docs.forEach(d => batch.delete(d.ref));
