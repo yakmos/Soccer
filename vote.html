@@ -105,6 +105,10 @@
         #portalScreen { display: none; }
         #voteScreen { display: none; }
         .error-msg { text-align: center; color: var(--att-color); font-weight: bold; margin-top: 50px; padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; display: none; }
+        .err-link { display: block; width: fit-content; margin: 16px auto 0; background: var(--primary-color); color: #fff; padding: 11px 18px; border-radius: 10px; text-decoration: none; font-weight: 800; }
+        .back-link { display: inline-block; color: var(--text-muted); text-decoration: none; font-weight: 700; font-size: .88rem; margin-bottom: 10px; }
+        .back-link:hover { color: var(--text-main); }
+        .back-link[hidden] { display: none; }
 
         .custom-section-note { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin: -8px 0 14px 0; padding: 4px 10px; background: rgba(252,211,77,0.05); border-radius: 6px; border: 1px solid rgba(252,211,77,0.1); }
         .gk-section-note { font-size: 0.85rem; color: var(--gk-text); text-align: center; margin: -8px 0 18px 0; padding: 8px 14px; background: var(--gk-bg); border-radius: 8px; border: 1px solid var(--gk-border); }
@@ -134,6 +138,7 @@
 <body>
 
 <div class="container">
+    <a class="back-link" id="backToGroup" href="index.html" hidden>→ לדף הקבוצה</a>
     <div id="errorScreen" class="error-msg"></div>
 
     <div class="card" id="mainCard">
@@ -223,12 +228,18 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('group');
-    const token = urlParams.get('token');
+    // שתי דרכים להיכנס: קישור אישי מהמנהל (token=…), או דרך הכרטיס (me=1) — שחקן שמחובר לכרטיס שלו בקבוצה.
+    // בדרך הכרטיס token הוא המסמך שנמצא או נוצר לחשבון (ראו openViaCard)
+    let token = urlParams.get('token');
+    const meMode = !token && urlParams.get('me') === '1';
 
     let groupName = "Unknown";
     let playersRef = null;
+    let votersCol = null;
     let voterRef = null;
     let votesRef = null;
+    let myCardId = null;   // בדרך הכרטיס: הכרטיס של המדרג, שלא מופיע ברשימה (לא מדרגים את עצמך)
+    let isGroupAdmin = false;
 
     // ===== חמשת המדדים =====
     // attScore/defScore הם ציונים נגזרים; המצביע מדרג רק את 5 המדדים הגולמיים.
@@ -273,14 +284,22 @@
     }
 
     // ========== Init ==========
+    const groupPage = hash => 'index.html?group=' + encodeURIComponent(groupId || '') + (hash || '');
+    function codeError(code) { const e = new Error(code); e.code = code; return e; }
+
     window.onload = async () => {
-        if (!groupId || !token) { showError("קישור לא תקין — חסר מזהה קבוצה או טוקן הצבעה.\nבקש קישור אישי חדש מהמנהל."); return; }
+        if (!groupId || (!token && !meMode)) { showError("קישור לא תקין — חסר מזהה קבוצה או טוקן הצבעה.\nבקש קישור אישי חדש מהמנהל."); return; }
         try {
             // 1. זיהוי המכשיר: משתמש קיים (למשל מנהל שמחובר עם Google) או התחברות אנונימית שקופה.
             //    לא מתחברים אנונימית מעל משתמש קיים — זה היה מנתק את המנהל.
             const existingUser = await new Promise(resolve => {
                 const unsub = auth.onAuthStateChanged(u => { unsub(); resolve(u); });
             });
+            // דרך הכרטיס צריך את החשבון שהכרטיס מחובר אליו. מתחברים בדף הקבוצה, ב"הכרטיס שלי"
+            if (meMode && (!existingUser || existingUser.isAnonymous)) {
+                showError("כדי לדרג דרך הכרטיס שלך צריך להיות מחובר לחשבון שלך. 🔑\nמתחברים בדף הקבוצה, ב\"הכרטיס שלי\".", groupPage('#me'), 'לדף הקבוצה ←');
+                return;
+            }
             const cred = existingUser ? { user: existingUser } : await auth.signInAnonymously();
             myUid = cred.user.uid;
 
@@ -290,25 +309,41 @@
             const groupData = groupDoc.data();
             groupName = groupData.name;
             customParams = groupData.customParams || [];
+            isGroupAdmin = !!(groupData.admins && Object.prototype.hasOwnProperty.call(groupData.admins, myUid));
             document.getElementById('groupTitle').innerText = `פורטל הדירוגים - ${groupName} ⚽`;
             playersRef = db.collection('groups').doc(groupId).collection('players');
-            voterRef = db.collection('groups').doc(groupId).collection('voters').doc(token);
-            votesRef = voterRef.collection('votes');
+            votersCol = db.collection('groups').doc(groupId).collection('voters');
 
-            // 3. תפיסת הטוקן / אימות בעלות
-            await claimToken();
+            // 3. תפיסת הטוקן / אימות בעלות (או, דרך הכרטיס, מציאת המסמך של החשבון)
+            if (meMode) await openViaCard();
+            else { voterRef = votersCol.doc(token); await claimToken(); }
+            votesRef = voterRef.collection('votes');
 
             // 4. טעינת שחקנים + ההצבעות שלי
             await Promise.all([fetchPlayers(), fetchMyVotes()]);
             renderPortal();
             renderProgress(false);
+            if (meMode) {
+                const back = document.getElementById('backToGroup');
+                back.href = groupPage('#ratings');
+                back.hidden = false;
+            }
+            logEvt('vote_portal_open', { via: meMode ? 'card' : 'link' });
             document.getElementById('loading').style.display = 'none';
             document.getElementById('portalScreen').style.display = 'block';
         } catch (error) {
-            console.error(error);
-            if (error && error.code === 'VOTE_TOKEN_INVALID') {
+            const code = error && error.code;
+            if (!/^VOTE_/.test(code || '')) console.error(error);   // מצבים צפויים (לא מחובר לכרטיס וכו') מקבלים הודעה בלבד
+            if (code === 'VOTE_NOT_LINKED') {
+                showError("החשבון שלך עוד לא מחובר לכרטיס בקבוצה הזו. 🔗\nאחרי שתחבר את הכרטיס שלך (ומנהל הקבוצה יאשר), תוכל לדרג מכאן.", groupPage('#me'), 'לחיבור הכרטיס ←');
+            } else if (meMode && (code === 'VOTE_RULES_OLD' || code === 'permission-denied')) {
+                // חוקי האבטחה החדשים עוד לא פורסמו ב-Firebase
+                showError(isGroupAdmin
+                    ? "הדירוג דרך הכרטיס עוד לא הופעל. ⏳\nלמנהלים: צריך לפרסם ב-Firebase את חוקי האבטחה המעודכנים (firestore.rules)."
+                    : "הדירוג דרך הכרטיס עוד לא הופעל בקבוצה הזו. ⏳\nבינתיים אפשר לדרג עם קישור אישי ממנהל הקבוצה.", groupPage(''), 'לדף הקבוצה ←');
+            } else if (code === 'VOTE_TOKEN_INVALID') {
                 showError("הקישור הזה לא מוכר במערכת. 🤔\nבקש קישור אישי חדש מהמנהל.");
-            } else if (error && (error.code === 'VOTE_TOKEN_CLAIMED' || error.code === 'permission-denied')) {
+            } else if (code === 'VOTE_TOKEN_CLAIMED' || code === 'permission-denied') {
                 // קישור שכבר שויך למכשיר אחר: חוקי האבטחה לא מאפשרים אפילו לקרוא אותו
                 showError("הקישור הזה כבר שויך למכשיר אחר. 🔒\nכל קישור הצבעה הוא אישי וניתן לשימוש ממכשיר אחד בלבד.\nאם החלפת טלפון או ניקית נתונים — בקש מהמנהל לשחרר את הקישור.");
             } else {
@@ -317,18 +352,25 @@
         }
     };
 
-    async function claimToken() {
+    // createData: בדרך הכרטיס, המסמך החדש של החשבון אם עוד אין לו (voters/{uid})
+    async function claimToken(createData) {
+        const now = () => firebase.firestore.FieldValue.serverTimestamp();
         await db.runTransaction(async (tx) => {
             const doc = await tx.get(voterRef);
-            if (!doc.exists) { const e = new Error("invalid token"); e.code = 'VOTE_TOKEN_INVALID'; throw e; }
+            if (!doc.exists) {
+                if (!createData) throw codeError('VOTE_TOKEN_INVALID');
+                tx.set(voterRef, Object.assign({}, createData, { createdAt: now(), claimedAt: now(), lastSeen: now() }));
+                voterName = createData.name;
+                return;
+            }
             const d = doc.data();
             voterName = d.name || "";
-            if (!d.uid) {
-                tx.update(voterRef, { uid: myUid, claimedAt: firebase.firestore.FieldValue.serverTimestamp(), lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
-            } else if (d.uid !== myUid) {
-                const e = new Error("token claimed"); e.code = 'VOTE_TOKEN_CLAIMED'; throw e;
+            if (d.uid === myUid || (d.acct && d.acct === myUid)) {
+                tx.update(voterRef, { lastSeen: now() });
+            } else if (!d.uid) {
+                tx.update(voterRef, { uid: myUid, claimedAt: now(), lastSeen: now() });
             } else {
-                tx.update(voterRef, { lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+                throw codeError('VOTE_TOKEN_CLAIMED');
             }
         });
         if (voterName) {
@@ -336,10 +378,91 @@
         }
     }
 
-    function showError(msg) {
+    // ========== דרך הכרטיס (vote.html?group=…&me=1) ==========
+    // החשבון המחובר מחליף את הקישור האישי. מחפשים לפי הסדר:
+    // 1. קישור שכבר שייך לחשבון (נפתח כשהיה מחובר, או שהחשבון כבר הצטרף אליו, או מסמך שנוצר כאן קודם)
+    // 2. הקישור האישי שהמנהל יצר על שם הכרטיס: מצטרפים אליו וממשיכים ממנו, כך שהדירוגים מהקישור נשארים ואף אחד לא נספר פעמיים
+    // 3. אחרת מסמך חדש לחשבון, voters/{uid}
+    async function openViaCard() {
+        const cards = await playersRef.where('uid', '==', myUid).limit(1).get();
+        if (cards.empty) throw codeError('VOTE_NOT_LINKED');
+        const card = cards.docs[0];
+        myCardId = card.id;
+        const cardName = String(card.data().name || '');
+        let mine;
+        try {
+            const [byUid, byAcct] = await Promise.all([
+                votersCol.where('uid', '==', myUid).get(),
+                votersCol.where('acct', '==', myUid).get()
+            ]);
+            mine = byUid.docs.concat(byAcct.docs.filter(d => !byUid.docs.some(x => x.id === d.id)));
+        } catch (e) {
+            if (e && e.code === 'permission-denied') throw codeError('VOTE_RULES_OLD');
+            throw e;
+        }
+        let pick = mostVotes(mine);
+        if (!pick && cardName) pick = await joinNamedLink(cardName);
+        token = pick ? pick.id : myUid;
+        voterRef = votersCol.doc(token);
+        await claimToken(pick ? null : { name: cardName, uid: myUid, pid: myCardId, votedCount: 0 });
+        voterName = cardName;
+        document.getElementById('voterGreeting').innerText = `היי ${cardName}! 👋 בחר שחקן כדי לדרג אותו`;
+    }
+
+    function mostVotes(docs) {
+        return docs.slice().sort((a, b) => (Number(b.data().votedCount) || 0) - (Number(a.data().votedCount) || 0))[0] || null;
+    }
+
+    async function joinNamedLink(cardName) {
+        const byName = () => votersCol.where('name', '==', cardName).get();
+        let snap;
+        try { snap = await byName(); }
+        catch (e) {
+            // חוקי האבטחה מזהים את הכרטיס לפי הפרופיל (users/{uid}.groups). אם שם חסר הכרטיס, משלימים ומנסים שוב פעם אחת
+            if (!e || e.code !== 'permission-denied') throw e;
+            if (!(await fixProfileGroup())) return null;
+            try { snap = await byName(); } catch (e2) { console.warn('named link', e2); return null; }
+        }
+        const free = snap.docs.filter(d => !d.data().acct && !d.data().pid);
+        const best = mostVotes(free);
+        // המסמך שנוצר לו כאן בעבר ושוחרר (uid ריק) נתפס מחדש ב-claimToken, אלא אם בקישור יש יותר דירוגים
+        const own = snap.docs.find(d => d.id === myUid);
+        const count = d => Number(d.data().votedCount) || 0;
+        if (!best || (own && count(own) >= count(best))) return null;
+        try {
+            await best.ref.update({ acct: myUid, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+            return best;
+        } catch (e) {
+            console.warn('join named link', e);
+            return null;
+        }
+    }
+
+    async function fixProfileGroup() {
+        try {
+            await db.collection('users').doc(myUid).update({
+                ['groups.' + groupId]: { pid: myCardId, name: String(groupName || '').slice(0, 60) },
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return true;
+        } catch (e) {
+            console.warn('profile groups', e);
+            return false;
+        }
+    }
+
+    // link: קישור אופציונלי מתחת להודעה (למשל חזרה לדף הקבוצה)
+    function showError(msg, href, label) {
         document.getElementById('mainCard').style.display = 'none';
         const el = document.getElementById('errorScreen');
         el.innerText = msg; el.style.display = 'block';
+        if (href) {
+            const a = document.createElement('a');
+            a.className = 'err-link';
+            a.href = href;
+            a.textContent = label || 'לדף הקבוצה';
+            el.appendChild(a);
+        }
     }
 
     // ציונים ומונים נכתבים גם על ידי מדרגים אחרים — מוצגים רק כמספרים
@@ -350,8 +473,14 @@
             const p = { id: doc.id, ...doc.data() };
             SHOWN_NUMBERS.forEach(k => { if (p[k] != null && typeof p[k] !== 'number') p[k] = Number(p[k]) || 0; });
             return p;
-        });
+        }).filter(p => p.id !== myCardId);   // דרך הכרטיס לא מדרגים את עצמך
     }
+
+    // שמות ותמונות נכתבים על ידי מנהלי הקבוצה, ובכל זאת לא נכנסים לדף כ-HTML
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function imgSrc(u) { return typeof u === 'string' && /^(data:image\/|https:\/\/)/.test(u) ? esc(u) : ''; }
 
     async function fetchMyVotes() {
         const snap = await votesRef.get();
@@ -402,8 +531,8 @@
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
             const hasVoted = hasVote(p);
             const borderColor = isGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
-            const avatar = p.imgUrl
-                ? `<img src="${p.imgUrl}" class="list-avatar" style="border-color:${borderColor}">`
+            const avatar = imgSrc(p.imgUrl)
+                ? `<img src="${imgSrc(p.imgUrl)}" class="list-avatar" style="border-color:${borderColor}">`
                 : `<div class="list-avatar" style="border-color:${borderColor}">${isGk ? '🧤' : '👤'}</div>`;
 
             const scoreBadge = isGk
@@ -418,9 +547,9 @@
             const lockedBadgeHTML = lockedCount > 0 ? `<div class="lock-badge">🔒 ${lockedCount} פרמטרים נעולים</div>` : '';
 
             return `
-                <div class="player-card ${hasVoted ? 'voted' : ''} ${isGk ? 'is-gk-card' : ''}" onclick="openVote('${p.id}')">
+                <div class="player-card ${hasVoted ? 'voted' : ''} ${isGk ? 'is-gk-card' : ''}" data-id="${esc(p.id)}" onclick="openVote(this.dataset.id)">
                     ${avatar}
-                    <div class="p-name">${p.name}</div>
+                    <div class="p-name">${esc(p.name)}</div>
                     ${isGk ? '<div class="gk-badge">🧤 שוער</div>' : ''}
                     ${lockedBadgeHTML}
                     <div class="chip-stats-container">${scoreBadge}</div>
@@ -441,14 +570,14 @@
             html += `<h3 class="custom-att-title">⚔️ מדדי התקפה מותאמים</h3><p class="custom-section-note">⭐ מדדים שנוספו ע"י מנהל הקבוצה</p>`;
             attParams.forEach(p => {
                 const val = (savedCustomVotes && savedCustomVotes[p.id] !== undefined) ? savedCustomVotes[p.id] : 5;
-                html += `<div class="slider-group"><div class="slider-header"><span>${p.name}</span><span class="val-badge" id="vcp_${p.id}">${val}</span></div><input type="range" class="att-slider" id="scp_${p.id}" min="1" max="10" value="${val}" oninput="document.getElementById('vcp_${p.id}').innerText=this.value"></div>`;
+                html += `<div class="slider-group"><div class="slider-header"><span>${esc(p.name)}</span><span class="val-badge" id="vcp_${p.id}">${val}</span></div><input type="range" class="att-slider" id="scp_${p.id}" min="1" max="10" value="${val}" oninput="document.getElementById('vcp_${p.id}').innerText=this.value"></div>`;
             });
         }
         if (defParams.length > 0) {
             html += `<h3 class="custom-def-title">🛡️ מדדי הגנה מותאמים</h3><p class="custom-section-note">⭐ מדדים שנוספו ע"י מנהל הקבוצה</p>`;
             defParams.forEach(p => {
                 const val = (savedCustomVotes && savedCustomVotes[p.id] !== undefined) ? savedCustomVotes[p.id] : 5;
-                html += `<div class="slider-group"><div class="slider-header"><span>${p.name}</span><span class="val-badge" id="vcp_${p.id}">${val}</span></div><input type="range" class="def-slider" id="scp_${p.id}" min="1" max="10" value="${val}" oninput="document.getElementById('vcp_${p.id}').innerText=this.value"></div>`;
+                html += `<div class="slider-group"><div class="slider-header"><span>${esc(p.name)}</span><span class="val-badge" id="vcp_${p.id}">${val}</span></div><input type="range" class="def-slider" id="scp_${p.id}" min="1" max="10" value="${val}" oninput="document.getElementById('vcp_${p.id}').innerText=this.value"></div>`;
             });
         }
         container.innerHTML = html;
@@ -467,8 +596,8 @@
 
         document.getElementById('displayPlayerName').innerText = p.name;
         const borderColor = currentPlayerIsGk ? 'var(--gk-text)' : getColorStyles(((p.attScore || 5) + (p.defScore || 5)) / 2).hex;
-        const avatarHtml = p.imgUrl
-            ? `<img src="${p.imgUrl}" class="vote-avatar" style="border-color:${borderColor}">`
+        const avatarHtml = imgSrc(p.imgUrl)
+            ? `<img src="${imgSrc(p.imgUrl)}" class="vote-avatar" style="border-color:${borderColor}">`
             : `<div class="vote-avatar" style="border-color:${borderColor}">${currentPlayerIsGk ? '🧤' : '👤'}</div>`;
         document.getElementById('avatarContainer').innerHTML = avatarHtml;
 
@@ -480,7 +609,7 @@
                 <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.6;">
                     ${Object.entries(lockedParams).map(([k, v]) => {
                         const name = paramDisplayName(k);
-                        return `<span style="display:inline-flex; align-items:center; gap:4px; background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.25); padding:2px 8px; border-radius:6px; margin:3px 3px 0 0; font-weight:700; color:var(--lock-color);">🔒 ${name}: ${v}</span>`;
+                        return `<span style="display:inline-flex; align-items:center; gap:4px; background:rgba(252,211,77,0.1); border:1px solid rgba(252,211,77,0.25); padding:2px 8px; border-radius:6px; margin:3px 3px 0 0; font-weight:700; color:var(--lock-color);">🔒 ${esc(name)}: ${esc(v)}</span>`;
                     }).join('')}
                 </div>`;
         } else {
