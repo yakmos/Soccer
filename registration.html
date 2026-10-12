@@ -29,6 +29,7 @@
     <script src="admin-auth.js"></script>
     <script src="group-prefs.js?v=20261005"></script>
     <script src="reg-auto.js?v=1"></script>
+    <script src="reg-ring.js?v=20261008"></script>
 
     <style>
         :root {
@@ -81,9 +82,8 @@
         .header-top {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
+            align-items: center;
+            gap: 14px;
         }
 
         .group-name {
@@ -132,12 +132,15 @@
         .edit-cancel-btn { background: var(--border); color: var(--muted); }
         .edit-save-btn:active, .edit-cancel-btn:active { opacity: 0.7; }
 
-        .capacity-bar-wrap { display: flex; align-items: center; gap: 10px; }
-        .capacity-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
-        .capacity-bar-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.4s ease; }
-        .capacity-bar-fill.full { background: var(--waiting-color); }
-        .capacity-text { font-size: 0.82rem; font-weight: 800; color: var(--muted); white-space: nowrap; }
+        /* בכותרת: הפרטים מימין, ומשמאל טבעת שמתמלאת לפי מספר הנרשמים (reg-ring.js) */
+        .hdr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+        .hdr-name-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .hdr-date-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .hdr-date-row .date-edit-wrap { flex-wrap: wrap; }
+        .cap-ring { --rr-size: 76px; }
+        .capacity-text { font-size: 0.82rem; font-weight: 800; color: var(--muted); }
         .capacity-text span { color: var(--primary); }
+        .capacity-text.full { color: var(--waiting-color); }
         .capacity-text.full span { color: var(--waiting-color); }
 
         .notice-box-outer { margin: 16px 16px 0; position: relative; }
@@ -398,6 +401,9 @@
         .me-go { flex: none; background: var(--primary); color: #04241A; border: 0; border-radius: 12px; padding: 11px 16px; font: 900 1rem Heebo, sans-serif; cursor: pointer; }
         .me-go:disabled { opacity: 0.6; cursor: default; }
         .me-or { color: var(--muted); font-size: 0.85rem; font-weight: 700; margin: 2px 0 8px; }
+        .me-acct-line { color: var(--muted); font-size: 0.82rem; font-weight: 700; line-height: 1.6; margin: -2px 0 12px; }
+        .me-acct-line b { color: var(--text); }
+        .me-acct-line a, .me-acct-line button { color: var(--primary); font: inherit; font-weight: 800; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
         .link-tip { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px; border-radius: 12px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.3); font-size: 0.88rem; line-height: 1.55; }
         .link-tip b { display: block; color: #93C5FD; }
         .link-tip a { color: #93C5FD; font-weight: 800; text-decoration: none; }
@@ -408,28 +414,27 @@
 
 <div class="game-header" id="gameHeader" style="display:none;">
     <div class="header-top">
-        <div>
-            <div class="group-name" id="groupNameEl">⚽ טוען...</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-            <button onclick="promptAdminLogin()" id="adminLoginBtn"
-                style="background:transparent; border:1px solid var(--border); color:var(--muted);
-                       border-radius:8px; padding:5px 10px; font-size:0.78rem; font-weight:800;
-                       cursor:pointer; font-family:Heebo,sans-serif;">ניהול 🔒</button>
-            <div class="game-date-badge" id="gameDateBadge" onclick="startDateEdit()" title="לחץ לעריכה">—</div>
-            <div class="date-edit-wrap" id="dateEditWrap">
-                <input type="date" id="dateEditInput" class="date-edit-input" />
-                <input type="time" id="timeEditInput" class="time-edit-input" />
-                <button class="edit-save-btn" onclick="saveDateEdit()">✓</button>
-                <button class="edit-cancel-btn" onclick="cancelDateEdit()">✕</button>
+        <div class="hdr-info">
+            <div class="hdr-name-row">
+                <div class="group-name" id="groupNameEl">⚽ טוען...</div>
+                <button onclick="promptAdminLogin()" id="adminLoginBtn"
+                    style="flex:none; background:transparent; border:1px solid var(--border); color:var(--muted);
+                           border-radius:8px; padding:5px 10px; font-size:0.78rem; font-weight:800;
+                           cursor:pointer; font-family:Heebo,sans-serif;">ניהול 🔒</button>
             </div>
+            <div class="hdr-date-row">
+                <div class="game-date-badge" id="gameDateBadge" onclick="startDateEdit()" title="לחץ לעריכה">—</div>
+                <div class="date-edit-wrap" id="dateEditWrap">
+                    <input type="date" id="dateEditInput" class="date-edit-input" />
+                    <input type="time" id="timeEditInput" class="time-edit-input" />
+                    <button class="edit-save-btn" onclick="saveDateEdit()">✓</button>
+                    <button class="edit-cancel-btn" onclick="cancelDateEdit()">✕</button>
+                </div>
+            </div>
+            <div class="capacity-text" id="capacityText"></div>
         </div>
-    </div>
-    <div class="capacity-bar-wrap">
-        <div class="capacity-bar-bg">
-            <div class="capacity-bar-fill" id="capacityFill" style="width:0%"></div>
-        </div>
-        <div class="capacity-text" id="capacityText"><span>0</span> / 0 שחקנים</div>
+        <!-- כמה נרשמו מתוך כמה: טבעת שמתמלאת (reg-ring.js) -->
+        <div class="cap-ring" id="capRing"></div>
     </div>
 </div>
 
@@ -927,21 +932,19 @@ async function saveNoticeEdit() {
     } catch(e) { console.error(e); showToast('שגיאה בשמירה', 'error'); }
 }
 
+// הטבעת בכותרת מראה כמה נרשמו מתוך כמה; השורה שלידה אומרת כמה מקומות נשארו, או כמה ממתינים
 function updateCapacityBar() {
     const confirmed = registrations.filter(r => !r.isWaiting).length;
-    const total     = registrations.length;
-    const pct       = Math.min(100, (confirmed / maxPlayers) * 100);
-    const fill = document.getElementById('capacityFill');
+    const waiting   = registrations.length - confirmed;
+    const left      = maxPlayers - confirmed;
     const text = document.getElementById('capacityText');
-    fill.style.width = pct + '%';
-    if (confirmed >= maxPlayers) {
-        fill.classList.add('full');
-        text.classList.add('full');
-        text.innerHTML = `<span>${confirmed}</span> / ${maxPlayers} (${total - confirmed} ממתינים)`;
+    if (window.RegRing) RegRing.set(document.getElementById('capRing'), confirmed, maxPlayers);
+    const count = window.RegRing ? '' : `<span>${confirmed}</span> / ${maxPlayers} · `;   // בלי הטבעת: המספרים כאן
+    text.classList.toggle('full', left <= 0);
+    if (left <= 0) {
+        text.innerHTML = count + 'ההרשמה מלאה' + (waiting > 0 ? ` · ${waiting === 1 ? 'ממתין אחד' : waiting + ' ממתינים'}` : '');
     } else {
-        fill.classList.remove('full');
-        text.classList.remove('full');
-        text.innerHTML = `<span>${confirmed}</span> / ${maxPlayers} שחקנים`;
+        text.innerHTML = count + (left === 1 ? 'נשאר מקום אחד' : `נשארו <span>${left}</span> מקומות`);
     }
 }
 
@@ -1006,13 +1009,21 @@ document.addEventListener('click', e => {
 function myPlayer() {
     return authUser ? allPlayers.find(p => p.uid === authUser.uid) || null : null;
 }
+// מי מחובר במכשיר הזה, ואיך מתנתקים. מי שמחובר אבל הכרטיס שלו עוד לא מחובר מקבל קישור לחבר אותו
+function accountLineHTML(linked) {
+    if (!authUser) return '';
+    const name = String(authUser.displayName || authUser.email || '').trim() || 'משתמש';
+    const connect = linked ? '' : ` · <a href="index.html?group=${encodeURIComponent(groupId)}#me">חיבור הכרטיס</a>`;
+    return `<div class="me-acct-line">מחובר בתור <b>${escHtml(name)}</b>${connect} · <button type="button" onclick="signOutMe()">התנתקות</button></div>`;
+}
 function renderMeBox() {
     const wrap = document.getElementById('meBoxWrap');
     if (!wrap) return;
     const me = myPlayer();
     if (!me) {
         // בקבוצה יש כבר שחקנים עם פרופיל: מי שלא מחובר במכשיר הזה יכול להיכנס ולהירשם בלחיצה אחת
-        wrap.innerHTML = !authUser && allPlayers.some(p => p.uid)
+        wrap.innerHTML = authUser ? accountLineHTML(false)
+            : allPlayers.some(p => p.uid)
             ? '<div class="me-or">יש לך פרופיל שחקן? <button type="button" class="linkish" onclick="signInForMe()" style="background:none; border:0; padding:0; color:var(--primary); font:inherit; font-weight:800; text-decoration:underline; cursor:pointer;">כניסה</button> להרשמה בלחיצה אחת</div>'
             : '';
         return;
@@ -1021,18 +1032,25 @@ function renderMeBox() {
     const av = typeof me.imgUrl === 'string' && /^(data:image\/|https:\/\/)/.test(me.imgUrl) ? `<img src="${escHtml(me.imgUrl)}" alt="">` : '👤';
     if (reg) {
         const first = escHtml(String(me.name || '').trim().split(/\s+/)[0]);
-        wrap.innerHTML = reg.isWaiting
-            ? `<div class="me-box wait"><span class="me-av">${av}</span><div class="me-tx"><b>⏳ ${first}, אתה ברשימת ההמתנה</b><small>אם יתפנה מקום, תיכנס לרשימה.</small></div></div><div class="me-or">הרשמה של שחקן אחר:</div>`
-            : `<div class="me-box"><span class="me-av">${av}</span><div class="me-tx"><b>✅ ${first}, אתה ברשימה</b><small>נתראה במגרש!</small></div></div><div class="me-or">הרשמה של שחקן אחר:</div>`;
+        wrap.innerHTML = (reg.isWaiting
+            ? `<div class="me-box wait"><span class="me-av">${av}</span><div class="me-tx"><b>⏳ ${first}, אתה ברשימת ההמתנה</b><small>אם יתפנה מקום, תיכנס לרשימה.</small></div></div>`
+            : `<div class="me-box"><span class="me-av">${av}</span><div class="me-tx"><b>✅ ${first}, אתה ברשימה</b><small>נתראה במגרש!</small></div></div>`)
+            + accountLineHTML(true) + '<div class="me-or">הרשמה של שחקן אחר:</div>';
         return;
     }
     if (document.getElementById('meGoBtn') && document.getElementById('meGoBtn').disabled) return;   // באמצע הרשמה
-    wrap.innerHTML = `<div class="me-box"><span class="me-av">${av}</span><div class="me-tx"><b>👋 ${escHtml(me.name)}</b><small>הכרטיס שלך מחובר לפרופיל</small></div><button type="button" class="me-go" id="meGoBtn" onclick="registerMe()">אני מגיע ✅</button></div><div class="me-or">או הרשמה של שחקן אחר:</div>`;
+    wrap.innerHTML = `<div class="me-box"><span class="me-av">${av}</span><div class="me-tx"><b>👋 ${escHtml(me.name)}</b><small>הכרטיס שלך מחובר לפרופיל</small></div><button type="button" class="me-go" id="meGoBtn" onclick="registerMe()">אני מגיע ✅</button></div>`
+        + accountLineHTML(true) + '<div class="me-or">או הרשמה של שחקן אחר:</div>';
 }
 async function signInForMe() {
     try { await AdminAuth.signInWithGoogle(); }
     catch (e) { if (!AdminAuth.isCancel(e)) showToast('ההתחברות נכשלה: ' + AdminAuth.errorMessage(e), 'error'); return; }
     location.reload();   // מצב מנהל, הכרטיס המחובר וכל השאר נטענים מחדש לפי החשבון
+}
+async function signOutMe() {
+    try { await AdminAuth.signOut(); }
+    catch (e) { showToast('ההתנתקות נכשלה: ' + AdminAuth.errorMessage(e), 'error'); return; }
+    location.reload();
 }
 async function registerMe() {
     const me = myPlayer();
