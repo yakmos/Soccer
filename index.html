@@ -156,6 +156,13 @@
         .svb-text small { display: block; color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
         .svb-btn { flex: none; background: #25D366; color: #062E16; border: 0; border-radius: 10px; padding: 9px 12px; font: 900 0.85rem 'Heebo', sans-serif; cursor: pointer; white-space: nowrap; text-decoration: none; text-align: center; }
         @media (max-width: 420px) { .svb-row { flex-direction: column; align-items: stretch; } .svb-btn { padding: 11px; } }
+        /* שחקן שמחובר לכרטיס שלו מדרג את חבריו בלחיצה; מי שלא מחובר רואה איך מצטרפים */
+        .rate-me .svb-row { background: rgba(251,191,36,0.07); border-color: rgba(251,191,36,0.35); }
+        .rate-me .svb-btn { background: #FBBF24; color: #3B2600; }
+        .rate-hint { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 14px; border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted); font-size: 0.85rem; line-height: 1.45; }
+        .rate-hint span { flex: 1; min-width: 0; }
+        .rate-hint button { flex: none; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 9px; padding: 7px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        .rate-hint[hidden], .rate-me[hidden] { display: none; }
         .market-post-card { border-color: rgba(59,130,246,0.45); background: linear-gradient(180deg, rgba(59,130,246,0.08), var(--surface-color) 70%); }
         .mp-sub { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 14px; line-height: 1.5; }
         .mp-grid { display: grid; grid-template-columns: 110px 1fr; gap: 10px; margin-bottom: 14px; }
@@ -329,6 +336,7 @@
         .me-check input { width: 18px; height: 18px; accent-color: var(--primary-color); flex: none; }
         .me-outline { width: 100%; margin-top: 4px; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 12px; padding: 11px; font: 800 0.95rem 'Heebo', sans-serif; cursor: pointer; }
         .me-outline.danger { border-color: rgba(239,68,68,0.45); color: #FCA5A5; }
+        .btn.me-rate { text-decoration: none; margin: 0 0 10px; padding: 13px; font-size: 1rem; background: #FBBF24; color: #3B2600; }
         .me-modal .picker-list { max-height: 36vh; }
         .picker-item:disabled { opacity: 0.55; cursor: default; }
         .pi-av { flex: none; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: rgba(255,255,255,0.06); font-size: 0.85rem; }
@@ -1226,9 +1234,19 @@
             <div id="tab-leaderboards" class="tab-content">
                 <div class="admin-only share-vote-box">
                     <div class="svb-row">
-                        <div class="svb-text"><b>🔗 קישורים אישיים לדירוג</b><small>כל שחקן מקבל קישור משלו, שננעל לטלפון שלו, ולכן אי אפשר לדרג פעמיים. שם גם רואים מי כבר דירג</small></div>
+                        <div class="svb-text"><b>🔗 קישורים אישיים לדירוג</b><small>כל שחקן מקבל קישור משלו, שננעל לטלפון שלו, ולכן אי אפשר לדרג פעמיים. שם גם רואים מי כבר דירג. שחקן שמחובר לכרטיס שלו מדרג גם בלי קישור</small></div>
                         <a class="svb-btn voters-link" href="voters_admin.html">לקישורים ←</a>
                     </div>
+                </div>
+                <div class="share-vote-box rate-me" id="rateMeBox" hidden>
+                    <div class="svb-row">
+                        <div class="svb-text"><b>⭐ דרג את שחקני הקבוצה</b><small>הדירוג שלך עוזר לחלק קבוצות מאוזנות. לוקח דקה, ואפשר לחזור ולעדכן בכל רגע</small></div>
+                        <a class="svb-btn" id="rateMeBtn" href="vote.html">לדירוג ←</a>
+                    </div>
+                </div>
+                <div class="rate-hint" id="rateHint" hidden>
+                    <span>⭐ שחקן בקבוצה? חבר את הכרטיס שלך לפרופיל, ותוכל לדרג את השחקנים בעצמך.</span>
+                    <button type="button" onclick="openMe()">חיבור הכרטיס</button>
                 </div>
                 <div class="card" style="border-top-width: 4px; border-top-color: var(--primary-color);">
                     <h2 class="card-title" style="font-size: 1.3rem; justify-content: center; margin-bottom: 20px;">🏆 דירוג שחקנים מפורט</h2>
@@ -1614,7 +1632,8 @@ function updateGroupLinkUI() {
     if (el) el.innerText = groupLinkUrl();
     // דף הפעילות (למנהלים): מי מגיע, אחוזי נוכחות ומי לא נראה לאחרונה
     document.querySelectorAll('.activity-link').forEach(a => { a.href = 'activity.html?group=' + encodeURIComponent(currentGroupId); });
-    // הדירוג עובד רק בקישור אישי לכל שחקן (vote.html?group=…&token=…), ולכן המנהל עובר לדף שיוצר אותם
+    // הדירוג: קישור אישי לכל שחקן (vote.html?group=…&token=…), שהמנהל יוצר בדף הקישורים.
+    // שחקן שמחובר לכרטיס שלו מדרג גם בלי קישור (vote.html?group=…&me=1, ראו updateRateMe)
     document.querySelectorAll('.voters-link').forEach(a => { a.href = 'voters_admin.html?group=' + encodeURIComponent(currentGroupId); });
 }
 function groupLinkUrl() {
@@ -1827,6 +1846,7 @@ function setAdminMode(on) {
         else updateBottomBar();
         stopLinkRequestsListener();
     }
+    updateRateMe();
     render();
 }
 
@@ -4713,6 +4733,7 @@ function acctAvatarHTML(u) {
     return ch ? escAdminText(ch) : '👤';
 }
 function updateAcctChip() {
+    updateRateMe();
     const btn = document.getElementById('acctBtnHeader');
     if (!btn) return;
     const u = firebase.auth().currentUser;
@@ -4722,6 +4743,19 @@ function updateAcctChip() {
     btn.title = label;
     btn.setAttribute('aria-label', label);
     btn.hidden = false;
+}
+
+// לשונית הדירוגים: שחקן שמחובר לכרטיס שלו מדרג את חבריו בלחיצה, בלי קישור אישי מהמנהל (vote.html?me=1).
+// מי שלא מחובר לכרטיס רואה שורה קטנה שמסבירה איך מצטרפים (למנהלים יש כבר את הקישורים האישיים)
+function rateMeUrl() { return 'vote.html?group=' + encodeURIComponent(currentGroupId) + '&me=1'; }
+function updateRateMe() {
+    const box = document.getElementById('rateMeBox'), hint = document.getElementById('rateHint');
+    if (!box || !hint) return;
+    const u = firebase.auth().currentUser;
+    const card = AdminAuth.isRealUser(u) ? myCard(u.uid) : null;
+    box.hidden = !card;
+    if (card) document.getElementById('rateMeBtn').href = rateMeUrl();
+    hint.hidden = !!card || isAdminNow() || !players.length;
 }
 // השורה העליונה בחלון: מי מחובר ועם איזה חשבון Google, ואיך מתנתקים
 function acctRowHTML(u, profile) {
@@ -4765,7 +4799,8 @@ function renderMe() {
     const card = myCard(s.user.uid);
     if (card) {
         return paintMe(`${prof}<div class="me-status linked">✅ הכרטיס של <b>${esc(card.name)}</b> מחובר לפרופיל שלך.</div>
-            <p class="me-text">בדף ההרשמה של הקבוצה תופיע לך הרשמה בלחיצה אחת, בכל מכשיר שבו נכנסת עם החשבון הזה.</p>
+            <p class="me-text">בדף ההרשמה של הקבוצה תופיע לך הרשמה בלחיצה אחת, בכל מכשיר שבו נכנסת עם החשבון הזה. ואפשר גם לדרג את שחקני הקבוצה:</p>
+            <a class="btn me-rate" href="${escAdminText(rateMeUrl())}">⭐ דירוג שחקני הקבוצה</a>
             <button type="button" class="me-outline danger" onclick="meUnlink()">ניתוק הכרטיס מהפרופיל</button>`);
     }
     if (!s.profile) {
@@ -4900,17 +4935,23 @@ async function meUnlink() {
     }
 }
 
-// טיפ חד-פעמי: לשחקנים — "הכרטיס שלי" ב"עוד"; למנהלים — שהבקשות מגיעות ללשונית הסגל
+// טיפ חד-פעמי: לשחקנים — "הכרטיס שלי" ב"עוד"; למנהלים — שהבקשות מגיעות ללשונית הסגל;
+// ולמי שהכרטיס שלו מחובר (גם מנהל) — שאפשר לדרג את השחקנים בלשונית הדירוגים
 function maybeTourMe() {
     if (!window.Tour || currentSection !== 'game') return;
     if ([...document.querySelectorAll('.modal-overlay')].some(o => o.style.display === 'flex')) return;
-    if (isAdminNow()) {
+    if (isAdminNow() && !Tour.seen('group-admin-links')) {
         Tour.run('group-admin-links', [{ el: '#groupNav [data-sec="squad"]', title: '🔗 חדש: פרופיל שחקן',
             text: 'שחקנים יכולים לחבר את הכרטיס שלהם לפרופיל שחקן, ולהירשם למשחקים בלחיצה אחת. הבקשות מגיעות ללשונית הסגל, ושם מאשרים.' }]);
         return;
     }
     const u = firebase.auth().currentUser;
-    if (AdminAuth.isRealUser(u) && myCard(u.uid)) return;
+    if (AdminAuth.isRealUser(u) && myCard(u.uid)) {
+        Tour.run('group-rate', [{ el: '#groupNav [data-sec="ratings"]', title: '⭐ חדש: לדרג את השחקנים',
+            text: 'הכרטיס שלך מחובר, אז אפשר לדרג את שחקני הקבוצה ישר מכאן, בלי קישור: בלשונית "דירוגים".' }]);
+        return;
+    }
+    if (isAdminNow()) return;
     Tour.run('group-me', [{ el: '#groupNav [data-sec="more"]', title: '👤 חדש: הכרטיס שלי',
         text: 'ב"עוד" אפשר לחבר את הכרטיס שלך בקבוצה לפרופיל שחקן, ולהירשם למשחקים בלחיצה אחת. לא חובה.' }]);
 }
