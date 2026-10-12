@@ -159,8 +159,10 @@ service cloud.firestore {
         && voterOwns(gid, d.lastVoteToken);
     }
 
+    // הקישור שייך למי שתפס אותו (uid), או לשחקן שמחובר לכרטיס שלו ומדרג איתו מהחשבון (acct)
     function voterOwns(gid, token) {
-      return get(/databases/$(database)/documents/groups/$(gid)/voters/$(token)).data.get('uid', null) == request.auth.uid;
+      let v = get(/databases/$(database)/documents/groups/$(gid)/voters/$(token)).data;
+      return v.get('uid', null) == request.auth.uid || v.get('acct', null) == request.auth.uid;
     }
 
     // ================= פרופיל שחקן וחיבור לכרטיס =================
@@ -209,18 +211,56 @@ service cloud.firestore {
     }
 
     // ================= קישורי הצבעה =================
-    function voterClaimOk() {
+    // voters/{token}: uid = המכשיר או החשבון שתפס את הקישור. acct = חשבון של שחקן שמחובר לכרטיס שלו ומדרג עם הקישור הזה מהאפליקציה.
+    // pid = מסמך שנוצר דרך הכרטיס, בלי קישור מהמנהל (המזהה שלו הוא מזהה החשבון). קישור כזה רק בעל החשבון תופס מחדש
+    function voterClaimOk(token) {
       return signedIn()
         && resource.data.get('uid', null) == null
         && request.resource.data.uid == request.auth.uid
-        && changedKeys().hasOnly(['uid', 'claimedAt', 'lastSeen']);
+        && changedKeys().hasOnly(['uid', 'claimedAt', 'lastSeen'])
+        && (resource.data.get('pid', null) == null || token == request.auth.uid);
     }
 
     function voterTouchOk() {
       return signedIn()
-        && resource.data.get('uid', null) == request.auth.uid
+        && (resource.data.get('uid', null) == request.auth.uid || resource.data.get('acct', null) == request.auth.uid)
         && changedKeys().hasOnly(['lastSeen', 'votedCount'])
         && request.resource.data.get('votedCount', 0) <= resource.data.get('votedCount', 0) + 1;
+    }
+
+    function cardOf(gid, pid) {
+      return get(/databases/$(database)/documents/groups/$(gid)/players/$(pid)).data;
+    }
+
+    // name הוא השם שעל הכרטיס שהחשבון מחובר אליו בקבוצה. הכרטיס נמצא לפי פרופיל השחקן (users/{uid}.groups), ורק אם הוא באמת מחובר לחשבון
+    function isMyCardName(gid, name) {
+      let pid = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('groups', {}).get(gid, {}).get('pid', '');
+      return name is string && name.size() > 0
+        && cardOf(gid, pid).get('uid', '') == request.auth.uid
+        && cardOf(gid, pid).get('name', '') == name;
+    }
+
+    // שחקן שמחובר לכרטיס שלו מדרג בלי קישור: מסמך משלו, שהמזהה שלו הוא מזהה החשבון ושמו הוא השם שעל הכרטיס
+    function linkedVoterOk(gid, token) {
+      let d = request.resource.data;
+      return isRealUser()
+        && token == request.auth.uid
+        && d.keys().hasOnly(['name', 'uid', 'pid', 'votedCount', 'createdAt', 'claimedAt', 'lastSeen'])
+        && d.uid == request.auth.uid
+        && d.pid is string && d.pid.matches('^[A-Za-z0-9_-]{1,40}$')
+        && cardOf(gid, d.pid).get('uid', '') == request.auth.uid
+        && d.name == cardOf(gid, d.pid).get('name', '')
+        && d.get('votedCount', 0) == 0;
+    }
+
+    // ואם המנהל כבר יצר לו קישור אישי (באותו שם כמו הכרטיס), הוא מצטרף אליו וממשיך ממנו, כדי שלא ידרג פעמיים
+    function voterAttachOk(gid) {
+      return isRealUser()
+        && resource.data.get('acct', null) == null
+        && resource.data.get('pid', null) == null
+        && changedKeys().hasOnly(['acct', 'lastSeen'])
+        && request.resource.data.acct == request.auth.uid
+        && isMyCardName(gid, resource.data.get('name', ''));
     }
 
     // ================= MVP =================
@@ -370,15 +410,21 @@ service cloud.firestore {
       // ===== קישורי הצבעה אישיים =====
       match /voters/{token} {
         // הטוקן הוא הסוד שבקישור; רשימת כל הטוקנים — למנהלים בלבד.
-        // קישור שכבר שויך למכשיר (ובו שם המדרג) — רק המכשיר הזה והמנהלים קוראים אותו
+        // קישור שכבר שויך למכשיר (ובו שם המדרג) — רק המכשיר הזה, החשבון שמדרג איתו והמנהלים קוראים אותו
         allow get: if signedIn()
                    && (resource == null
                        || resource.data.get('uid', null) == null
                        || resource.data.uid == request.auth.uid
+                       || resource.data.get('acct', null) == request.auth.uid
                        || isGroupAdmin(gid));
-        allow list: if isGroupAdmin(gid);
-        allow create: if isGroupAdmin(gid) && request.resource.data.get('uid', null) == null;
-        allow update: if isGroupAdmin(gid) || voterClaimOk() || voterTouchOk();
+        // שחקן רואה רק את הקישורים שלו, ואת הקישורים שעל שם הכרטיס שמחובר אליו (כדי להצטרף אליהם)
+        allow list: if isGroupAdmin(gid)
+                    || (signedIn() && resource.data.uid == request.auth.uid)
+                    || (signedIn() && resource.data.acct == request.auth.uid)
+                    || (isRealUser() && isMyCardName(gid, resource.data.name));
+        allow create: if (isGroupAdmin(gid) && request.resource.data.get('uid', null) == null)
+                      || linkedVoterOk(gid, token);
+        allow update: if isGroupAdmin(gid) || voterClaimOk(token) || voterTouchOk() || voterAttachOk(gid);
         allow delete: if isGroupAdmin(gid);
 
         // ההצבעות עצמן — הבעלים של הטוקן, או מנהלי הקבוצה לתחזוקה
