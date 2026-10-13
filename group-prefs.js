@@ -25,14 +25,22 @@
     //   label   — מי שמסומן בקבוצת העדיפות (למשל "תושב מגדים"). כשהכלל "פעילים" פועל, זה עוזר רק לשחקן פעיל,
     //             וכשהכלל "ותיקים" פועל — רק לשחקן חדש (הוותיקים ממילא קודמים)
     //   age     — מגיל ageMin ומעלה. בלי תאריך לידה נחשבים צעירים
+    // בכלל "ותיקים" יש גם מדרגה בתוך החדשים (newWeeks): מי שמסומן 🆕 ובקבוצה פחות מ-newWeeks שבועות לפי תאריך
+    // ההצטרפות בכרטיס ("חדש לגמרי") נכנס אחרי שאר החדשים. המדרגה הזו קודמת לקבוצת העדיפות: חדש שבקבוצה כבר
+    // חודשיים נכנס לפני תושב שהגיע לפני שבועיים, ובתוך כל מדרגה התושבים קודם.
     // בתוך אותה דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד לא נדחק (registration.html).
     // קבוצה בלי regPriority נפתחה לפני שזו הפכה להגדרה, וממשיכה עם הכללים שהיו קבועים עד אז (כולם, מגיל 30).
     const DEFAULT_PRIORITY_AGE = 30;
     const PRIORITY_AGE_MIN = 16, PRIORITY_AGE_MAX = 70;
+    const DEFAULT_NEW_WEEKS = 6, NEW_WEEKS_MAX = 26;   // 0 = בלי מדרגה בתוך החדשים
 
     function validPriorityAge(n) {
         const v = Number(n);
         return Number.isInteger(v) && v >= PRIORITY_AGE_MIN && v <= PRIORITY_AGE_MAX;
+    }
+    function validNewWeeks(n) {
+        const v = Number(n);
+        return n !== '' && n != null && Number.isInteger(v) && v >= 0 && v <= NEW_WEEKS_MAX;
     }
 
     // ההגדרות כפי שנשמרו (לטופס ההגדרות): כל כלל עם הסימון שלו, גם כשהמצב הוא "כל הקודם זוכה"
@@ -41,7 +49,8 @@
         const labelText = priorityLabel(groupId, groupData);
         const p = s.regPriority;
         if (!p || typeof p !== 'object') {
-            return { mode: 'rules', active: true, veteran: true, label: !!labelText, age: true, ageMin: DEFAULT_PRIORITY_AGE, labelText, legacy: true };
+            return { mode: 'rules', active: true, veteran: true, label: !!labelText, age: true, ageMin: DEFAULT_PRIORITY_AGE,
+                newWeeks: DEFAULT_NEW_WEEKS, labelText, legacy: true };
         }
         return {
             mode: p.mode === 'rules' ? 'rules' : 'first',
@@ -50,11 +59,12 @@
             label: p.label === true,
             age: p.age === true,
             ageMin: validPriorityAge(p.ageMin) ? Number(p.ageMin) : DEFAULT_PRIORITY_AGE,
+            newWeeks: validNewWeeks(p.newWeeks) ? Number(p.newWeeks) : DEFAULT_NEW_WEEKS,
             labelText
         };
     }
 
-    // הכללים שפועלים בפועל: label = שם קבוצת העדיפות או '' ; age = הגיל או 0
+    // הכללים שפועלים בפועל: label = שם קבוצת העדיפות או '' ; age = הגיל או 0 ; newWeeks = מספר השבועות או 0
     function regPriority(groupId, groupData) {
         const p = priorityPrefs(groupId, groupData);
         const on = p.mode === 'rules';
@@ -62,20 +72,69 @@
             active: on && p.active,
             veteran: on && p.veteran,
             label: on && p.label ? p.labelText : '',
-            age: on && p.age ? p.ageMin : 0
+            age: on && p.age ? p.ageMin : 0,
+            newWeeks: on && p.veteran ? p.newWeeks : 0
         };
         cfg.mode = (cfg.active || cfg.veteran || cfg.label || cfg.age) ? 'rules' : 'first';
         return cfg;
     }
 
+    // ===== תאריך ההצטרפות (joinDate בכרטיס, בפורמט YYYY-MM-DD, כמו תאריך הלידה) =====
+    // 'YYYY-MM-DD' → חצות של אותו יום (שעון מקומי) במילישניות, או null
+    function ymdToMs(s) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s == null ? '' : s));
+        if (!m) return null;
+        const d = new Date(+m[1], +m[2] - 1, +m[3]);
+        return d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? d.getTime() : null;
+    }
+    // התאריך של היום (או של t) בפורמט YYYY-MM-DD, לפי השעון המקומי
+    function todayYmd(t) {
+        const d = t == null ? new Date() : new Date(t);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    // כמה ימים שלמים השחקן בקבוצה ביום refMs (ברירת מחדל: היום), או null כשאין תאריך בכרטיס
+    function daysInGroup(player, refMs) {
+        const j = ymdToMs(player && player.joinDate);
+        if (j == null) return null;
+        const r = new Date(refMs == null ? Date.now() : refMs);
+        return Math.round((new Date(r.getFullYear(), r.getMonth(), r.getDate()).getTime() - j) / 864e5);
+    }
+    // "חדש לגמרי": מסומן 🆕 ובקבוצה פחות מ-newWeeks שבועות ביום refMs. בלי תאריך בכרטיס — לא
+    function isFreshNew(cfg, player, refMs) {
+        if (!cfg || !cfg.veteran || !cfg.newWeeks || !player || !player.isNew) return false;
+        const d = daysInGroup(player, refMs);
+        return d != null && d < cfg.newWeeks * 7;
+    }
+    // כמה ימים נשארו עד שהוא כבר לא "חדש לגמרי" (0 = כבר לא, או שאין תאריך)
+    function freshDaysLeft(cfg, player, refMs) {
+        if (!isFreshNew(cfg, player, refMs)) return 0;
+        return cfg.newWeeks * 7 - daysInGroup(player, refMs);
+    }
+    // "שבוע" / "שבועיים" / "6 שבועות"
+    function weeksText(n) { return n === 1 ? 'שבוע' : n === 2 ? 'שבועיים' : `${n} שבועות`; }
+    // משך בקבוצה בשפה פשוטה: "היום" / "5 ימים" / "3 שבועות" / "4 חודשים" / "שנה וחודשיים"
+    function durationText(days) {
+        const d = Math.max(0, Math.floor(Number(days) || 0));
+        const unit = (n, one, two, many) => n === 1 ? one : n === 2 ? two : `${n} ${many}`;
+        if (d === 0) return 'היום';
+        if (d < 14) return unit(d, 'יום', 'יומיים', 'ימים');
+        if (d < 60) return unit(Math.floor(d / 7), 'שבוע', 'שבועיים', 'שבועות');
+        if (d < 365) return unit(Math.floor(d / 30.44), 'חודש', 'חודשיים', 'חודשים');
+        const y = Math.floor(d / 365), mo = Math.floor((d - y * 365) / 30.42);
+        const yt = unit(y, 'שנה', 'שנתיים', 'שנים');
+        return mo > 0 ? `${yt} ו${unit(mo, 'חודש', 'חודשיים', 'חודשים')}` : yt;
+    }
+
     // דרגת העדיפות של שחקן: מספר קטן יותר = נכנס קודם. 0 לכולם ב"כל הקודם זוכה".
-    // player = כרטיס השחקן (הדגלים), age = הגיל בשנים או null
-    function priorityRank(cfg, player, age) {
+    // player = כרטיס השחקן (הדגלים ותאריך ההצטרפות), age = הגיל בשנים או null,
+    // refMs = היום שלפיו בודקים כמה זמן השחקן בקבוצה (בהרשמה: יום המשחק). ברירת מחדל: היום
+    function priorityRank(cfg, player, age, refMs) {
         if (!cfg || cfg.mode !== 'rules' || !player) return 0;
         let rank = 0;
         const rule = ok => { rank = rank * 2 + (ok ? 0 : 1); };
         if (cfg.active) rule(!!player.isActive);
         if (cfg.veteran) rule(!player.isNew);
+        if (cfg.veteran && cfg.newWeeks) rule(!isFreshNew(cfg, player, refMs));
         if (cfg.label) rule(!!player.isMoshavResident && (!cfg.active || !!player.isActive) && (!cfg.veteran || !!player.isNew));
         if (cfg.age) rule(age != null && age >= cfg.age);
         return rank;
@@ -94,7 +153,9 @@
         if (!cfg || cfg.mode !== 'rules') return [];
         const out = [];
         if (cfg.active) out.push('✅ שחקנים פעילים');
-        if (cfg.veteran) out.push('⭐ ותיקים לפני 🆕 חדשים');
+        if (cfg.veteran) out.push(cfg.newWeeks
+            ? `⭐ ותיקים, אחריהם 🆕 חדשים, ובסוף 🌱 חדשים לגמרי (פחות מ-${weeksText(cfg.newWeeks)} בקבוצה)`
+            : '⭐ ותיקים לפני 🆕 חדשים');
         if (cfg.label) {
             const scope = priorityLabelScope(cfg);
             out.push('🏠 ' + cfg.label + (scope ? ' (' + scope + ')' : ''));
@@ -551,6 +612,8 @@
     window.GroupPrefs = {
         priorityLabel, priorityPrefs, regPriority, priorityRank, priorityLabelScope, priorityRuleTexts,
         validPriorityAge, DEFAULT_PRIORITY_AGE, PRIORITY_AGE_MIN, PRIORITY_AGE_MAX,
+        validNewWeeks, DEFAULT_NEW_WEEKS, NEW_WEEKS_MAX,
+        ymdToMs, todayYmd, daysInGroup, isFreshNew, freshDaysLeft, weeksText, durationText,
         cleanPlayerName, playerNameKey, parsePlayerList, PLAYER_NAME_MAX, BULK_MAX,
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
         cleanDays, cleanTime, formatSchedule, normalizePhone, phoneToIntl, buildListing,
