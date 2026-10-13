@@ -29,10 +29,14 @@
     // ההצטרפות בכרטיס ("חדש לגמרי") נכנס אחרי שאר החדשים. המדרגה הזו קודמת לקבוצת העדיפות: חדש שבקבוצה כבר
     // חודשיים נכנס לפני תושב שהגיע לפני שבועיים, ובתוך כל מדרגה התושבים קודם.
     // בתוך אותה דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד לא נדחק (registration.html).
+    // בכלל "פעילים" אפשר להוסיף ספירה אוטומטית (activeWeeks): מי שלא נרשם כל השבועות האלה יורד מ"פעיל",
+    // וחוזר אחרי backWeeks שבועות רצופים של הרשמה. activeSince = היום שבו הכלל הודלק, וממנו סופרים (activityPlan).
     // קבוצה בלי regPriority נפתחה לפני שזו הפכה להגדרה, וממשיכה עם הכללים שהיו קבועים עד אז (כולם, מגיל 30).
     const DEFAULT_PRIORITY_AGE = 30;
     const PRIORITY_AGE_MIN = 16, PRIORITY_AGE_MAX = 70;
     const DEFAULT_NEW_WEEKS = 6, NEW_WEEKS_MAX = 26;   // 0 = בלי מדרגה בתוך החדשים
+    const ACTIVE_WEEKS_MAX = 8;                         // 0 = "פעיל" רק ידנית
+    const DEFAULT_BACK_WEEKS = 3, BACK_WEEKS_MAX = 8;
 
     function validPriorityAge(n) {
         const v = Number(n);
@@ -42,6 +46,14 @@
         const v = Number(n);
         return n !== '' && n != null && Number.isInteger(v) && v >= 0 && v <= NEW_WEEKS_MAX;
     }
+    function validActiveWeeks(n) {
+        const v = Number(n);
+        return n !== '' && n != null && Number.isInteger(v) && v >= 0 && v <= ACTIVE_WEEKS_MAX;
+    }
+    function validBackWeeks(n) {
+        const v = Number(n);
+        return n !== '' && n != null && Number.isInteger(v) && v >= 1 && v <= BACK_WEEKS_MAX;
+    }
 
     // ההגדרות כפי שנשמרו (לטופס ההגדרות): כל כלל עם הסימון שלו, גם כשהמצב הוא "כל הקודם זוכה"
     function priorityPrefs(groupId, groupData) {
@@ -50,7 +62,7 @@
         const p = s.regPriority;
         if (!p || typeof p !== 'object') {
             return { mode: 'rules', active: true, veteran: true, label: !!labelText, age: true, ageMin: DEFAULT_PRIORITY_AGE,
-                newWeeks: DEFAULT_NEW_WEEKS, labelText, legacy: true };
+                newWeeks: DEFAULT_NEW_WEEKS, activeWeeks: 0, backWeeks: DEFAULT_BACK_WEEKS, activeSince: '', labelText, legacy: true };
         }
         return {
             mode: p.mode === 'rules' ? 'rules' : 'first',
@@ -60,11 +72,15 @@
             age: p.age === true,
             ageMin: validPriorityAge(p.ageMin) ? Number(p.ageMin) : DEFAULT_PRIORITY_AGE,
             newWeeks: validNewWeeks(p.newWeeks) ? Number(p.newWeeks) : DEFAULT_NEW_WEEKS,
+            activeWeeks: validActiveWeeks(p.activeWeeks) ? Number(p.activeWeeks) : 0,
+            backWeeks: validBackWeeks(p.backWeeks) ? Number(p.backWeeks) : DEFAULT_BACK_WEEKS,
+            activeSince: ymdToMs(p.activeSince) != null ? p.activeSince : '',
             labelText
         };
     }
 
-    // הכללים שפועלים בפועל: label = שם קבוצת העדיפות או '' ; age = הגיל או 0 ; newWeeks = מספר השבועות או 0
+    // הכללים שפועלים בפועל: label = שם קבוצת העדיפות או '' ; age = הגיל או 0 ; newWeeks = מספר השבועות או 0 ;
+    // activeWeeks = כמה שבועות בלי הרשמה עד שיורדים מ"פעיל", או 0 (רק ידנית, או שאין תאריך התחלה)
     function regPriority(groupId, groupData) {
         const p = priorityPrefs(groupId, groupData);
         const on = p.mode === 'rules';
@@ -73,7 +89,10 @@
             veteran: on && p.veteran,
             label: on && p.label ? p.labelText : '',
             age: on && p.age ? p.ageMin : 0,
-            newWeeks: on && p.veteran ? p.newWeeks : 0
+            newWeeks: on && p.veteran ? p.newWeeks : 0,
+            activeWeeks: on && p.active && p.activeSince ? p.activeWeeks : 0,
+            backWeeks: p.backWeeks,
+            activeSince: p.activeSince
         };
         cfg.mode = (cfg.active || cfg.veteran || cfg.label || cfg.age) ? 'rules' : 'first';
         return cfg;
@@ -152,7 +171,9 @@
     function priorityRuleTexts(cfg) {
         if (!cfg || cfg.mode !== 'rules') return [];
         const out = [];
-        if (cfg.active) out.push('✅ שחקנים פעילים');
+        if (cfg.active) out.push(cfg.activeWeeks
+            ? `✅ שחקנים פעילים (מי שלא נרשם ${weeksText(cfg.activeWeeks)} מפסיק להיות פעיל)`
+            : '✅ שחקנים פעילים');
         if (cfg.veteran) out.push(cfg.newWeeks
             ? `⭐ ותיקים, אחריהם 🆕 חדשים, ובסוף 🌱 חדשים לגמרי (פחות מ-${weeksText(cfg.newWeeks)} בקבוצה)`
             : '⭐ ותיקים לפני 🆕 חדשים');
@@ -162,6 +183,144 @@
         }
         if (cfg.age) out.push(`🎂 מגיל ${cfg.age} ומעלה`);
         return out;
+    }
+
+    // ===== פעילות אוטומטית: מי שלא נרשם activeWeeks שבועות יורד מ"פעיל" =====
+    // הכול לפי ימים בלוח השנה המקומי. מספר יום = ימים מ-1.1.1970, כדי לחשב פערים בלי בעיות של שעון קיץ
+    function dayNum(v) {
+        let y, m, d;
+        if (typeof v === 'string') {
+            const r = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+            if (!r || ymdToMs(v) == null) return null;
+            y = +r[1]; m = +r[2] - 1; d = +r[3];
+        } else if (typeof v === 'number' && Number.isFinite(v)) {
+            const t = new Date(v);
+            y = t.getFullYear(); m = t.getMonth(); d = t.getDate();
+        } else return null;
+        return Math.round(Date.UTC(y, m, d) / 864e5);
+    }
+    function dayYmd(n) {
+        const t = new Date(n * 864e5);
+        return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`;
+    }
+    // היום הראשון (יום ראשון) של השבוע. 1.1.1970 היה יום חמישי
+    const weekOf = n => n - ((n + 4) % 7);
+
+    // המשחקים שנספרים, ומתי כל שחקן נרשם, מתוך מסמכי ההרשמה.
+    // regs: [{ day: 'YYYY-MM-DD' (יום המשחק), done: המשחק כבר עבר, people: [{ pid, at: מתי נרשם (ms) או null, listed: עדיין ברשימה }] }]
+    // listed כולל את רשימת ההמתנה. מי שנרשם וביטל מופיע עם listed=false, ונחשב כמי שנרשם.
+    // משחק נספר אם הוא כבר עבר ונשארו ברשימה לפחות minPlayers (מספיק לשתי קבוצות). כמה מסמכים לאותו יום = משחק אחד.
+    // → { games: [{ n, day, ids }] לפי הסדר, acts: { pid: [ימים שבהם נרשם] } } — acts כוללים גם הרשמות למשחקים שעוד לא היו
+    function activityData(regs, minPlayers) {
+        const byDay = new Map(), acts = {};
+        (regs || []).forEach(r => {
+            const n = dayNum(r && r.day);
+            if (n == null) return;
+            let g = byDay.get(n);
+            if (!g) { g = { n, day: dayYmd(n), done: false, ids: new Set(), listed: new Set() }; byDay.set(n, g); }
+            if (r.done) g.done = true;
+            (r.people || []).forEach(x => {
+                if (!x || typeof x.pid !== 'string' || !x.pid) return;
+                g.ids.add(x.pid);
+                if (x.listed) g.listed.add(x.pid);
+                const a = dayNum(x.at);
+                (acts[x.pid] = acts[x.pid] || []).push(a == null ? n : Math.min(a, n));
+            });
+        });
+        Object.keys(acts).forEach(k => { acts[k] = Array.from(new Set(acts[k])).sort((a, b) => a - b); });
+        const min = Math.max(1, Number(minPlayers) || 1);
+        const games = Array.from(byDay.values()).filter(g => g.done && g.listed.size >= min)
+            .sort((a, b) => a.n - b.n).map(g => ({ n: g.n, day: g.day, ids: g.ids }));
+        return { games, acts };
+    }
+
+    // מה קורה עם שחקן אחד לפי הכלל. data = activityData. מחזיר { kind, ... } ולפעמים set/del = שינויים לשמור בכרטיס:
+    //   off   — הכלל כבוי, או שהשחקן סומן "לא פעיל" ידנית
+    //   ok    — פעיל ונרשם לאחרונה (last = היום האחרון שנספר לו)
+    //   risk  — פעיל, לא נרשם מאז last ופספס משחק: משחק נוסף בלי הרשמה מ-dropBy והלאה, והוא יורד
+    //   away  — "⏸ נעדר באישור" (until = עד איזה יום, או null = עד שיירשם שוב)
+    //   drop  — יורד עכשיו מ"פעיל": עברו activeWeeks שבועות בלי אף הרשמה, ובהם לפחות 2 משחקים (at = המשחק שהשלים אותם)
+    //   down  — ירד אוטומטית אחרי המשחק ב-since, ומוכיח את עצמו: נרשם done מתוך need שבועות רצופים
+    //   back  — חוזר עכשיו להיות פעיל (at = המשחק שהשלים את השבועות)
+    // שדות בכרטיס: isActive · autoOff ('YYYY-MM-DD': ירד אוטומטית אחרי המשחק הזה) · actFrom ('YYYY-MM-DD': סופרים רק אחריו) ·
+    // excused ({ at, until }: נעדר באישור מ-at עד until כולל, או until=null עד ההרשמה הבאה) · joinDate
+    function activityPlan(cfg, p, data, nowMs) {
+        const W = cfg && cfg.active ? Number(cfg.activeWeeks) || 0 : 0;
+        const since = dayNum(cfg && cfg.activeSince);
+        if (!W || since == null || !p || !p.id) return { kind: 'off' };
+        const B = validBackWeeks(cfg.backWeeks) ? Number(cfg.backWeeks) : DEFAULT_BACK_WEEKS;
+        const today = dayNum(nowMs == null ? Date.now() : nowMs);
+        const games = (data && data.games) || [];
+        const acts = ((data && data.acts) || {})[p.id] || [];
+        const set = {}, del = [];
+        const out = o => { if (Object.keys(set).length) o.set = set; if (del.length) o.del = del; return o; };
+        const num = v => { const n = dayNum(v); return n == null ? -Infinity : n; };
+
+        // נעדר באישור: עם תאריך — עד סופו. בלי תאריך — עד ההרשמה הראשונה אחרי היום שבו סומן
+        const ex = p.excused && typeof p.excused === 'object' ? p.excused : null;
+        let away = false, exEnd = null;   // exEnd = היום שבו נגמרה ההיעדרות: סופרים רק אחריו
+        if (ex) {
+            const at = dayNum(ex.at), until = ex.until ? dayNum(ex.until) : null;
+            const back = until == null ? acts.find(a => at == null || a > at) : undefined;
+            if (ex.until && until == null) del.push('excused');
+            else if (until != null) { if (until >= today) away = true; else { exEnd = until; del.push('excused'); } }
+            else if (back != null) { exEnd = back; del.push('excused'); }
+            else away = true;
+        }
+
+        if (!p.isActive) {
+            if (!p.autoOff) return out({ kind: 'off' });
+            const off = dayNum(p.autoOff);
+            if (off == null) { del.push('autoOff'); return out({ kind: 'off' }); }
+            if (away) {   // מי שירד וסומן "נעדר באישור" חוזר מיד
+                Object.assign(set, { isActive: true, actFrom: dayYmd(today) });
+                del.push('autoOff');
+                return out({ kind: 'back', at: dayYmd(today) });
+            }
+            // השבועות (ראשון עד שבת) שהיה בהם משחק אחרי שירד. שבוע שעבר בלי הרשמה מאפס; השבוע הנוכחי לא מאפס כל עוד הוא לא נגמר
+            const weeks = [];
+            for (const g of games) {
+                if (g.n <= off) continue;
+                let wk = weeks[weeks.length - 1];
+                if (!wk || wk.w !== weekOf(g.n)) { wk = { w: weekOf(g.n), hit: null }; weeks.push(wk); }
+                if (wk.hit == null && g.ids.has(p.id)) wk.hit = g.n;
+            }
+            const thisWeek = weekOf(today);
+            let streak = 0;
+            for (const wk of weeks) {
+                if (wk.hit != null) {
+                    if (++streak >= B) {
+                        Object.assign(set, { isActive: true, actFrom: dayYmd(wk.hit) });
+                        del.push('autoOff');
+                        return out({ kind: 'back', at: dayYmd(wk.hit) });
+                    }
+                } else if (wk.w < thisWeek) streak = 0;
+            }
+            return out({ kind: 'down', since: dayYmd(off), done: streak, need: B });
+        }
+
+        // פעיל. סימון ישן של "ירד אוטומטית" = המנהל החזיר אותו ידנית, וסופרים מהיום
+        let floor = Math.max(since, num(p.joinDate), num(p.actFrom));
+        if (p.autoOff) { del.push('autoOff'); set.actFrom = dayYmd(today); floor = Math.max(floor, today); }
+        if (exEnd != null && exEnd > floor) { set.actFrom = dayYmd(exEnd); floor = exEnd; }
+        if (away) return out({ kind: 'away', until: ex.until || null });
+
+        // last = היום האחרון שנספר לו (הרשמה, או תחילת הספירה); reg = האם זו הייתה הרשמה
+        let last = floor, reg = false, missed = 0, ai = 0;
+        const seen = upto => { while (ai < acts.length && acts[ai] <= upto) { if (acts[ai] > last) { last = acts[ai]; reg = true; missed = 0; } ai++; } };
+        for (const g of games) {
+            if (g.n <= floor) continue;
+            seen(g.n);
+            if (g.ids.has(p.id)) { if (g.n > last) last = g.n; reg = true; missed = 0; continue; }
+            missed++;
+            if (g.n - last >= 7 * W && missed >= 2) {
+                Object.assign(set, { isActive: false, autoOff: g.day });
+                return out({ kind: 'drop', at: g.day, last: dayYmd(last), reg });
+            }
+        }
+        seen(Infinity);
+        if (missed >= 1 && today - last >= 7 * (W - 1)) return out({ kind: 'risk', last: dayYmd(last), reg, dropBy: dayYmd(last + 7 * W) });
+        return out({ kind: 'ok', last: dayYmd(last), reg });
     }
 
     // ===== הוספת כמה שחקנים בבת אחת: רשימת שמות מודבקת, גם מהוואטסאפ =====
@@ -613,6 +772,8 @@
         priorityLabel, priorityPrefs, regPriority, priorityRank, priorityLabelScope, priorityRuleTexts,
         validPriorityAge, DEFAULT_PRIORITY_AGE, PRIORITY_AGE_MIN, PRIORITY_AGE_MAX,
         validNewWeeks, DEFAULT_NEW_WEEKS, NEW_WEEKS_MAX,
+        validActiveWeeks, validBackWeeks, ACTIVE_WEEKS_MAX, DEFAULT_BACK_WEEKS, BACK_WEEKS_MAX,
+        dayNum, dayYmd, activityData, activityPlan,
         ymdToMs, todayYmd, daysInGroup, isFreshNew, freshDaysLeft, weeksText, durationText,
         cleanPlayerName, playerNameKey, parsePlayerList, PLAYER_NAME_MAX, BULK_MAX,
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
