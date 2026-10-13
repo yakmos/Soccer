@@ -29,7 +29,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20261007"></script>
-    <script src="group-prefs.js?v=20261007"></script>
+    <script src="group-prefs.js?v=20261013"></script>
     <script src="map-kit.js?v=20261007"></script>
     <script src="profile-kit.js?v=20261007"></script>
     <script src="tour.js?v=20261007"></script>
@@ -667,6 +667,31 @@
             padding: 1px 7px; border-radius: 6px;
             font-size: 0.7rem; font-weight: 800;
         }
+        /* 🌱 חדש לגמרי: מסומן "חדש" ועוד לא עברו השבועות הראשונים בקבוצה (GroupPrefs.isFreshNew) */
+        .badge-fresh {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: rgba(59,130,246,0.06); color: #93C5FD;
+            border: 1px dashed rgba(59,130,246,0.45);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+        /* תאריך ההצטרפות בטופס השחקן (למי שמסומן "חדש") */
+        .join-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; background: rgba(59,130,246,0.04); border: 1px dashed rgba(59,130,246,0.3); border-radius: 12px; padding: 10px 16px; }
+        .join-row[hidden] { display: none !important; }
+        .join-row label { font-weight: 800; color: #93C5FD; font-size: 0.9rem; }
+        .join-row .join-input { width: auto; flex: none; margin: 0; padding: 6px 10px; font-size: 0.9rem; color-scheme: dark; }
+        .join-hint { flex-basis: 100%; color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
+        .join-hint:empty { display: none; }
+        /* תזכורת בלשונית הסגל: חדשים שמתקרבים לשנה בקבוצה */
+        .year-card { border-color: rgba(59,130,246,0.5) !important; }
+        body.is-admin .year-card[hidden] { display: none; }
+        .yr-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); margin-bottom: 8px; }
+        .yr-tx { flex: 1; min-width: 0; }
+        .yr-tx b { display: block; }
+        .yr-tx small { color: var(--text-muted); font-size: 0.82rem; line-height: 1.4; }
+        .yr-ok { flex: none; background: rgba(16,185,129,0.12); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.45); border-radius: 10px; padding: 8px 12px; font: 800 0.85rem 'Heebo', sans-serif; cursor: pointer; }
+        .yr-ok:disabled { opacity: 0.6; cursor: default; }
+        .year-later { background: none; border: 0; color: var(--text-muted); font: 700 0.85rem 'Heebo', sans-serif; cursor: pointer; padding: 6px 0 0; text-decoration: underline; }
 
         .reg-banner {
             display: none;
@@ -1116,7 +1141,13 @@
                                     <div style="font-weight:800; color:#60A5FA; font-size:0.95rem;">🆕 שחקן חדש?</div>
                                     <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים חדשים מקבלים עדיפות נמוכה יותר</div>
                                 </div>
-                                <button type="button" id="newToggleBtn" onclick="togglePlayerFlag('isNew','newToggleBtn','🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא חדש</button>
+                                <button type="button" id="newToggleBtn" onclick="togglePlayerFlag('isNew','newToggleBtn','🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)'); updateJoinRow()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא חדש</button>
+                            </div>
+                            <!-- תאריך ההצטרפות: למי שמסומן "חדש" (המדרגה של החדשים לגמרי, והתזכורת כשמתקרבים לשנה) -->
+                            <div id="joinDateRow" class="join-row" hidden>
+                                <label for="pJoinDate">📅 הצטרף לקבוצה</label>
+                                <input type="date" id="pJoinDate" class="form-input join-input" oninput="updateJoinHint()">
+                                <div class="join-hint" id="joinHint"></div>
                             </div>
                             <!-- Priority group toggle (label per group: settings.priorityLabel) -->
                             <div id="priorityFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(252,211,77,0.06); border:1px solid rgba(252,211,77,0.2); border-radius:12px; padding:12px 16px;">
@@ -1222,6 +1253,13 @@
                             <button class="btn" id="cancelBtn" onclick="closePlayerForm()" style="display:none; background:var(--danger);">בטל עריכה</button>
                         </div>
                     </div>
+                </div>
+
+                <div class="card admin-only year-card" id="yearCard" hidden>
+                    <h2 class="card-title">🎂 שנה בקבוצה <span class="squad-count" id="yearCount"></span></h2>
+                    <p class="lr-sub">שחקנים שמסומנים 🆕 חדש ומתקרבים לשנה בקבוצה, או כבר עברו אותה. כשתחליט, הופכים אותם לוותיקים.</p>
+                    <div id="yearList"></div>
+                    <button type="button" class="year-later" onclick="snoozeYearCard()">תזכיר לי בעוד שבוע</button>
                 </div>
 
                 <div class="card admin-only link-req-card" id="linkReqCard" hidden>
@@ -1553,6 +1591,8 @@
                     <div class="prio-rule">
                         <label class="prio-check"><input type="checkbox" id="prioVeteran" onchange="updatePrioForm()"><span>⭐ ותיקים לפני חדשים</span></label>
                         <small>מסמנים "חדש" בכרטיס של מי שהצטרף לאחרונה</small>
+                        <div class="prio-age">🌱 חדשים לגמרי: <input type="number" id="prioNewWeeks" min="0" max="26" step="1" inputmode="numeric" oninput="onPrioNewWeeksInput()" aria-label="כמה שבועות"> השבועות הראשונים</div>
+                        <small>בין המסומנים "חדש", מי שבקבוצה פחות מזה (לפי תאריך ההצטרפות בכרטיס) נכנס אחרון, גם אחרי קבוצת העדיפות. 0 = בלי</small>
                     </div>
                     <div class="prio-rule">
                         <label class="prio-check"><input type="checkbox" id="prioLabel" onchange="onPrioLabelCheck()"><span>🏠 קבוצת עדיפות</span></label>
@@ -1841,6 +1881,7 @@ function setAdminMode(on) {
         ensureAdminUids();
         migrateCareerStats();
         maybeSyncAutoRegs();
+        fillJoinDates();
     } else {
         document.body.classList.remove('is-admin');
         toggleAdminMenu(false);
@@ -2084,6 +2125,7 @@ function startRealtimeListeners() {
         if (document.getElementById('lineupPickerOverlay').style.display === 'flex') renderLineupPicker();
         if (document.getElementById('meOverlay').style.display === 'flex') refreshMeOnPlayers();
         updateAcctChip();   // הכרטיס המחובר אולי קיבל תמונה
+        if (isAdminNow()) fillJoinDates();
         if (linkRequests.length) renderLinkRequests();
         if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
@@ -2211,12 +2253,39 @@ function applyPriorityUI() {
     }
     const hidden = document.getElementById('pIsMoshavResident');
     if (hidden) setPriorityFlagUI(hidden.value === 'true');
+    updateJoinRow();
 }
 
+// שחקן שנוסף לסגל: כשהכלל "ותיקים לפני חדשים" פועל הוא מתחיל כ"חדש" (אפשר להוריד), ותאריך ההצטרפות הוא היום
 function resetAllFlagButtons() {
     setPlayerFlagUI('isActive','activeToggleBtn',false,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
-    setPlayerFlagUI('isNew','newToggleBtn',false,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
+    setPlayerFlagUI('isNew','newToggleBtn',!!(prioCfg && prioCfg.veteran),'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(false);
+    setJoinDateField(GroupPrefs.todayYmd());
+}
+
+// ===== תאריך ההצטרפות בטופס השחקן =====
+function setJoinDateField(v) {
+    const el = document.getElementById('pJoinDate');
+    if (el) { el.value = v || ''; el.max = GroupPrefs.todayYmd(); }
+    updateJoinRow();
+}
+function updateJoinRow() {
+    const row = document.getElementById('joinDateRow'), isNew = document.getElementById('pIsNew');
+    if (!row || !isNew) return;
+    row.hidden = !(prioCfg && prioCfg.veteran && isNew.value === 'true');
+    updateJoinHint();
+}
+function updateJoinHint() {
+    const hint = document.getElementById('joinHint'), el = document.getElementById('pJoinDate');
+    if (!hint || !el) return;
+    const p = { isNew: true, joinDate: el.value };
+    const d = GroupPrefs.daysInGroup(p);
+    if (d == null) { hint.textContent = editingId ? 'בלי תאריך: ייקבע לפי היום שבו נוצר הכרטיס' : ''; return; }
+    if (d < 0) { hint.textContent = 'התאריך הזה עוד לא הגיע'; return; }
+    const left = GroupPrefs.freshDaysLeft(prioCfg, p);
+    hint.textContent = (d === 0 ? 'הצטרף היום' : `בקבוצה ${GroupPrefs.durationText(d)}`)
+        + (left > 0 ? ` · 🌱 חדש לגמרי עוד ${GroupPrefs.durationText(left)}` : '');
 }
 
 // ========== Custom Params Logic ==========
@@ -2593,6 +2662,11 @@ async function savePlayer() {
 
     const birthDate = document.getElementById('pBirthDate').value || null;
     let playerData = { name, isGk, isActive, isNew, isMoshavResident, lockedParams, birthDate };
+    // תאריך ההצטרפות: מה שבטופס, ולשחקן חדש בלי תאריך — היום. בעריכה, שדה ריק מוחק תאריך ששמור
+    const joinRaw = (document.getElementById('pJoinDate') || {}).value || '';
+    const joinDate = GroupPrefs.ymdToMs(joinRaw) != null ? joinRaw : '';
+    if (joinDate) playerData.joinDate = joinDate;
+    else if (!editingId) playerData.joinDate = GroupPrefs.todayYmd();
     if (isGk) {
         const gkDiv = parseFloat(document.getElementById('pGkDiv').value) || 5;
         const gkHan = parseFloat(document.getElementById('pGkHan').value) || 5;
@@ -2642,6 +2716,8 @@ async function savePlayer() {
             if (!hasLocked) {
                 updateData.lockedParams = firebase.firestore.FieldValue.delete();
             }
+            const before = players.find(x => x.id === id);
+            if (!joinDate && before && before.joinDate) updateData.joinDate = firebase.firestore.FieldValue.delete();
             justSaved = { id, at: Date.now() };
             await playersRef.doc(id).update(updateData);
             closePlayerForm();
@@ -2703,6 +2779,7 @@ function startEdit(id, p) {
     setPlayerFlagUI('isActive','activeToggleBtn',isActive,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
     setPlayerFlagUI('isNew','newToggleBtn',isNew,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(isMoshavResident);
+    setJoinDateField(GroupPrefs.ymdToMs(p.joinDate) != null ? p.joinDate : '');
 
     const isGk = !!p.isGk;
     document.getElementById('pIsGk').value = String(isGk);
@@ -2767,6 +2844,7 @@ function setPlayerFormOpen(open) {
 }
 function openPlayerForm() {
     if (editingId) cancelEdit();
+    else if (!document.getElementById('pName').value.trim()) resetAllFlagButtons();   // טופס ריק: ברירות המחדל של שחקן חדש
     setPlayerFormOpen(true);
     document.getElementById('pName').focus({ preventScroll: true });
 }
@@ -2806,7 +2884,7 @@ function newPlayerDefaults(name, flags) {
         name, isGk: false, isActive: false, isNew: false, isMoshavResident: false, lockedParams: {}, birthDate: null,
         atk: 5, def: 5, sta: 5, pac: 5, pas: 5, customStats, attScore: 5, defScore: 5,
         gkScore: 5, gkDiv: 5, gkHan: 5, gkKic: 5, gkPos: 5, gkRef: 5,
-        imgUrl: null, inLineup: false, goals: 0
+        imgUrl: null, inLineup: false, goals: 0, joinDate: GroupPrefs.todayYmd()
     }, flags || {});
 }
 
@@ -3209,6 +3287,7 @@ if (statKey === 'age') {
 
 // ========== Main Render ==========
 function render() {
+    renderYearCard();
     const currentScrollPos = window.scrollY;
     const numTeams = parseInt(groupSettings.numTeams) || 3;
     const playersPerTeam = parseInt(groupSettings.playersPerTeam) || 6;
@@ -3317,7 +3396,9 @@ function getPlayerBadgesHTML(p, small = false) {
     const sz = small ? 'font-size:0.65rem;' : '';
     let badges = '';   // רק לכללי העדיפות שפועלים בקבוצה
     if (p.isActive && prioCfg.active) badges += `<span class="badge-active" style="${sz}">✅ פעיל</span>`;
-    if (p.isNew && prioCfg.veteran) badges += `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
+    if (p.isNew && prioCfg.veteran) badges += GroupPrefs.isFreshNew(prioCfg, p)
+        ? `<span class="badge-fresh" style="${sz}" title="בקבוצה פחות מ-${GroupPrefs.weeksText(prioCfg.newWeeks)}">🌱 חדש לגמרי</span>`
+        : `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
     if (p.isMoshavResident && priorityLabel) badges += `<span class="badge-resident" style="${sz}">🏠 ${escAdminText(priorityLabel)}</span>`;
     return badges;
 }
@@ -3376,6 +3457,7 @@ function fillPriorityForm() {
     document.getElementById('setPriorityLabel').value = p.labelText;
     document.getElementById('prioAge').checked = p.age;
     document.getElementById('prioAgeMin').value = p.ageMin;
+    document.getElementById('prioNewWeeks').value = p.newWeeks;
     updatePrioForm();
 }
 
@@ -3388,6 +3470,7 @@ function readPriorityForm() {
         label: document.getElementById('prioLabel').checked,
         age: document.getElementById('prioAge').checked,
         ageMin: Number(document.getElementById('prioAgeMin').value),
+        newWeeks: document.getElementById('prioNewWeeks').value.trim(),
         labelText: (document.getElementById('setPriorityLabel').value || '').trim().slice(0, 30)
     };
 }
@@ -3412,6 +3495,10 @@ function onPrioAgeInput() {
     document.getElementById('prioAge').checked = true;
     updatePrioForm();
 }
+function onPrioNewWeeksInput() {
+    document.getElementById('prioVeteran').checked = true;
+    updatePrioForm();
+}
 
 function updatePrioForm() {
     const f = readPriorityForm();
@@ -3432,13 +3519,15 @@ function priorityFormToSettings() {
     if (f.mode === 'rules') {
         if (f.label && !f.labelText) return { error: 'כתוב שם לקבוצת העדיפות (לדוגמה "תושב השכונה"), או בטל את הסימון שלה.' };
         if (f.age && !GroupPrefs.validPriorityAge(f.ageMin)) return { error: `הגיל לעדיפות צריך להיות מספר שלם בין ${GroupPrefs.PRIORITY_AGE_MIN} ל-${GroupPrefs.PRIORITY_AGE_MAX}.` };
+        if (f.veteran && !GroupPrefs.validNewWeeks(f.newWeeks)) return { error: `מספר השבועות של "חדשים לגמרי" צריך להיות מספר שלם בין 0 ל-${GroupPrefs.NEW_WEEKS_MAX} (0 = בלי).` };
         if (!f.active && !f.veteran && !f.label && !f.age) return { error: 'סמן לפחות דבר אחד שנותן עדיפות, או בחר "כל הקודם זוכה".' };
     }
     return {
         priorityLabel: f.labelText,
         regPriority: {
             mode: f.mode, active: f.active, veteran: f.veteran, label: f.label, age: f.age,
-            ageMin: GroupPrefs.validPriorityAge(f.ageMin) ? f.ageMin : GroupPrefs.DEFAULT_PRIORITY_AGE
+            ageMin: GroupPrefs.validPriorityAge(f.ageMin) ? f.ageMin : GroupPrefs.DEFAULT_PRIORITY_AGE,
+            newWeeks: GroupPrefs.validNewWeeks(f.newWeeks) ? Number(f.newWeeks) : GroupPrefs.DEFAULT_NEW_WEEKS
         }
     };
 }
@@ -5002,6 +5091,100 @@ function maybeTourMe() {
     }
     Tour.run('group-me', [{ el: '#groupNav [data-sec="more"]', title: '👤 חדש: הכרטיס שלי',
         text: 'ב"עוד" אפשר לחבר את הכרטיס שלך בקבוצה לפרופיל שחקן, ולהירשם למשחקים בלחיצה אחת. לא חובה.' }]);
+}
+
+// ========== תאריך ההצטרפות (joinDate בכרטיס) ==========
+// כרטיס חדש נשמר עם התאריך של היום. לשחקנים שמסומנים "חדש" ונוספו לפני כן, המנהל משלים את התאריך שבו נוצר
+// הכרטיס: Firebase שומר אותו, והוא נקרא דרך ה-REST API כמו כל קריאה של הסגל (הסגל פתוח לקריאה)
+const joinFillTried = new Set();
+let joinFilling = false;
+async function fillJoinDates() {
+    if (!isAdminNow() || joinFilling || !prioCfg.veteran || !playersRef) return;
+    const need = players.filter(p => p.isNew && GroupPrefs.ymdToMs(p.joinDate) == null && SAFE_ID.test(p.id) && !joinFillTried.has(p.id));
+    if (!need.length) return;
+    need.forEach(p => joinFillTried.add(p.id));
+    joinFilling = true;
+    try {
+        const created = await fetchCardCreateTimes();
+        const batch = db.batch();
+        let n = 0;
+        need.forEach(p => {
+            if (!created[p.id]) return;
+            batch.update(playersRef.doc(p.id), { joinDate: GroupPrefs.todayYmd(created[p.id]) });
+            n++;
+        });
+        if (n) await batch.commit();
+    } catch (e) {
+        console.warn('join dates', e);
+    } finally {
+        joinFilling = false;
+    }
+}
+// { id: מתי נוצר הכרטיס במילישניות } לכל הסגל
+async function fetchCardCreateTimes() {
+    const o = firebase.app().options;
+    const base = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(o.projectId)}/databases/(default)/documents/groups/${encodeURIComponent(currentGroupId)}/players`;
+    const out = {};
+    let page = '';
+    for (let i = 0; i < 20; i++) {
+        const res = await fetch(`${base}?pageSize=300&mask.fieldPaths=name&key=${encodeURIComponent(o.apiKey)}` + (page ? `&pageToken=${encodeURIComponent(page)}` : ''));
+        if (!res.ok) throw new Error('players createTime ' + res.status);
+        const j = await res.json();
+        (j.documents || []).forEach(d => {
+            const id = String(d.name || '').split('/').pop();
+            const ms = Date.parse(d.createTime);
+            if (id && Number.isFinite(ms)) out[id] = ms;
+        });
+        if (!j.nextPageToken) break;
+        page = j.nextPageToken;
+    }
+    return out;
+}
+
+// ========== תזכורת בלשונית הסגל: חדשים שמתקרבים לשנה בקבוצה ==========
+// התווית "חדש" נשארת עד שנה בקבוצה. חודש לפני שמלאה שנה (ואחריה, עד שמורידים את התווית) השחקן מופיע כאן
+const YEAR_DAYS = 365, YEAR_SOON_DAYS = 30;
+const yearSnoozeKey = () => 'sm_yearSnooze_' + currentGroupId;
+function yearCandidates() {
+    if (!prioCfg.veteran) return [];
+    return players.filter(p => p.isNew && SAFE_ID.test(p.id))
+        .map(p => ({ p, d: GroupPrefs.daysInGroup(p) }))
+        .filter(x => x.d != null && x.d >= YEAR_DAYS - YEAR_SOON_DAYS)
+        .sort((a, b) => b.d - a.d);
+}
+function renderYearCard() {
+    const box = document.getElementById('yearCard'), list = document.getElementById('yearList');
+    if (!box || !list) return;
+    const items = isAdminNow() ? yearCandidates() : [];
+    let snoozed = false;
+    try { snoozed = Number(localStorage.getItem(yearSnoozeKey()) || 0) > Date.now(); } catch (e) { snoozed = false; }
+    box.hidden = !items.length || snoozed;
+    if (box.hidden) { list.innerHTML = ''; return; }
+    document.getElementById('yearCount').textContent = items.length > 1 ? `${items.length} שחקנים` : '';
+    list.innerHTML = items.map(({ p, d }) => {
+        const left = YEAR_DAYS - d;
+        const when = left > 0 ? `שנה בקבוצה בעוד ${GroupPrefs.durationText(left)}`
+            : left === 0 ? 'היום מלאה לו שנה בקבוצה 🎉'
+            : `בקבוצה כבר ${GroupPrefs.durationText(d)}`;
+        return `<div class="yr-item"><div class="yr-tx"><b>${escAdminText(p.name)}</b><small>${when} · הצטרף ב-${fmtYmd(p.joinDate)}</small></div>
+            <button type="button" class="yr-ok" onclick="makeVeteran('${p.id}', this)">⭐ להפוך לוותיק</button></div>`;
+    }).join('');
+}
+async function makeVeteran(id, btn) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    if (btn) btn.disabled = true;
+    try {
+        await playersRef.doc(id).update({ isNew: false });
+        showToast(`⭐ ${p.name} עכשיו ותיק`, 'success');
+    } catch (e) {
+        if (btn) btn.disabled = false;
+        alert('לא נשמר: ' + AdminAuth.errorMessage(e));
+    }
+}
+function snoozeYearCard() {
+    try { localStorage.setItem(yearSnoozeKey(), String(Date.now() + 7 * 864e5)); } catch (e) { /* לא קריטי */ }
+    renderYearCard();
 }
 
 // ========== בקשות לחבר כרטיס (למנהלים, בלשונית הסגל) ==========
