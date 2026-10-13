@@ -27,7 +27,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js?v=20261013"></script>
+    <script src="group-prefs.js?v=20261013b"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="reg-ring.js?v=20261008"></script>
 
@@ -821,18 +821,19 @@ function priorityRefMs() {
     return RegAuto.toMs(g.gameAt) || GroupPrefs.ymdToMs(g.gameDateRaw) || Date.now();
 }
 
-// תגיות רק לכללים שפועלים בקבוצה
+// תגיות רק לכללים שפועלים בקבוצה. לפי כרטיס השחקן העדכני, כמו הסדר עצמו (getPriorityScore):
+// שחקן שירד מ"פעיל" אחרי שנרשם מופיע בלי התגית, כי כך הוא גם מדורג
 function getEntryBadgesHTML(entry) {
     const cfg = prioCfg || {};
     const live = getLivePlayer(entry) || entry;
     let b = '';
-    if (entry.isActive && cfg.active)  b += `<span class="badge-active">✅ פעיל</span>`;
-    if (entry.isNew && cfg.veteran) {
-        b += GroupPrefs.isFreshNew(cfg, Object.assign({}, live, { isNew: true }), priorityRefMs())
+    if (live.isActive && cfg.active)  b += `<span class="badge-active">✅ פעיל</span>`;
+    if (live.isNew && cfg.veteran) {
+        b += GroupPrefs.isFreshNew(cfg, live, priorityRefMs())
             ? `<span class="badge-fresh" title="בקבוצה פחות מ-${GroupPrefs.weeksText(cfg.newWeeks)}">🌱 חדש לגמרי</span>`
             : `<span class="badge-new">🆕 חדש</span>`;
     }
-    if (entry.isMoshavResident && priorityLabel) b += `<span class="badge-resident">🏠 ${escHtml(priorityLabel)}</span>`;
+    if (live.isMoshavResident && priorityLabel) b += `<span class="badge-resident">🏠 ${escHtml(priorityLabel)}</span>`;
     return b;
 }
 
