@@ -153,6 +153,15 @@
     </div>
 
     <div class="card">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🙋 שחקנים שמחפשים קבוצה <span id="seekersCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <div id="seekersAdminList">
+            <p style="text-align: center; color: var(--muted);">טוען... ⏳</p>
+        </div>
+        <button class="btn btn-warn" id="seekersCleanBtn" onclick="cleanupSeekers()" disabled>מחק מודעות שפגו</button>
+        <p class="card-note">מודעה מוצגת 30 יום מהשמירה האחרונה. מודעות שפגו נמחקות כאן, יחד עם מספר הטלפון שבהן.</p>
+    </div>
+
+    <div class="card">
         <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">רשימת כל הקבוצות <span id="groupsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="groupsList">
             <p style="text-align: center; color: var(--muted);">טוען קבוצות... ⏳</p>
@@ -194,6 +203,7 @@
             loadGroups().then(loadInbox);   // שמות הקבוצות בפניות נלקחים מרשימת הקבוצות
             loadListingsAdmin();
             loadMarketAdmin();
+            loadSeekersAdmin();
         } else {
             if (user && !user.isAnonymous) {
                 msg.textContent = `החשבון ${user.email || ''} אינו מנהל המערכת.`;
@@ -548,6 +558,57 @@
             }
         } catch (e) { alert('שגיאה במחיקה: ' + e.message); }
         loadMarketAdmin();
+    }
+
+    // ===== "מחפש קבוצה": מודעות של שחקנים — הסרה של מודעה לא ראויה, ומחיקה של מודעות שפגו =====
+    let seekersOld = [];
+    async function loadSeekersAdmin() {
+        const el = document.getElementById('seekersAdminList');
+        const btn = document.getElementById('seekersCleanBtn');
+        try {
+            const snap = await db.collection('seekers').get();
+            const now = Date.now();
+            const live = snap.docs.filter(d => d.data().expiresAt > now);
+            seekersOld = snap.docs.filter(d => !(d.data().expiresAt > now)).map(d => d.ref);
+            document.getElementById('seekersCount').textContent = `(${snap.size})`;
+            btn.disabled = !seekersOld.length;
+            btn.textContent = seekersOld.length ? `מחק ${seekersOld.length} מודעות שפגו` : 'אין מודעות שפגו';
+            el.innerHTML = live.length ? live.map(d => {
+                const s = d.data();
+                return `<div class="group-row">
+                    <div class="group-info">
+                        <div class="group-name">${esc(s.name)}${s.gk === true ? ' 🧤' : ''}</div>
+                        <div class="group-meta">📍 ${esc(s.city)} | ☎️ ${esc(s.phone)}${s.note ? '<br>' + esc(s.note) : ''}<br>חשבון: ${esc(d.id)}</div>
+                    </div>
+                    <div class="actions"><button class="btn-danger" onclick="deleteSeeker('${esc(d.id)}')">הסר</button></div>
+                </div>`;
+            }).join('') : '<p style="text-align:center; color: var(--muted);">אין מודעות פעילות.</p>';
+        } catch (e) {
+            el.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
+        }
+    }
+
+    async function deleteSeeker(id) {
+        if (!confirm('להסיר את המודעה של השחקן מ"מחפשים שחקן"?')) return;
+        try {
+            await db.collection('seekers').doc(id).delete();
+            loadSeekersAdmin();
+        } catch (e) { alert('שגיאה: ' + e.message); }
+    }
+
+    async function cleanupSeekers() {
+        if (!seekersOld.length) return;
+        if (!confirm(`למחוק ${seekersOld.length} מודעות "מחפש קבוצה" שפגו, כולל מספרי הטלפון שבהן?`)) return;
+        const btn = document.getElementById('seekersCleanBtn');
+        btn.disabled = true;
+        try {
+            for (let i = 0; i < seekersOld.length; i += 400) {
+                const batch = db.batch();
+                seekersOld.slice(i, i + 400).forEach(ref => batch.delete(ref));
+                await batch.commit();
+            }
+        } catch (e) { alert('שגיאה במחיקה: ' + e.message); }
+        loadSeekersAdmin();
     }
 
     async function deleteMessage(id) {
