@@ -27,7 +27,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js?v=20261005"></script>
+    <script src="group-prefs.js?v=20261013"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="reg-ring.js?v=20261008"></script>
 
@@ -217,6 +217,8 @@
 
         .badge-active  { display:inline-flex; align-items:center; gap:3px; background:var(--active-dim);   color:var(--active-color);   border:1px solid var(--active-border);   padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
         .badge-new     { display:inline-flex; align-items:center; gap:3px; background:var(--new-dim);      color:var(--new-color);      border:1px solid var(--new-border);      padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
+        /* 🌱 חדש לגמרי: מסומן "חדש" ועוד לא עברו השבועות הראשונים בקבוצה (GroupPrefs.isFreshNew) */
+        .badge-fresh   { display:inline-flex; align-items:center; gap:3px; background:rgba(59,130,246,0.06); color:#93C5FD; border:1px dashed rgba(59,130,246,0.45); padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
         .badge-resident{ display:inline-flex; align-items:center; gap:3px; background:var(--resident-dim); color:var(--resident-color); border:1px solid var(--resident-border); padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
 
         .ac-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
@@ -810,15 +812,26 @@ function getEntryBirthDate(entry) {
 // ראה GroupPrefs.regPriority. ב"כל הקודם זוכה" הדרגה של כולם 0, והסדר הוא סדר ההרשמה.
 function getPriorityScore(entry) {
     const live = getLivePlayer(entry) || entry;   // דגלים עדכניים מכרטיס השחקן
-    return GroupPrefs.priorityRank(prioCfg, live, calcAge(getEntryBirthDate(entry)));
+    return GroupPrefs.priorityRank(prioCfg, live, calcAge(getEntryBirthDate(entry)), priorityRefMs());
+}
+
+// "חדש לגמרי" נבדק לפי יום המשחק, כך שהסדר של משחק מסוים לא משתנה במהלך השבוע
+function priorityRefMs() {
+    const g = gameData || {};
+    return RegAuto.toMs(g.gameAt) || GroupPrefs.ymdToMs(g.gameDateRaw) || Date.now();
 }
 
 // תגיות רק לכללים שפועלים בקבוצה
 function getEntryBadgesHTML(entry) {
     const cfg = prioCfg || {};
+    const live = getLivePlayer(entry) || entry;
     let b = '';
     if (entry.isActive && cfg.active)  b += `<span class="badge-active">✅ פעיל</span>`;
-    if (entry.isNew && cfg.veteran)    b += `<span class="badge-new">🆕 חדש</span>`;
+    if (entry.isNew && cfg.veteran) {
+        b += GroupPrefs.isFreshNew(cfg, Object.assign({}, live, { isNew: true }), priorityRefMs())
+            ? `<span class="badge-fresh" title="בקבוצה פחות מ-${GroupPrefs.weeksText(cfg.newWeeks)}">🌱 חדש לגמרי</span>`
+            : `<span class="badge-new">🆕 חדש</span>`;
+    }
     if (entry.isMoshavResident && priorityLabel) b += `<span class="badge-resident">🏠 ${escHtml(priorityLabel)}</span>`;
     return b;
 }
