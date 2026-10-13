@@ -99,6 +99,12 @@
         .acct-btn[hidden] { display: none; }
         .acct-btn img, .acct-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .acct-btn:focus-visible { outline: 2px solid #6EE7B7; outline-offset: 2px; }
+        /* "כניסה" למי שלא מחובר: שחקנים ומנהלים נכנסים מאותו כפתור */
+        .signin-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.45);
+            color: #6EE7B7; border-radius: 999px; padding: 6px 13px; font: 800 0.9rem 'Heebo', sans-serif; cursor: pointer; }
+        .signin-btn:active { transform: scale(0.95); }
+        .signin-btn:focus-visible { outline: 2px solid #6EE7B7; outline-offset: 2px; }
+        .signin-btn[hidden] { display: none; }
         .admin-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: 5px; transition: 0.2s;}
         .admin-btn:active { transform: scale(0.9); }
         a.admin-btn { text-decoration: none; display: inline-flex; align-items: center; }
@@ -842,6 +848,8 @@
             <a href="home.html" class="admin-btn" title="הקבוצות שלי" aria-label="הקבוצות שלי">🏠</a>
             <button id="settingsBtnHeader" class="admin-btn admin-only" onclick="openSettingsModal()" title="הגדרות קבוצה">⚙️</button>
             <button id="adminBtnHeader" class="admin-btn" style="display:none;" onclick="onAdminBtn(event)">ניהול 🔒</button>
+            <!-- מי שלא מחובר: כניסה עם Google, לשחקנים ולמנהלים מאותו כפתור (updateHeaderAuth) -->
+            <button type="button" id="signInBtnHeader" class="signin-btn" hidden onclick="headerSignIn()" title="כניסה עם Google — לשחקנים ולמנהלים"><span aria-hidden="true">👤</span> כניסה</button>
             <!-- מי מחובר במכשיר הזה (updateAcctChip). לחיצה פותחת את "הכרטיס שלי", ושם גם מתנתקים -->
             <button type="button" id="acctBtnHeader" class="acct-btn" hidden onclick="openMe()"></button>
         </div>
@@ -1694,7 +1702,7 @@ window.onload = async () => {
     } else {
         document.getElementById('lobbyContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('adminBtnHeader').style.display = 'block';
+        // "כניסה" / "ניהול" מופיעים אחרי שברור מי מחובר (updateHeaderAuth)
         if (window.ProfileKit) ProfileKit.injectCSS();
         // #me: הקישור מדף ההרשמה לחיבור הכרטיס לפרופיל שחקן ("עוד" ← "הכרטיס שלי")
         var wantMe = location.hash === '#me';
@@ -1736,6 +1744,7 @@ window.onload = async () => {
         // מצב מנהל נקבע לפי חשבון Google המחובר — לא לפי סיסמה
         try {
             const user = await AdminAuth.getUser();
+            authKnown = true;
             // העיגול בכותרת עוקב אחרי כניסה ויציאה, גם כשהן קורות מחלון אחר של האתר
             updateAcctChip();
             firebase.auth().onAuthStateChanged(() => updateAcctChip());
@@ -1746,7 +1755,7 @@ window.onload = async () => {
             } else if (inviteCode) {
                 showInviteBanner(inviteCode);
             }
-        } catch (e) { console.warn('auth init', e); }
+        } catch (e) { console.warn('auth init', e); authKnown = true; updateAcctChip(); }
         if (wantMe) openMe();
         else if (urlParams.get('welcome')) showWelcomeBanner();
         else {
@@ -1847,6 +1856,7 @@ function setAdminMode(on) {
         stopLinkRequestsListener();
     }
     updateRateMe();
+    updateHeaderAuth();
     render();
 }
 
@@ -4734,6 +4744,7 @@ function acctAvatarHTML(u) {
 }
 function updateAcctChip() {
     updateRateMe();
+    updateHeaderAuth();
     const btn = document.getElementById('acctBtnHeader');
     if (!btn) return;
     const u = firebase.auth().currentUser;
@@ -4743,6 +4754,37 @@ function updateAcctChip() {
     btn.title = label;
     btn.setAttribute('aria-label', label);
     btn.hidden = false;
+}
+
+// הכותרת: מי שלא מחובר רואה "כניסה", ושחקנים ומנהלים נכנסים מאותו כפתור. מחובר רואה את העיגול שלו, ומנהל גם את "ניהול".
+// "ניהול 🔒" עוד מופיע בקבוצה ותיקה שבשיטת הסיסמה (שם המנהל מעביר אותה לחשבון שלו), ולמנהל-העל,
+// שלא נכנס אוטומטית למצב ניהול בקבוצות של אחרים
+let authKnown = false;   // עד שברור אם מישהו מחובר במכשיר, לא מציגים "כניסה" (שלא יהבהב למי שכבר מחובר)
+function updateHeaderAuth() {
+    const u = firebase.auth().currentUser;
+    const real = AdminAuth.isRealUser(u);
+    const signIn = document.getElementById('signInBtnHeader');
+    const adminBtn = document.getElementById('adminBtnHeader');
+    if (signIn) signIn.hidden = real || !authKnown;
+    if (adminBtn) {
+        const show = isAdminNow() || (authKnown && (AdminAuth.isLegacyGroup(currentGroupData) || (real && AdminAuth.isSuperAdmin(u))));
+        adminBtn.style.display = show ? 'block' : 'none';
+    }
+}
+// לחיצה על "כניסה": מנהל של הקבוצה עובר למצב ניהול; שחקן רואה את "הכרטיס שלי" (חיבור הכרטיס, דירוג)
+async function headerSignIn() {
+    try { await AdminAuth.signInWithGoogle(); }   // ישר מהלחיצה, אחרת הדפדפן חוסם את חלון ההתחברות
+    catch (e) { if (!AdminAuth.isCancel(e)) alert('ההתחברות נכשלה: ' + AdminAuth.errorMessage(e)); return; }
+    const u = firebase.auth().currentUser;
+    if (AdminAuth.isAdminOf(currentGroupData, u, false)) {
+        setAdminMode(true);
+        updateAcctChip();
+        showToast('נכנסת כמנהל ✅', 'success');
+        return;
+    }
+    updateAcctChip();
+    showToast(`נכנסת בתור ${acctName(u) || 'משתמש'}`, 'success');
+    openMe();
 }
 
 // לשונית הדירוגים: שחקן שמחובר לכרטיס שלו מדרג את חבריו בלחיצה, בלי קישור אישי מהמנהל (vote.html?me=1).
@@ -4755,7 +4797,7 @@ function updateRateMe() {
     const card = AdminAuth.isRealUser(u) ? myCard(u.uid) : null;
     box.hidden = !card;
     if (card) document.getElementById('rateMeBtn').href = rateMeUrl();
-    hint.hidden = !!card || isAdminNow() || !players.length;
+    hint.hidden = !authKnown || !!card || isAdminNow() || !players.length;
 }
 // השורה העליונה בחלון: מי מחובר ועם איזה חשבון Google, ואיך מתנתקים
 function acctRowHTML(u, profile) {
@@ -4793,7 +4835,7 @@ function renderMe() {
     if (!s.user) {
         return paintMe(`<p class="me-text">חבר את הכרטיס שלך בקבוצה לפרופיל שחקן, ותירשם למשחקים בלחיצה אחת. אם תרצה, התמונה מהפרופיל תופיע בהרכב ובחלוקה.</p>
             <button type="button" class="btn" onclick="meSignIn()">כניסה עם Google</button>
-            <p class="me-small">לא חובה: אפשר להמשיך להירשם כרגיל, בלי חשבון.</p>`);
+            <p class="me-small">לא חובה: אפשר להמשיך להירשם כרגיל, בלי חשבון. מנהל בקבוצה? אותה כניסה פותחת גם את הניהול.</p>`);
     }
     const prof = acctRowHTML(s.user, s.profile);
     const card = myCard(s.user.uid);
@@ -4952,6 +4994,12 @@ function maybeTourMe() {
         return;
     }
     if (isAdminNow()) return;
+    // מי שלא מחובר: איפה נכנסים (הכפתור בכותרת)
+    if (!AdminAuth.isRealUser(u)) {
+        Tour.run('group-signin', [{ el: '#signInBtnHeader', title: '👤 כאן נכנסים',
+            text: 'שחקנים מתחברים עם Google ומחברים את הכרטיס שלהם בקבוצה, ואז נרשמים למשחקים ומדרגים בלחיצה (לא חובה). גם מנהלים נכנסים מכאן.' }]);
+        return;
+    }
     Tour.run('group-me', [{ el: '#groupNav [data-sec="more"]', title: '👤 חדש: הכרטיס שלי',
         text: 'ב"עוד" אפשר לחבר את הכרטיס שלך בקבוצה לפרופיל שחקן, ולהירשם למשחקים בלחיצה אחת. לא חובה.' }]);
 }
