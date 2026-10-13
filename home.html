@@ -128,6 +128,7 @@
     .band { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(16,185,129,0.10)); border: 1px solid var(--border); border-radius: 20px; padding: 28px; }
     .band h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: 6px; }
     .band p { margin: 0; color: var(--muted); }
+    .band-ctas { display: flex; flex-direction: column; gap: 10px; flex: none; }
     .faq { max-width: 720px; margin: 0 auto; display: grid; gap: 10px; }
     .faq details { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px 18px; }
     .faq summary { cursor: pointer; font-weight: 800; padding: 14px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
@@ -249,8 +250,8 @@
     /* ===== מצא קבוצה: מפה ורשימה ===== */
     .find-tools { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
     .seg { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
-    .seg-btn { padding: 8px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: .92rem; cursor: pointer; }
-    .seg-btn[aria-selected="true"] { background: var(--primary-soft); color: var(--primary); }
+    .seg-btn { display: inline-flex; align-items: center; padding: 8px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-weight: 800; font-size: .92rem; cursor: pointer; white-space: nowrap; }
+    .seg-btn[aria-selected="true"], .seg-btn[aria-current="page"] { background: var(--primary-soft); color: var(--primary); }
     .near-btn { padding: 9px 14px; font-size: .92rem; }
     .find-map { height: min(58vh, 540px); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
     .map-msg { height: 100%; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 20px; direction: rtl; }
@@ -268,6 +269,32 @@
     .post-missing { background: rgba(239,68,68,0.15); color: #FCA5A5; border-radius: 8px; padding: 3px 10px; font-weight: 900; font-size: .85rem; white-space: nowrap; }
     .post-keep .post-missing { background: rgba(59,130,246,0.15); color: #93C5FD; }
     .post-keep-tag { align-self: flex-start; font-size: .78rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: rgba(59,130,246,0.12); color: #93C5FD; border: 1px solid rgba(59,130,246,0.3); }
+    .market-seg { margin-bottom: 16px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+    .market-seg::-webkit-scrollbar { display: none; }
+
+    /* ===== שחקנים שמחפשים קבוצה ===== */
+    .seek-band { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 22px; padding: 16px 18px; border-radius: var(--radius);
+                 border: 1px dashed rgba(96,165,250,0.45); background: rgba(96,165,250,0.06); }
+    .seek-band b { display: block; font-size: 1rem; }
+    .seek-band small { display: block; color: var(--muted); font-size: .88rem; line-height: 1.5; margin-top: 2px; }
+    .seek-band .btn { flex: none; }
+    .seek-band.mine { border-style: solid; border-color: var(--primary-line); background: var(--primary-soft); }
+    .seekers-pane .seek-band { margin: 0 0 16px; }
+    .seeker .listing-icon { background: rgba(96,165,250,0.12); }
+    .seeker .gk-chip { align-self: flex-start; font-size: .78rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: rgba(252,211,77,0.12); color: var(--amber); }
+    .seeker .mine-tag { align-self: flex-start; font-size: .78rem; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); }
+    .seeker .posted { color: var(--muted); font-size: .82rem; }
+    .check-row { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); cursor: pointer; font-weight: 700; }
+    .check-row input { width: 20px; height: 20px; accent-color: var(--primary); flex: none; margin: 0; }
+    .check-row small { display: block; color: var(--muted); font-weight: 500; font-size: .82rem; }
+    .modal-done { text-align: center; padding: 8px 0 4px; }
+    .modal-done .done-ic { font-size: 2.6rem; line-height: 1; }
+    .modal-done h2 { margin: 10px 0 6px; }
+    .modal-done p { color: var(--muted); margin: 0 0 18px; }
+    .modal-done .btn + .btn { margin-top: 10px; }
+    .danger-link { display: block; margin: 14px auto 0; background: none; border: 0; color: var(--danger); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .auth-hint { text-align: center; color: var(--muted); font-size: .84rem; margin: 10px 0 0; }
+    #seekFormWrap > p { color: var(--muted); margin: 0 0 18px; }
 
     /* ===== פרופיל ===== */
     .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; max-width: 560px; }
@@ -299,23 +326,20 @@
     .badge-linked { color: #6EE7B7; background: rgba(16,185,129,0.12); }
     .badge-pending { color: var(--amber); background: rgba(252,211,77,0.1); }
 
-    /* ===== מי אתה? (בביקור הראשון בדף הבית) ===== */
-    body.boot-wait main { visibility: hidden; }
-    .role-page { max-width: 660px; margin: 0 auto; text-align: center; }
-    .role-ball { font-size: 2.6rem; line-height: 1; }
-    .role-page h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 900; margin: 12px 0 6px; }
-    .role-lead { color: var(--muted); margin: 0 0 26px; font-size: 1.05rem; }
-    .role-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .role-opt { display: flex; flex-direction: column; gap: 6px; padding: 22px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface);
-                color: var(--text); font: inherit; text-align: right; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
-    .role-opt:hover { border-color: var(--primary-line); background: #22304A; transform: translateY(-2px); }
-    .role-opt:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
-    .role-ic { font-size: 2rem; line-height: 1; margin-bottom: 4px; }
-    .role-opt b { font-size: 1.2rem; font-weight: 900; }
-    .role-opt small { color: var(--muted); font-size: .92rem; line-height: 1.55; }
-    .role-foot { margin-top: 20px; color: var(--muted); font-size: .9rem; }
-
     /* ===== דף הבית לשחקן ===== */
+    /* הכפתור הראשי: מצא קבוצה */
+    .find-cta { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border-radius: var(--radius); background: var(--primary); color: var(--primary-ink);
+                box-shadow: 0 10px 30px rgba(16,185,129,0.25); transition: background .15s, transform .15s; }
+    .find-cta:hover { background: #34D399; }
+    .find-cta:active { transform: scale(0.99); }
+    .find-cta-ic { font-size: 2rem; line-height: 1; flex: none; }
+    .find-cta-tx { flex: 1; min-width: 0; }
+    .find-cta b { display: block; font-size: 1.2rem; font-weight: 900; }
+    .find-cta small { display: block; font-size: .9rem; line-height: 1.45; opacity: .85; margin-top: 2px; }
+    .find-cta-go { display: flex; flex: none; }
+    button.quick { font: inherit; color: inherit; text-align: right; cursor: pointer; width: 100%; }
+    .quick.mine { border-color: var(--primary-line); background: var(--primary-soft); }
+    #viewPlayer .block-title { margin-top: 28px; }
     .pp-card { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--primary-line);
                background: linear-gradient(135deg, rgba(16,185,129,0.1), var(--surface) 70%); }
     .pp-card[hidden] { display: none; }
@@ -357,9 +381,10 @@
         .club-pills { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; padding-block: 2px; scrollbar-width: none; scroll-snap-type: x proximity; }
         .club-pills::-webkit-scrollbar { display: none; }
         .club-pill { flex: none; scroll-snap-align: start; }
-        .role-opts { grid-template-columns: 1fr; }
         .pp-card { flex-wrap: wrap; }
         .pp-card .btn { width: 100%; }
+        .seek-band { flex-direction: column; align-items: stretch; }
+        .seek-band .btn { width: 100%; }
     }
     @media (max-width: 420px) { .nav-ico { display: inline; font-size: 1.1rem; } .nav-text { display: none; } }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn, .group-card { transition: none; } }
@@ -383,44 +408,27 @@
     </div>
 </header>
 
-<!-- ============ מי אתה? — בביקור הראשון בדף הבית (נשמר במכשיר, ומחליפים בפרופיל) ============ -->
-<main id="viewRole" hidden>
-    <section class="wrap page role-page">
-        <div class="role-ball" aria-hidden="true">⚽</div>
-        <h1>ברוכים הבאים!</h1>
-        <p class="role-lead">מה מביא אותך לכאן?</p>
-        <div class="role-opts">
-            <button class="role-opt" type="button" data-role="player" onclick="chooseRole('player')">
-                <span class="role-ic" aria-hidden="true">🏃</span>
-                <b>אני שחקן</b>
-                <small>מחפש קבוצה באזור, או רוצה להירשם מהר יותר למשחקים של הקבוצה שלי</small>
-            </button>
-            <button class="role-opt" type="button" data-role="manager" onclick="chooseRole('manager')">
-                <span class="role-ic" aria-hidden="true">📋</span>
-                <b>אני מארגן משחקים</b>
-                <small>פותח קבוצה ומנהל הרשמה, חלוקה מאוזנת לקבוצות ודירוגים</small>
-            </button>
-        </div>
-        <p class="role-foot">אפשר להחליף בכל רגע, בפרופיל.</p>
-    </section>
-</main>
-
-<!-- ============ דף הבית לשחקן ============ -->
+<!-- ============ דף הבית לשחקן (מי שבחר "תצוגה של שחקן" בפרופיל, או פרסם שהוא מחפש קבוצה) ============ -->
 <main id="viewPlayer" hidden>
     <section class="wrap page">
         <div class="page-head">
             <div>
                 <h1 id="playerHello">שלום 👋</h1>
-                <p>הקבוצות שלך, וקבוצות שמחפשות שחקנים.</p>
+                <p>מוצאים קבוצה באזור, וחוזרים בקלות לקבוצות שלך.</p>
             </div>
+        </div>
+        <a class="find-cta" href="#find">
+            <span class="find-cta-ic" aria-hidden="true">🗺️</span>
+            <span class="find-cta-tx"><b>מצא קבוצה באזור</b><small>קבוצות ציבוריות במפה, ומי מהן מחפשת שחקנים עכשיו</small></span>
+            <span class="find-cta-go" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <div class="quick-row">
+            <a class="quick" href="#market"><span class="quick-ic" aria-hidden="true">📢</span><b>מחפשים שחקן</b><small>קבוצות שחסר להן שחקן, למשחק הקרוב או באופן קבוע</small></a>
+            <button class="quick" type="button" id="seekQuick" onclick="openSeekerForm()"><span class="quick-ic" aria-hidden="true">🙋</span><b>מחפש קבוצה?</b><small>פרסם את עצמך, ומארגנים יפנו אליך בוואטסאפ</small></button>
         </div>
         <h2 class="block-title">הקבוצות שלי</h2>
         <div class="group-list" id="playerGroupsList"></div>
         <div class="pp-card" id="playerProfileCard" hidden></div>
-        <div class="quick-row">
-            <a class="quick" href="#find"><span class="quick-ic" aria-hidden="true">🗺️</span><b>מצא קבוצה</b><small>קבוצות ציבוריות במפה, ומי מהן מחפשת שחקנים</small></a>
-            <a class="quick" href="#market"><span class="quick-ic" aria-hidden="true">📢</span><b>מחפשים שחקן</b><small>קבוצות שחסר להן שחקן, למשחק הקרוב או באופן קבוע</small></a>
-        </div>
         <p class="page-note">מארגן משחקים? <button class="linkish" type="button" onclick="chooseRole('manager')">לדף של המארגנים</button></p>
     </section>
 </main>
@@ -496,9 +504,12 @@
             <div class="band">
                 <div>
                     <h2>מחפש קבוצה לשחק איתה?</h2>
-                    <p>במפה רואים קבוצות ציבוריות לפי אזור, ואם הן מחפשות שחקנים עכשיו. פונים למארגן בוואטסאפ.</p>
+                    <p>במפה רואים קבוצות ציבוריות לפי אזור, ואם הן מחפשות שחקנים עכשיו. לא מצאת? מפרסמים שמחפשים קבוצה, ומארגנים באזור פונים אליך בוואטסאפ.</p>
                 </div>
-                <a class="btn btn-ghost btn-lg" href="#find">🗺️ למפת הקבוצות</a>
+                <div class="band-ctas">
+                    <a class="btn btn-ghost btn-lg" href="#find">🗺️ למפת הקבוצות</a>
+                    <button class="btn btn-ghost btn-lg" type="button" onclick="openSeekerForm()">🙋 פרסם שאתה מחפש</button>
+                </div>
             </div>
         </div>
     </section>
@@ -510,6 +521,7 @@
             <div class="faq">
                 <details><summary>כמה זה עולה?</summary><p>בתקופת ההשקה השימוש חינם, בלי הגבלה על מספר הקבוצות.</p></details>
                 <details><summary>השחקנים צריכים להירשם או להוריד אפליקציה?</summary><p>לא. השחקנים פותחים את הקישור מהוואטסאפ ונרשמים, והאתר זוכר להם את הקבוצה. מי שרוצה יכול ליצור פרופיל שחקן עם Google: אחרי שהמנהל מאשר את החיבור לכרטיס שלו, ההרשמה היא בלחיצה אחת והתמונה שלו מופיעה בהרכב.</p></details>
+                <details><summary>אני שחקן ומחפש קבוצה. מה עושים?</summary><p>ב"מצא קבוצה" רואים קבוצות ציבוריות לפי אזור, ופונים למארגן בוואטסאפ. לא מצאת? "פרסם שאתה מחפש": עיר, ימים שנוחים לך וטלפון לוואטסאפ. המודעה מופיעה למארגנים ב"מחפשים שחקן" למשך 30 יום, ואפשר לערוך או להוריד אותה קודם, בפרופיל.</p></details>
                 <details><summary>אפשר כמה מנהלים לקבוצה?</summary><p>כן. בהגדרות הקבוצה יוצרים קישור הזמנה חד-פעמי ושולחים אותו למנהל הנוסף.</p></details>
                 <details><summary>מי רואה את הקבוצה שלי?</summary><p>קבוצה פרטית גלויה רק למי שקיבל ממך קישור. קבוצה ציבורית מופיעה גם ב"מצא קבוצה" ובמפה, עם עיר, זמנים, מספר לפניות ומיקום המגרש אם סימנת אותו. אפשר לסמן בהגדרות אם הקבוצה מחפשת שחקנים או לא. הקישור לקבוצה עצמה נשאר אצלך.</p></details>
                 <details><summary>יש לי כבר קבוצה במערכת. מה עושים?</summary><p>נכנסים לקבוצה מהקישור הרגיל ולוחצים "ניהול". אחרי הכניסה הראשונה עם Google היא תופיע ב"הקבוצות שלי".</p></details>
@@ -576,22 +588,35 @@
             <div class="map-card" id="mapCard" aria-live="polite"></div>
         </div>
         <div class="listing-list" id="findList" role="tabpanel" aria-labelledby="segList" hidden></div>
+        <div class="seek-band" id="findSeekBand"></div>
         <p class="page-note" id="findNote" hidden>מארגן קבוצה? <button class="linkish" type="button" onclick="startCreate()">פתח קבוצה</button> וסמן אותה כציבורית כדי להופיע כאן.</p>
     </section>
 </main>
 
-<!-- ============ מחפשים שחקן: מודעות של קבוצות, ל-24 שעות או קבועות ============ -->
+<!-- ============ מחפשים שחקן: מודעות של קבוצות (#market), ושחקנים שמחפשים קבוצה (#seekers) ============ -->
 <main id="viewMarket" hidden>
     <section class="wrap page">
         <div class="page-head">
             <div>
                 <h1>מחפשים שחקן</h1>
-                <p>קבוצות שמחפשות שחקנים, למשחק הקרוב או באופן קבוע. פונים למארגן בוואטסאפ.</p>
+                <p id="marketSub">קבוצות שמחפשות שחקנים, למשחק הקרוב או באופן קבוע. פונים למארגן בוואטסאפ.</p>
             </div>
         </div>
-        <div class="find-count" id="marketCount" aria-live="polite"></div>
-        <div class="listing-list" id="marketList"></div>
-        <p class="page-note">מנהל קבוצה? מפרסמים מודעה מדף הקבוצה (☰ עוד ← מחפשים שחקן), ל-24 שעות או עד שתורידו אותה.</p>
+        <nav class="seg market-seg" aria-label="מה מציגים">
+            <a class="seg-btn" href="#market" id="segGroups" aria-current="page">📢 קבוצות שמחפשות</a>
+            <a class="seg-btn" href="#seekers" id="segSeekers">🙋 שחקנים שמחפשים</a>
+        </nav>
+        <div id="marketGroupsPane">
+            <div class="find-count" id="marketCount" aria-live="polite"></div>
+            <div class="listing-list" id="marketList"></div>
+            <p class="page-note">מנהל קבוצה? מפרסמים מודעה מדף הקבוצה (☰ עוד ← מחפשים שחקן), ל-24 שעות או עד שתורידו אותה.</p>
+        </div>
+        <div id="seekersPane" class="seekers-pane" hidden>
+            <div class="seek-band" id="seekersBand"></div>
+            <input class="search" id="seekSearch" type="search" maxlength="40" placeholder="חיפוש לפי עיר או שם" aria-label="חיפוש שחקנים" oninput="renderSeekers()">
+            <div class="find-count" id="seekCount" aria-live="polite"></div>
+            <div class="listing-list" id="seekList"></div>
+        </div>
     </section>
 </main>
 
@@ -664,8 +689,41 @@
                 <p class="hint">המספר יוצג לכל מי שמחפש משחק. את הקישור לקבוצה אתה שולח רק למי שתבחר.</p>
             </div>
             <button class="btn btn-primary btn-block btn-lg" id="cSubmit" type="submit">צור קבוצה</button>
+            <p class="auth-hint" id="cAuthHint" hidden>🔐 בלחיצה נתחבר עם Google, כדי שרק אתה תוכל לנהל את הקבוצה.</p>
             <p class="hint legal-note">יצירת הקבוצה מהווה הסכמה ל<a href="terms.html" target="_blank" rel="noopener">תנאי השימוש</a> ול<a href="privacy.html" target="_blank" rel="noopener">מדיניות הפרטיות</a>.</p>
         </form>
+    </div>
+</div>
+
+<!-- ============ "מחפש קבוצה": שחקן מפרסם את עצמו (מודעה אחת לחשבון, ל-30 יום) ============ -->
+<div class="modal" id="seekModal" hidden role="dialog" aria-modal="true" aria-labelledby="seekTitle">
+    <div class="modal-card">
+        <button class="modal-x" type="button" onclick="closeSeekerForm()" aria-label="סגור">✕</button>
+        <div id="seekFormWrap">
+            <h2 id="seekTitle">🙋 מחפש קבוצה</h2>
+            <p>מארגנים שמחפשים שחקנים יראו את המודעה ויפנו אליך בוואטסאפ.</p>
+            <form id="seekForm" onsubmit="saveSeeker(event)" novalidate>
+                <label class="field"><span>איך לקרוא לך? *</span><input id="sName" maxlength="40" autocomplete="given-name" placeholder="לדוגמה: יוסי" required></label>
+                <label class="field"><span>עיר / יישוב *</span><input id="sCity" maxlength="40" list="cityList" autocomplete="off" placeholder="איפה נוח לך לשחק" required></label>
+                <div class="field"><span>ימים שנוחים לך</span><div class="day-chips" id="sDays"></div></div>
+                <label class="field"><span>רמת משחק</span><select id="sLevel"></select></label>
+                <label class="check-row"><input type="checkbox" id="sGk"><span>🧤 אני שוער<small>קבוצות מחפשות שוערים במיוחד</small></span></label>
+                <label class="field"><span>כמה מילים</span><textarea id="sNote" maxlength="200" rows="2" placeholder="לדוגמה: בן 30, משחק בהתקפה, מחפש משחק קבוע בערבים"></textarea></label>
+                <label class="field"><span>טלפון לוואטסאפ *</span><input id="sPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="050-1234567" required></label>
+                <p class="hint">השם, העיר והטלפון יוצגו לכל מי שנכנס ל"מחפשים שחקן". המודעה יורדת מעצמה אחרי 30 יום, ואפשר לערוך או להוריד אותה קודם, בפרופיל. מתחת לגיל 18? מפרסמים רק באישור הורה.</p>
+                <button class="btn btn-primary btn-block btn-lg" id="sSubmit" type="submit" style="margin-top:14px">פרסם</button>
+                <p class="auth-hint" id="sAuthHint" hidden>🔐 בלחיצה נתחבר עם Google, כדי שרק אתה תוכל לערוך ולהוריד את המודעה.</p>
+                <button class="danger-link" id="sRemove" type="button" onclick="removeSeeker()" hidden>להוריד את המודעה</button>
+                <p class="hint legal-note">פרסום המודעה מהווה הסכמה ל<a href="terms.html" target="_blank" rel="noopener">תנאי השימוש</a> ול<a href="privacy.html" target="_blank" rel="noopener">מדיניות הפרטיות</a>.</p>
+            </form>
+        </div>
+        <div class="modal-done" id="seekDone" hidden>
+            <div class="done-ic" aria-hidden="true">✅</div>
+            <h2>המודעה פורסמה</h2>
+            <p id="seekDoneText">מארגנים באזור יוכלו לפנות אליך בוואטסאפ.</p>
+            <a class="btn btn-primary btn-block" href="#find" onclick="closeSeekerForm()">🗺️ בינתיים, למפת הקבוצות</a>
+            <a class="btn btn-ghost btn-block" href="#seekers" onclick="closeSeekerForm()">לרשימת השחקנים שמחפשים</a>
+        </div>
     </div>
 </div>
 <datalist id="cityList"></datalist>
@@ -690,7 +748,7 @@
     let listings = null;
     let currentView = 'viewLanding';
     let recentChecked = false;   // הקבוצות האחרונות מוצגות רק אחרי שווידאנו שהן עדיין קיימות
-    let authKnown = false;       // עד שמצב ההתחברות משוחזר לא יודעים אם להציג את "מי אתה?"
+    let authKnown = false;       // עד שמצב ההתחברות משוחזר
     let myProfile;               // פרופיל השחקן: undefined = טוען, null = אין, אובייקט = הפרופיל
     let profileLoad = null;
     let profileStates = {};      // gid -> 'linked' | 'pending', אחרי בדיקה מול הקבוצה
@@ -729,7 +787,8 @@
     captureSource();
     const CHEVRON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-    // ===== מי אתה? שחקן או מארגן (נשמר במכשיר; בלי אחסון — כמו מארגן, כמו פעם) =====
+    // ===== תצוגה של שחקן או של מארגן (נשמר במכשיר; בלי בחירה — דף הנחיתה, שיש בו כפתור לכל אחד מהם).
+    // מחליפים בפרופיל. מי שמפרסם שהוא מחפש קבוצה עובר לתצוגה של שחקן =====
     const ROLE_KEY = 'sm_role';
     function getRole() {
         try { const r = localStorage.getItem(ROLE_KEY); return r === 'player' || r === 'manager' ? r : null; }
@@ -766,7 +825,7 @@
     }
 
     // ===== ניווט בין מסכים =====
-    const VIEWS = ['viewRole', 'viewPlayer', 'viewLanding', 'viewDashboard', 'viewFind', 'viewMarket', 'viewProfile'];
+    const VIEWS = ['viewPlayer', 'viewLanding', 'viewDashboard', 'viewFind', 'viewMarket', 'viewProfile'];
     function showView(id) {
         if (currentView === id) return;
         currentView = id;
@@ -780,9 +839,9 @@
         if (location.hash === '#find') {
             showView('viewFind');
             loadListings();
-        } else if (location.hash === '#market') {
+        } else if (location.hash === '#market' || location.hash === '#seekers') {
             showView('viewMarket');
-            loadMarket();
+            setMarketPane(location.hash === '#seekers' ? 'seekers' : 'groups');
         } else if (location.hash === '#profile') {
             showView('viewProfile');
             renderProfile();
@@ -792,8 +851,6 @@
         } else if (signedIn) {
             showView('viewDashboard');
             renderDashboard();
-        } else if (!role && authKnown) {
-            showView('viewRole');
         } else {
             showView('viewLanding');
             renderRecent($('recentList'), $('recentStrip'), new Set());
@@ -850,9 +907,8 @@
     auth.onAuthStateChanged(u => {
         currentUser = u;
         authKnown = true;
-        document.body.classList.remove('boot-wait');
-        if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); loadMyProfile(); }
-        else { myProfile = null; profileLoad = null; profileStates = {}; }
+        if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); loadMyProfile(); loadMySeeker(); }
+        else { myProfile = null; profileLoad = null; profileStates = {}; mySeeker = null; renderSeekBands(); }
         if (AdminAuth.isSuperAdmin(u)) watchInbox();
         else stopInbox();
         route();
@@ -877,6 +933,7 @@
         }
         if (currentView === 'viewDashboard') renderDashboard();
         else if (currentView === 'viewPlayer') renderPlayerHome();
+        renderSeekBands();
     }
 
     function groupCardHTML(g, uid, extraBadges) {
@@ -1101,9 +1158,10 @@
                 : 'כדי להירשם בלחיצה אחת, חבר את הפרופיל לכרטיס שלך בדף הקבוצה: ☰ עוד ← הכרטיס שלי.'}</small></div><a class="btn btn-ghost" href="#profile">עריכה</a>`;
             card.hidden = false;
         } else {
-            card.innerHTML = `<span class="pp-bolt" aria-hidden="true">⚡</span><div class="pp-tx"><b>הרשמה בלחיצה אחת</b><small>עם פרופיל שחקן נרשמים למשחקים בלחיצה, והחברים רואים את התמונה שלך בהרכב. לא חובה.</small></div><button class="btn btn-primary" type="button" onclick="createProfile()">יצירת פרופיל</button>`;
+            card.innerHTML = `<span class="pp-bolt" aria-hidden="true">⚡</span><div class="pp-tx"><b>הרשמה בלחיצה אחת</b><small>עם פרופיל שחקן נרשמים למשחקים בלחיצה, והחברים רואים את התמונה שלך בהרכב. לא חובה.</small></div><button class="btn btn-ghost" type="button" onclick="createProfile()">יצירת פרופיל</button>`;
             card.hidden = false;
         }
+        renderSeekBands();
     }
 
     // ===== פרופיל =====
@@ -1146,8 +1204,10 @@
         const player = getRole() === 'player';
         el.innerHTML = `<div class="profile-head"><span class="avatar" aria-hidden="true">${photo}</span><div><div class="profile-name">${esc(name)}</div><div class="profile-mail">${esc(u.email || '')}</div></div></div>
             ${player ? playerProfileBlockHTML() : ''}
+            ${seekerBlockHTML()}
             <div class="profile-rows"${player ? ' style="margin-top:6px"' : ''}>
                 <a class="profile-row" href="home.html" onclick="return homeNav(event)"><span class="pr-ic" aria-hidden="true">🏠</span>הקבוצות שלי</a>
+                ${player && !mySeeker ? '<button class="profile-row" type="button" onclick="openSeekerForm()"><span class="pr-ic" aria-hidden="true">🙋</span>פרסם שאתה מחפש קבוצה</button>' : ''}
                 ${player ? '' : '<button class="profile-row" type="button" onclick="startCreate()"><span class="pr-ic" aria-hidden="true">➕</span>פתיחת קבוצה חדשה</button>'}
                 ${AdminAuth.isSuperAdmin(u) ? '<a class="profile-row super-admin-link" href="admin.html"><span class="pr-ic" aria-hidden="true">🛠️</span><span class="sal-tx">לוח בקרה גלובלי</span></a>' : ''}
                 ${roleRow}
@@ -1204,6 +1264,255 @@
         $('marketCount').textContent = items.length ? (items.length === 1 ? 'מודעה אחת' : `${items.length} מודעות`) : '';
         $('marketList').innerHTML = items.length ? items.map(postCardHTML).join('')
             : '<div class="empty"><b>כרגע אף קבוצה לא מחפשת שחקן.</b><br>כשלקבוצה חסרים שחקנים, המודעה שלה מופיעה כאן.</div>';
+    }
+
+    // שתי רשימות באותו מסך: קבוצות שמחפשות שחקנים (#market), ושחקנים שמחפשים קבוצה (#seekers)
+    let marketPane = 'groups';
+    function setMarketPane(pane) {
+        marketPane = pane === 'seekers' ? 'seekers' : 'groups';
+        const s = marketPane === 'seekers';
+        $('marketGroupsPane').hidden = s;
+        $('seekersPane').hidden = !s;
+        $(s ? 'segSeekers' : 'segGroups').setAttribute('aria-current', 'page');
+        $(s ? 'segGroups' : 'segSeekers').removeAttribute('aria-current');
+        $('marketSub').textContent = s
+            ? 'שחקנים שמחפשים קבוצה לשחק בה. מארגנים פונים אליהם בוואטסאפ.'
+            : 'קבוצות שמחפשות שחקנים, למשחק הקרוב או באופן קבוע. פונים למארגן בוואטסאפ.';
+        if (s) loadSeekers(); else loadMarket();
+    }
+
+    // ===== "מחפש קבוצה": שחקן מפרסם את עצמו. seekers/{uid} — מודעה אחת לחשבון, מוצגת 30 יום מהעדכון האחרון =====
+    const SEEK_DAYS = 30, SEEK_MS = SEEK_DAYS * 864e5;
+    let seekers = null;          // הרשימה: null = עוד לא נטענה
+    let seekersError = '';       // 'rules' = חוקי האבטחה עוד לא עודכנו · 'load' = שגיאת טעינה
+    let mySeeker;                // המודעה שלי: undefined = טוען, null = אין, אובייקט = המודעה
+    const seekActive = s => !!s && Number(s.expiresAt) > Date.now();
+    const shortDate = ms => new Date(ms).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+    const hasOwnGroups = () => AdminAuth.isRealUser(currentUser) && Array.isArray(myGroups) && myGroups.length > 0;
+
+    async function loadMySeeker() {
+        const uid = currentUser && currentUser.uid;
+        if (!uid) return;
+        mySeeker = undefined;
+        let s = null;
+        try {
+            const snap = await db.collection('seekers').doc(uid).get();
+            s = snap.exists ? { id: snap.id, ...snap.data() } : null;
+        } catch (e) {
+            if (!(e && e.code === 'permission-denied')) console.warn('my seeker post', e);   // לפני שחוקי האבטחה מתעדכנים: כאילו אין מודעה
+        }
+        if (!currentUser || currentUser.uid !== uid) return;
+        mySeeker = s;
+        renderSeekBands();
+        if (currentView === 'viewProfile') renderProfile();
+    }
+
+    async function loadSeekers(force) {
+        if ((seekers || seekersError === 'rules') && !force) { renderSeekers(); return; }
+        $('seekList').innerHTML = '<div class="empty">טוען…</div>';
+        $('seekCount').textContent = '';
+        try {
+            const snap = await db.collection('seekers').where('expiresAt', '>', Date.now()).get();
+            seekers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            seekersError = '';
+        } catch (e) {
+            seekers = null;
+            seekersError = e && e.code === 'permission-denied' ? 'rules' : 'load';
+            if (seekersError === 'load') console.error('seekers', e);
+        }
+        renderSeekers();
+    }
+
+    function seekerCardHTML(s) {
+        const mine = !!(currentUser && s.id === currentUser.uid);
+        const phone = G.normalizePhone(s.phone);
+        const msg = `היי ${s.name}, ראיתי ב-Soccer Manager שאתה מחפש קבוצת כדורגל ב${s.city}. רוצה לשחק איתנו?`;
+        const wa = phone ? `https://wa.me/${G.phoneToIntl(phone)}?text=${encodeURIComponent(msg)}` : '';
+        const days = G.formatSchedule({ days: s.days });
+        const level = G.LEVELS[s.level] || '';
+        const at = tsMs(s.updatedAt);
+        const gk = s.gk === true;
+        return `<article class="listing seeker" data-id="${esc(s.id)}">
+            <div class="listing-top"><span class="listing-icon" aria-hidden="true">${gk ? '🧤' : '🏃'}</span><h3>${esc(s.name)}</h3>${level ? `<span class="chip">${esc(level)}</span>` : ''}</div>
+            ${mine ? '<span class="mine-tag">✅ המודעה שלך</span>' : ''}
+            ${gk ? '<span class="gk-chip">🧤 שוער</span>' : ''}
+            <div class="meta">📍 ${esc(s.city)}</div>
+            ${days ? `<div class="meta">📅 ${esc(days)}</div>` : ''}
+            ${s.note ? `<p class="desc">${esc(s.note)}</p>` : ''}
+            ${at ? `<div class="posted">🕒 פורסם ${esc(shortDate(at))}</div>` : ''}
+            ${mine ? '<button class="btn btn-ghost" type="button" onclick="openSeekerForm()">✏️ עריכת המודעה</button>'
+                : wa ? `<a class="btn btn-wa" href="${esc(wa)}" target="_blank" rel="noopener">💬 הזמן אותו לשחק</a>` : ''}
+        </article>`;
+    }
+
+    function renderSeekers() {
+        renderSeekBands();
+        const list = $('seekList');
+        if (seekersError) {
+            $('seekCount').textContent = '';
+            list.innerHTML = seekersError === 'rules'
+                ? '<div class="empty"><b>הרשימה עוד לא זמינה.</b><br>נסו שוב בעוד כמה דקות.</div>'
+                : '<div class="empty">לא הצלחנו לטעון את הרשימה. נסו לרענן את הדף.</div>';
+            return;
+        }
+        if (!seekers) return;
+        const q = norm($('seekSearch').value);
+        const now = Date.now();
+        const live = seekers.filter(s => Number(s.expiresAt) > now);
+        const items = live.filter(s => !q || norm([s.name, s.city, s.note].join(' ')).includes(q))
+            .sort((a, b) => tsMs(b.updatedAt) - tsMs(a.updatedAt));
+        $('seekCount').textContent = live.length ? (items.length === 1 ? 'שחקן אחד' : `${items.length} שחקנים`) : '';
+        list.innerHTML = items.length ? items.map(seekerCardHTML).join('')
+            : live.length ? '<div class="empty">לא נמצאו שחקנים שמתאימים לחיפוש. נסו יישוב קרוב.</div>'
+            : '<div class="empty"><b>כרגע אין כאן שחקנים שמחפשים קבוצה.</b><br>שחקן שמפרסם שהוא מחפש קבוצה מופיע כאן, עם עיר, ימים וטלפון לוואטסאפ.</div>';
+    }
+
+    // ההזמנה לפרסם (בחיפוש קבוצה, ברשימת השחקנים ובדף הבית של שחקן), או מה קורה עם המודעה שלי
+    function renderSeekBands() {
+        const s = mySeeker || null, active = seekActive(s);
+        const until = s ? shortDate(Number(s.expiresAt)) : '';
+        const mineHTML = active
+            ? `<div><b>🙋 המודעה שלך פעילה</b><small>מארגנים רואים אותה ב"מחפשים שחקן" עד ${until}.</small></div><button class="btn btn-ghost" type="button" onclick="openSeekerForm()">✏️ עריכה</button>`
+            : s ? `<div><b>🙋 המודעה שלך פגה</b><small>היא כבר לא מופיעה למארגנים. אפשר לפרסם אותה שוב ל-${SEEK_DAYS} יום.</small></div><button class="btn btn-ghost" type="button" onclick="openSeekerForm()">פרסם שוב</button>`
+            : '';
+        const find = $('findSeekBand'), band = $('seekersBand'), quick = $('seekQuick');
+        find.classList.toggle('mine', !!s);
+        find.innerHTML = mineHTML || `<div><b>🙋 לא מצאת קבוצה מתאימה?</b><small>פרסם שאתה מחפש קבוצה, ומארגנים באזור יפנו אליך בוואטסאפ.</small></div><button class="btn btn-ghost" type="button" onclick="openSeekerForm()">פרסם שאתה מחפש</button>`;
+        // מארגן שמחפש שחקנים לא צריך את ההזמנה לפרסם את עצמו
+        band.hidden = !s && hasOwnGroups();
+        band.classList.toggle('mine', !!s);
+        band.innerHTML = mineHTML || `<div><b>🙋 גם אתה מחפש קבוצה?</b><small>פרסם את עצמך כאן, עם עיר, ימים וטלפון לוואטסאפ.</small></div><button class="btn btn-ghost" type="button" onclick="openSeekerForm()">פרסם שאתה מחפש</button>`;
+        quick.classList.toggle('mine', active);
+        quick.innerHTML = active
+            ? `<span class="quick-ic" aria-hidden="true">🙋</span><b>המודעה שלך פעילה</b><small>עד ${until} · לעריכה</small>`
+            : s ? `<span class="quick-ic" aria-hidden="true">🙋</span><b>המודעה שלך פגה</b><small>לפרסם אותה שוב ל-${SEEK_DAYS} יום</small>`
+            : `<span class="quick-ic" aria-hidden="true">🙋</span><b>מחפש קבוצה?</b><small>פרסם את עצמך, ומארגנים יפנו אליך בוואטסאפ</small>`;
+    }
+
+    // בפרופיל: המודעה שלי, הארכה והורדה
+    function seekerBlockHTML() {
+        const s = mySeeker;
+        if (!s) return '';
+        const active = seekActive(s);
+        return `<div class="pp-block"><h2>🙋 מחפש קבוצה</h2>
+            <p class="pp-sub">${active ? `המודעה שלך מופיעה ב"מחפשים שחקן" עד ${shortDate(Number(s.expiresAt))}.` : 'המודעה שלך פגה, והיא כבר לא מופיעה למארגנים.'}</p>
+            <div class="profile-rows">
+                <button class="profile-row" type="button" onclick="openSeekerForm()"><span class="pr-ic" aria-hidden="true">✏️</span>עריכת המודעה</button>
+                <button class="profile-row" type="button" onclick="renewSeeker()"><span class="pr-ic" aria-hidden="true">🔄</span>${active ? `הארכה ל-${SEEK_DAYS} יום מהיום` : `פרסום מחדש ל-${SEEK_DAYS} יום`}</button>
+                <button class="profile-row danger" type="button" onclick="removeSeeker()"><span class="pr-ic" aria-hidden="true">🗑️</span>הורדת המודעה</button>
+            </div></div>`;
+    }
+
+    function openSeekerForm() {
+        const s = mySeeker || null;
+        const u = auth.currentUser, signedIn = AdminAuth.isRealUser(u);
+        $('seekForm').reset();
+        $('seekFormWrap').hidden = false;
+        $('seekDone').hidden = true;
+        const first = v => String(v || '').trim().split(/\s+/)[0];
+        $('sName').value = s ? (s.name || '') : first((myProfile && myProfile.name) || (signedIn && u.displayName) || '');
+        $('sCity').value = s ? (s.city || '') : '';
+        G.renderDayChips($('sDays'), s ? s.days : []);
+        $('sLevel').innerHTML = G.levelOptionsHTML(s ? s.level : '');
+        $('sGk').checked = !!(s && s.gk === true);
+        $('sNote').value = s ? (s.note || '') : '';
+        $('sPhone').value = s ? (s.phone || '') : '';
+        $('seekTitle').textContent = s ? '🙋 המודעה שלי' : '🙋 מחפש קבוצה';
+        $('sSubmit').disabled = false;
+        $('sSubmit').textContent = !s ? 'פרסם' : seekActive(s) ? `שמור, והמודעה תופיע עוד ${SEEK_DAYS} יום` : `פרסם שוב ל-${SEEK_DAYS} יום`;
+        $('sAuthHint').hidden = signedIn;
+        $('sRemove').hidden = !s;
+        $('seekModal').hidden = false;
+        document.body.classList.add('modal-open');
+        setTimeout(() => $(s ? 'sSubmit' : 'sName').focus(), 60);
+    }
+    function closeSeekerForm() {
+        $('seekModal').hidden = true;
+        document.body.classList.remove('modal-open');
+    }
+
+    function afterSeekerChange() {
+        seekers = null;   // הרשימה תיטען מחדש
+        renderSeekBands();
+        if (currentView === 'viewProfile') renderProfile();
+        else if (currentView === 'viewPlayer') renderPlayerHome();
+        if (currentView === 'viewMarket' && marketPane === 'seekers') loadSeekers(true);
+    }
+
+    async function saveSeeker(ev) {
+        ev.preventDefault();
+        const name = $('sName').value.replace(/[<>]/g, '').trim().slice(0, 40);
+        const city = $('sCity').value.trim().slice(0, 40);
+        const phone = G.normalizePhone($('sPhone').value);
+        if (!name) { alert('נא לכתוב איך לקרוא לך.'); $('sName').focus(); return; }
+        if (!city) { alert('נא להזין עיר או יישוב.'); $('sCity').focus(); return; }
+        if (!phone) { alert('נא להזין מספר טלפון תקין לוואטסאפ, לדוגמה 050-1234567.'); $('sPhone').focus(); return; }
+        const days = G.readDayChips($('sDays')), level = $('sLevel').value, gk = $('sGk').checked;
+        const note = $('sNote').value.trim().slice(0, 200);
+        const btn = $('sSubmit'), label = btn.textContent;
+        const back = () => { btn.disabled = false; btn.textContent = label; };
+        btn.disabled = true;
+        // הכניסה עם Google רק עכשיו, ישירות מהלחיצה ולפני כל await (אחרת הדפדפן חוסם את החלון)
+        if (!AdminAuth.isRealUser(auth.currentUser)) {
+            btn.textContent = 'מתחברים עם Google…';
+            try { await AdminAuth.signInWithGoogle(); }
+            catch (e) { back(); if (!AdminAuth.isCancel(e)) authErrorAlert(e); return; }
+            if (!AdminAuth.isRealUser(auth.currentUser)) { back(); return; }
+            $('sAuthHint').hidden = true;
+        }
+        btn.textContent = 'מפרסם…';
+        const uid = auth.currentUser.uid, ref = db.collection('seekers').doc(uid);
+        try {
+            // מודעה קיימת (גם מכניסה ממכשיר אחר) נשמרת עם תאריך היצירה המקורי
+            const snap = await ref.get();
+            const old = snap.exists ? snap.data() : null;
+            const FV = firebase.firestore.FieldValue;
+            const data = { name, city, phone, createdAt: old && old.createdAt ? old.createdAt : FV.serverTimestamp(), updatedAt: FV.serverTimestamp(), expiresAt: Date.now() + SEEK_MS };
+            if (days.length) data.days = days;
+            if (G.LEVELS[level]) data.level = level;
+            if (gk) data.gk = true;
+            if (note) data.note = note;
+            await ref.set(data);
+            const nowTs = firebase.firestore.Timestamp.now();
+            mySeeker = Object.assign({ id: uid }, data, { createdAt: old && old.createdAt ? old.createdAt : nowTs, updatedAt: nowTs });
+            if (!getRole() && !hasOwnGroups()) setRole('player');
+            afterSeekerChange();
+            $('seekDoneText').textContent = `מארגנים ב${city} והסביבה יוכלו לפנות אליך בוואטסאפ. המודעה מופיעה עד ${shortDate(data.expiresAt)}, ואפשר לערוך או להוריד אותה בפרופיל.`;
+            $('seekFormWrap').hidden = true;
+            $('seekDone').hidden = false;
+            back();
+        } catch (e) {
+            back();
+            if (e && e.code === 'permission-denied') alert('אי אפשר לפרסם כרגע: האפשרות הזו עוד לא הופעלה באתר. נסו שוב בעוד כמה דקות.');
+            else { console.error('seeker save', e); alert('המודעה לא נשמרה: ' + AdminAuth.errorMessage(e)); }
+        }
+    }
+
+    async function renewSeeker() {
+        if (!mySeeker || !AdminAuth.isRealUser(currentUser)) return;
+        const expiresAt = Date.now() + SEEK_MS;
+        try {
+            await db.collection('seekers').doc(currentUser.uid).update({ updatedAt: firebase.firestore.FieldValue.serverTimestamp(), expiresAt });
+            mySeeker = Object.assign({}, mySeeker, { updatedAt: firebase.firestore.Timestamp.now(), expiresAt });
+            afterSeekerChange();
+        } catch (e) {
+            console.error('seeker renew', e);
+            alert('המודעה לא הוארכה: ' + AdminAuth.errorMessage(e));
+        }
+    }
+
+    async function removeSeeker() {
+        if (!mySeeker || !AdminAuth.isRealUser(currentUser)) return;
+        if (!confirm('להוריד את המודעה? מארגנים לא יראו אותה יותר.')) return;
+        try {
+            await db.collection('seekers').doc(currentUser.uid).delete();
+            mySeeker = null;
+            closeSeekerForm();
+            afterSeekerChange();
+        } catch (e) {
+            console.error('seeker delete', e);
+            alert('המודעה לא הורדה: ' + AdminAuth.errorMessage(e));
+        }
     }
 
     // ===== מצא קבוצה =====
@@ -1382,13 +1691,8 @@
     }
 
     // ===== יצירת קבוצה =====
-    // חייבת להיקרא ישירות מלחיצה, כדי שחלון ההתחברות של Google לא ייחסם
-    async function startCreate() {
-        if (!AdminAuth.isRealUser(auth.currentUser)) {
-            try { await AdminAuth.signInWithGoogle(); }
-            catch (e) { if (!AdminAuth.isCancel(e)) authErrorAlert(e); return; }
-            if (!AdminAuth.isRealUser(auth.currentUser)) return;
-        }
+    // ממלאים את הטופס קודם. הכניסה עם Google רק בלחיצה על "צור קבוצה" (createGroup)
+    function startCreate() {
         openCreate();
     }
 
@@ -1405,6 +1709,7 @@
         toggleCreatePublic();
         $('cSubmit').disabled = false;
         $('cSubmit').textContent = 'צור קבוצה';
+        $('cAuthHint').hidden = AdminAuth.isRealUser(auth.currentUser);
         $('createModal').hidden = false;
         document.body.classList.add('modal-open');
         setTimeout(() => $('cName').focus(), 60);
@@ -1417,8 +1722,6 @@
 
     async function createGroup(ev) {
         ev.preventDefault();
-        const u = auth.currentUser;
-        if (!AdminAuth.isRealUser(u)) { closeCreate(); alert('ההתחברות פגה. התחבר שוב ונסה.'); return; }
         const name = $('cName').value.trim();
         const city = $('cCity').value.trim();
         const venue = $('cVenue').value.trim();
@@ -1429,16 +1732,29 @@
         if (!city) { alert('נא להזין עיר או יישוב.'); $('cCity').focus(); return; }
         if (G.iconPickerBusy($('cIcon'))) { alert('רגע, התמונה עדיין בהכנה. נסה שוב בעוד שנייה.'); return; }
         const icon = G.readIconPicker($('cIcon'));
-
-        let listing = null;
+        let phone = '';
         if (visibility === 'public') {
-            const phone = G.normalizePhone($('cPhone').value);
+            phone = G.normalizePhone($('cPhone').value);
             if (!phone) { alert('נא להזין מספר טלפון תקין לפניות, לדוגמה 050-1234567.'); $('cPhone').focus(); return; }
-            listing = G.buildListing({ ownerUid: u.uid, name, city, venue, days, time, level: $('cLevel').value, description: $('cDesc').value, phone, icon });
         }
 
         const btn = $('cSubmit');
         btn.disabled = true;
+        // הכניסה עם Google קורית רק עכשיו, ישירות מהלחיצה ולפני כל await (אחרת הדפדפן חוסם את החלון).
+        // מי שסוגר את החלון חוזר לטופס, עם כל מה שמילא
+        if (!AdminAuth.isRealUser(auth.currentUser)) {
+            btn.textContent = 'מתחברים עם Google…';
+            const back = () => { btn.disabled = false; btn.textContent = 'צור קבוצה'; };
+            try { await AdminAuth.signInWithGoogle(); }
+            catch (e) { back(); if (!AdminAuth.isCancel(e)) authErrorAlert(e); return; }
+            if (!AdminAuth.isRealUser(auth.currentUser)) { back(); return; }
+            $('cAuthHint').hidden = true;
+        }
+        const u = auth.currentUser;
+        const listing = visibility === 'public'
+            ? G.buildListing({ ownerUid: u.uid, name, city, venue, days, time, level: $('cLevel').value, description: $('cDesc').value, phone, icon })
+            : null;
+
         btn.textContent = 'יוצר קבוצה…';
         try {
             const ts = firebase.firestore.FieldValue.serverTimestamp();
@@ -1483,15 +1799,26 @@
 
     document.querySelectorAll('input[name="cVis"]').forEach(r => r.addEventListener('change', toggleCreatePublic));
     $('createModal').addEventListener('click', e => { if (e.target === $('createModal')) closeCreate(); });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('createModal').hidden) closeCreate(); });
+    $('seekModal').addEventListener('click', e => { if (e.target === $('seekModal')) closeSeekerForm(); });
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Escape') return;
+        if (!$('createModal').hidden) closeCreate();
+        if (!$('seekModal').hidden) closeSeekerForm();
+    });
     G.fillCityList($('cityList'));
     if (IN_APP) $('inAppBanner').hidden = false;
     if (window.ProfileKit) ProfileKit.injectCSS();
-    // ביקור ראשון: לא מציגים את דף הנחיתה לרגע לפני "מי אתה?" — מחכים לשחזור ההתחברות (עד שנייה וחצי)
-    if (!getRole() && !location.hash) {
-        document.body.classList.add('boot-wait');
-        setTimeout(() => { if (!authKnown) { authKnown = true; document.body.classList.remove('boot-wait'); route(); } }, 1500);
-    }
+    // מדף הקבוצה: home.html?q=<העיר>#seekers — רשימת השחקנים מתחילה מסוננת לפי העיר של הקבוצה
+    (function prefillSeekSearch() {
+        const params = new URLSearchParams(location.search);
+        const q = params.get('q');
+        if (q === null) return;
+        $('seekSearch').value = q.trim().slice(0, 40);
+        params.delete('q');
+        const qs = params.toString();
+        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    })();
+    renderSeekBands();
     route();
     refreshRecentGroups();
 </script>
