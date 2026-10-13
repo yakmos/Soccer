@@ -119,6 +119,16 @@
         .vis-opt:has(input:checked) { border-color: var(--primary-color); background: rgba(16,185,129,0.1); }
         .vis-opt:has(input:disabled) { opacity: 0.6; cursor: default; }
         .welcome-card { border: 1px solid var(--primary-color) !important; background: rgba(16,185,129,0.06) !important; }
+        /* בכרטיס "הקבוצה מוכנה!" של קבוצה פרטית: להפוך אותה לציבורית בלחיצה */
+        .wp-box { margin-top: 14px; padding: 14px; border-radius: 12px; border: 1px dashed rgba(96,165,250,0.5); background: rgba(96,165,250,0.06); }
+        .wp-title { font-weight: 900; font-size: 1rem; }
+        .wp-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin: 4px 0 10px; }
+        .wp-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .wp-row .form-input { flex: 1 1 190px; width: auto; margin: 0; padding: 11px 12px; }
+        .wp-row .btn { flex: 1 1 auto; width: auto; background: #3B82F6; padding: 11px 16px; font-size: 1rem; }
+        .wp-done { color: #6EE7B7; font-weight: 800; line-height: 1.5; }
+        .wp-done small { display: block; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; margin-top: 2px; }
+        .mp-seekers { display: block; margin-top: 12px; text-align: center; color: #93C5FD; font-weight: 800; font-size: 0.92rem; text-decoration: underline; text-underline-offset: 3px; }
         @media (max-width: 480px) { .vis-opts { grid-template-columns: 1fr; } }
 
         /* הגדרות: מי נכנס כשההרשמה מלאה */
@@ -1471,6 +1481,7 @@
                     </div>
                     <button type="button" class="btn" id="mpPublishBtn" onclick="publishToMarket()" style="background:#3B82F6;">📢 פרסם מודעה</button>
                     <div class="mp-note">שם הקבוצה, המקום והטלפון יוצגו לכל מי שנכנס ל"מחפשים שחקן". הקישור לקבוצה לא מתפרסם.</div>
+                    <a class="mp-seekers" href="home.html#seekers" onclick="this.href = seekersUrl()">🙋 או חפשו בין השחקנים שמחפשים קבוצה</a>
                 </div>
                 <div class="card" style="border-top: 4px solid #3B82F6;">
                     <h2 class="card-title" style="justify-content: center; margin-bottom: 20px;">🏃‍♂️ קבוצות מחפשות שחקנים</h2>
@@ -1994,8 +2005,48 @@ function showWelcomeBanner() {
             <li>שלח את הקישור לקבוצת הוואטסאפ</li>
             <li>פתח הרשמה למשחק הקרוב כאן למטה, ושלח את קישור ההרשמה. כל שחקן בוחר את עצמו מהרשימה ונרשם</li>
         </ol>
-        <a class="btn" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="background:#25D366; color:#062E16; text-decoration:none; display:block; text-align:center;">💬 שלח את הקישור לוואטסאפ</a>`;
+        <a class="btn" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" style="background:#25D366; color:#062E16; text-decoration:none; display:block; text-align:center;">💬 שלח את הקישור לוואטסאפ</a>
+        ${currentGroupData && currentGroupData.visibility !== 'public' && isGroupOwner() ? `
+        <div class="wp-box" id="welcomePublic">
+            <div class="wp-title">🌍 רוצה ששחקנים חדשים ימצאו אתכם?</div>
+            <div class="wp-sub">הקבוצה פרטית כרגע. ציבורית = מופיעה ב"מצא קבוצה" ובמפה, עם העיר, הימים וטלפון לוואטסאפ. הקישור לקבוצה נשאר אצלך.</div>
+            <div class="wp-row">
+                <input type="tel" id="wpPhone" class="form-input" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="טלפון לוואטסאפ: 050-1234567" aria-label="טלפון לוואטסאפ">
+                <button type="button" class="btn" id="wpBtn" onclick="publishFromWelcome()">🌍 הפוך לציבורית</button>
+            </div>
+        </div>` : ''}`;
     host.prepend(card);
+}
+
+// קבוצה פרטית שנפתחה עכשיו: מודעה ב"מצא קבוצה" עם מה שכבר מולא ביצירה, וטלפון לפניות.
+// רמה, תיאור ומיקום המגרש מוסיפים אחר כך בהגדרות
+async function publishFromWelcome() {
+    const btn = document.getElementById('wpBtn'), box = document.getElementById('welcomePublic');
+    const d = currentGroupData, u = firebase.auth().currentUser;
+    if (!btn || !box || !d || !isGroupOwner()) return;
+    const phone = GroupPrefs.normalizePhone(document.getElementById('wpPhone').value);
+    if (!phone) { alert('נא להזין מספר טלפון תקין לפניות, לדוגמה 050-1234567.'); document.getElementById('wpPhone').focus(); return; }
+    const loc = d.location || {}, sch = d.schedule || {};
+    if (!String(loc.city || '').trim()) { alert('כדי לפרסם את הקבוצה צריך עיר או יישוב. אפשר להוסיף בהגדרות הקבוצה.'); return; }
+    btn.disabled = true;
+    btn.textContent = 'מפרסם…';
+    try {
+        const ts = firebase.firestore.FieldValue.serverTimestamp();
+        const listing = GroupPrefs.buildListing({ ownerUid: u.uid, name: d.name, city: loc.city, venue: loc.venue, days: sch.days, time: sch.time, phone, icon: d.icon });
+        const listingRef = db.collection('listings').doc();
+        const batch = db.batch();
+        batch.set(listingRef, Object.assign({}, listing, { createdAt: ts, updatedAt: ts }));
+        batch.set(groupRef, { visibility: 'public', listingId: listingRef.id }, { merge: true });
+        await batch.commit();
+        currentGroupData.visibility = 'public';
+        currentGroupData.listingId = listingRef.id;
+        box.innerHTML = `<div class="wp-done">✅ הקבוצה ציבורית ומופיעה ב"מצא קבוצה".<small>רמת משחק, כמה מילים על הקבוצה ומיקום המגרש במפה מוסיפים בהגדרות הקבוצה.</small></div>`;
+    } catch (e) {
+        console.error('publish from welcome', e);
+        btn.disabled = false;
+        btn.textContent = '🌍 הפוך לציבורית';
+        alert('הקבוצה לא פורסמה: ' + AdminAuth.errorMessage(e));
+    }
 }
 
 function escAdminText(s) {
@@ -4803,6 +4854,12 @@ function fillMarketForm() {
 
 function openMarketPost() {
     goSection('market');
+}
+
+// רשימת השחקנים שמחפשים קבוצה (בדף הבית), מסוננת לפי העיר של הקבוצה
+function seekersUrl() {
+    const city = String(((currentGroupData && currentGroupData.location) || {}).city || '').trim();
+    return 'home.html' + (city ? '?q=' + encodeURIComponent(city) : '') + '#seekers';
 }
 
 async function publishToMarket() {
