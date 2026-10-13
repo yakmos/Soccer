@@ -29,7 +29,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20261007"></script>
-    <script src="group-prefs.js?v=20261013"></script>
+    <script src="group-prefs.js?v=20261013b"></script>
     <script src="map-kit.js?v=20261007"></script>
     <script src="profile-kit.js?v=20261007"></script>
     <script src="tour.js?v=20261007"></script>
@@ -132,6 +132,9 @@
         .prio-age { display: flex; align-items: center; gap: 8px; margin: 8px 28px 0 0; color: var(--text-main); font-size: 0.9rem; font-weight: 700; }
         .prio-age input { width: 64px; padding: 7px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); text-align: center; font: 800 0.95rem 'Heebo', sans-serif; }
         .prio-rule.off .prio-input, .prio-rule.off .prio-age { opacity: 0.55; }
+        .prio-age[hidden], .prio-rule small[hidden] { display: none; }
+        .prio-sent { flex-wrap: wrap; row-gap: 6px; }
+        .prio-sent span { white-space: nowrap; }
         .prio-note { margin-top: 8px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.78rem; line-height: 1.5; }
 
         /* תפריט הניהול בכותרת */
@@ -692,6 +695,32 @@
         .yr-ok { flex: none; background: rgba(16,185,129,0.12); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.45); border-radius: 10px; padding: 8px 12px; font: 800 0.85rem 'Heebo', sans-serif; cursor: pointer; }
         .yr-ok:disabled { opacity: 0.6; cursor: default; }
         .year-later { background: none; border: 0; color: var(--text-muted); font: 700 0.85rem 'Heebo', sans-serif; cursor: pointer; padding: 6px 0 0; text-decoration: underline; }
+        /* פעילות אוטומטית: "נעדר באישור" בטופס השחקן, הכרטיס בלשונית הסגל והתגיות (למנהלים) */
+        .away-row { background: rgba(148,163,184,0.06); border: 1px dashed rgba(148,163,184,0.4); border-radius: 12px; padding: 12px 16px; }
+        .away-row[hidden], .away-opts[hidden] { display: none !important; }
+        .away-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .away-title { font-weight: 800; color: #CBD5E1; font-size: 0.95rem; }
+        .away-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+        .away-btn { flex: none; background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 8px; padding: 4px 10px; font: 800 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        .away-btn[aria-pressed="true"] { background: rgba(148,163,184,0.2); color: #E2E8F0; border-color: rgba(148,163,184,0.55); }
+        .away-opts { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .away-opt { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.9rem; color: var(--text-main); cursor: pointer; }
+        .away-opt input[type="radio"] { width: 18px; height: 18px; margin: 0; accent-color: var(--primary-color); flex: none; }
+        .away-opt .away-date { width: auto; flex: none; margin: 0; padding: 6px 10px; font-size: 0.9rem; color-scheme: dark; }
+        .away-quick { display: flex; gap: 6px; flex-wrap: wrap; padding-right: 26px; }
+        .away-quick button { background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 999px; padding: 4px 12px; font: 700 0.8rem 'Heebo', sans-serif; cursor: pointer; }
+        .away-status { margin-top: 8px; color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
+        .away-status:empty { display: none; }
+        .act-card { border-color: rgba(245,158,11,0.45) !important; }
+        body.is-admin .act-card[hidden] { display: none; }
+        .act-item .yr-tx small { display: block; }
+        .act-item.is-down { border-color: rgba(239,68,68,0.35); }
+        .act-item.is-risk { border-color: rgba(245,158,11,0.4); }
+        .act-alt { flex: none; background: rgba(148,163,184,0.12); color: #E2E8F0; border: 1px solid rgba(148,163,184,0.45); border-radius: 10px; padding: 8px 12px; font: 800 0.85rem 'Heebo', sans-serif; cursor: pointer; }
+        .act-badge { display: none; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; }
+        body.is-admin .act-badge { display: inline-flex; }
+        .act-badge.away { background: rgba(148,163,184,0.12); color: #CBD5E1; border: 1px dashed rgba(148,163,184,0.5); }
+        .act-badge.down { background: rgba(239,68,68,0.1); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.35); }
 
         .reg-banner {
             display: none;
@@ -1135,6 +1164,27 @@
                                 </div>
                                 <button type="button" id="activeToggleBtn" onclick="togglePlayerFlag('isActive','activeToggleBtn','✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא פעיל</button>
                             </div>
+                            <!-- נעדר באישור: כשהכלל "יורד מ'פעיל' אחרי X שבועות בלי הרשמה" פועל (רק בעריכת שחקן) -->
+                            <div id="awayRow" class="away-row" hidden>
+                                <div class="away-top">
+                                    <div>
+                                        <div class="away-title">⏸️ נעדר באישור?</div>
+                                        <div class="away-sub">בזמן הזה ההרשמות לא נספרות לו, והוא נשאר פעיל</div>
+                                    </div>
+                                    <button type="button" id="awayToggleBtn" class="away-btn" onclick="toggleAway()" aria-pressed="false">לא</button>
+                                </div>
+                                <div id="awayOpts" class="away-opts" hidden>
+                                    <label class="away-opt"><input type="radio" name="awayMode" value="date" onchange="updateAwayHint()"> עד <input type="date" id="pAwayUntil" class="form-input away-date" oninput="pickAwayDate()" aria-label="עד איזה תאריך"></label>
+                                    <div class="away-quick" role="group" aria-label="בחירה מהירה">
+                                        <button type="button" onclick="setAwayDays(7)">שבוע</button>
+                                        <button type="button" onclick="setAwayDays(14)">שבועיים</button>
+                                        <button type="button" onclick="setAwayDays(30)">חודש</button>
+                                    </div>
+                                    <label class="away-opt"><input type="radio" name="awayMode" value="return" onchange="updateAwayHint()"> עד שיחזור להירשם</label>
+                                </div>
+                                <div class="away-status" id="awayStatus"></div>
+                            </div>
+                            <input type="hidden" id="pAway" value="false">
                             <!-- New toggle -->
                             <div id="newFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:12px 16px;">
                                 <div>
@@ -1253,6 +1303,12 @@
                             <button class="btn" id="cancelBtn" onclick="closePlayerForm()" style="display:none; background:var(--danger);">בטל עריכה</button>
                         </div>
                     </div>
+                </div>
+
+                <div class="card admin-only act-card" id="actCard" hidden>
+                    <h2 class="card-title">📉 פעילות בהרשמה <span class="squad-count" id="actCount"></span></h2>
+                    <p class="lr-sub" id="actSub"></p>
+                    <div id="actList"></div>
                 </div>
 
                 <div class="card admin-only year-card" id="yearCard" hidden>
@@ -1587,6 +1643,10 @@
                     <div class="prio-rule">
                         <label class="prio-check"><input type="checkbox" id="prioActive" onchange="updatePrioForm()"><span>✅ שחקנים פעילים</span></label>
                         <small>מסמנים "פעיל" בכרטיס של מי שמגיע באופן קבוע</small>
+                        <!-- ספירה אוטומטית לפי ההרשמות (GroupPrefs.activityPlan) -->
+                        <div class="prio-age prio-sent"><span>⏳ יורד מ"פעיל" אחרי</span><input type="number" id="prioActiveWeeks" min="0" max="8" step="1" inputmode="numeric" oninput="onPrioActiveWeeksInput()" aria-label="כמה שבועות בלי הרשמה"><span>שבועות בלי הרשמה</span></div>
+                        <div class="prio-age prio-sent" id="prioBackRow"><span>↩️ חוזר אחרי</span><input type="number" id="prioBackWeeks" min="1" max="8" step="1" inputmode="numeric" oninput="onPrioActiveWeeksInput()" aria-label="כמה שבועות רצופים של הרשמה"><span>שבועות רצופים של הרשמה</span></div>
+                        <small id="prioActiveHint"></small>
                     </div>
                     <div class="prio-rule">
                         <label class="prio-check"><input type="checkbox" id="prioVeteran" onchange="updatePrioForm()"><span>⭐ ותיקים לפני חדשים</span></label>
@@ -1882,6 +1942,7 @@ function setAdminMode(on) {
         migrateCareerStats();
         maybeSyncAutoRegs();
         fillJoinDates();
+        queueActivityCheck();
     } else {
         document.body.classList.remove('is-admin');
         toggleAdminMenu(false);
@@ -1895,6 +1956,7 @@ function setAdminMode(on) {
         if (SECTIONS[currentSection].admin) goSection('game');
         else updateBottomBar();
         stopLinkRequestsListener();
+        queueActivityCheck();
     }
     updateRateMe();
     updateHeaderAuth();
@@ -2125,7 +2187,7 @@ function startRealtimeListeners() {
         if (document.getElementById('lineupPickerOverlay').style.display === 'flex') renderLineupPicker();
         if (document.getElementById('meOverlay').style.display === 'flex') refreshMeOnPlayers();
         updateAcctChip();   // הכרטיס המחובר אולי קיבל תמונה
-        if (isAdminNow()) fillJoinDates();
+        if (isAdminNow()) { fillJoinDates(); queueActivityCheck(); }
         if (linkRequests.length) renderLinkRequests();
         if (careerStatsReady()) renderTopScorers();
         if (activeTeams) displayTeams(activeTeams, activeGkIds, activeHasFixedGk, activeWins);
@@ -2225,6 +2287,7 @@ function setPrioCfg(cfg) {
     prioCfg = cfg;
     priorityLabel = cfg.label;
     applyPriorityUI();
+    if (typeof queueActivityCheck === 'function') queueActivityCheck();
 }
 
 function priorityFlagTexts() { return [`🏠 ${priorityLabel}`, `לא ${priorityLabel}`]; }
@@ -2254,6 +2317,8 @@ function applyPriorityUI() {
     const hidden = document.getElementById('pIsMoshavResident');
     if (hidden) setPriorityFlagUI(hidden.value === 'true');
     updateJoinRow();
+    const awayRow = document.getElementById('awayRow');
+    if (awayRow) awayRow.hidden = !(editingId && awayRuleOn());
 }
 
 // שחקן שנוסף לסגל: כשהכלל "ותיקים לפני חדשים" פועל הוא מתחיל כ"חדש" (אפשר להוריד), ותאריך ההצטרפות הוא היום
@@ -2262,6 +2327,7 @@ function resetAllFlagButtons() {
     setPlayerFlagUI('isNew','newToggleBtn',!!(prioCfg && prioCfg.veteran),'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(false);
     setJoinDateField(GroupPrefs.todayYmd());
+    fillAwayForm(null);
 }
 
 // ===== תאריך ההצטרפות בטופס השחקן =====
@@ -2286,6 +2352,96 @@ function updateJoinHint() {
     const left = GroupPrefs.freshDaysLeft(prioCfg, p);
     hint.textContent = (d === 0 ? 'הצטרף היום' : `בקבוצה ${GroupPrefs.durationText(d)}`)
         + (left > 0 ? ` · 🌱 חדש לגמרי עוד ${GroupPrefs.durationText(left)}` : '');
+}
+
+// ===== "⏸️ נעדר באישור" בטופס השחקן =====
+// מופיע בעריכת שחקן כשהכלל "יורד מ'פעיל' אחרי X שבועות בלי הרשמה" פועל.
+// נשמר בכרטיס כ-excused: { at: היום שבו סומן, until: עד איזה יום (כולל), או null = עד שיירשם שוב }
+function awayRuleOn() { return !!(prioCfg.active && prioCfg.activeWeeks > 0); }
+function excusedNow(p) {
+    const ex = p && p.excused && typeof p.excused === 'object' ? p.excused : null;
+    if (!ex) return null;
+    if (!ex.until) return ex;
+    return GroupPrefs.ymdToMs(ex.until) != null && ex.until >= GroupPrefs.todayYmd() ? ex : null;
+}
+function awayMode() {
+    const r = document.querySelector('input[name="awayMode"]:checked');
+    return r && r.value === 'return' ? 'return' : 'date';
+}
+function setAwayMode(mode) {
+    document.querySelectorAll('input[name="awayMode"]').forEach(r => { r.checked = r.value === mode; });
+}
+function setAwayUI(on, until, mode) {
+    document.getElementById('pAway').value = String(!!on);
+    const btn = document.getElementById('awayToggleBtn');
+    btn.textContent = on ? '⏸️ נעדר' : 'לא';
+    btn.setAttribute('aria-pressed', String(!!on));
+    document.getElementById('awayOpts').hidden = !on;
+    const dateEl = document.getElementById('pAwayUntil');
+    dateEl.min = GroupPrefs.todayYmd();
+    if (until !== undefined) dateEl.value = until || '';
+    if (mode) setAwayMode(mode);
+}
+function fillAwayForm(p) {
+    const row = document.getElementById('awayRow');
+    if (!row) return;
+    row.hidden = !(p && editingId && awayRuleOn());
+    const ex = p ? excusedNow(p) : null;
+    setAwayUI(!!ex, ex && ex.until ? ex.until : '', ex && !ex.until ? 'return' : 'date');
+    updateAwayHint();
+}
+function toggleAway() {
+    const on = document.getElementById('pAway').value !== 'true';
+    setAwayUI(on);
+    if (on) {
+        const dateEl = document.getElementById('pAwayUntil');
+        if (!document.querySelector('input[name="awayMode"]:checked')) setAwayMode('date');
+        if (!dateEl.value) dateEl.value = GroupPrefs.todayYmd(Date.now() + 14 * 864e5);
+    }
+    // מי שירד אוטומטית חוזר להיות פעיל כשמסמנים אותו "נעדר באישור" (וחוזר למצב שלו כשמבטלים לפני השמירה)
+    const p = editingId ? players.find(x => x.id === editingId) : null;
+    if (p && p.autoOff && !p.isActive) setPlayerFlagUI('isActive','activeToggleBtn',on,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
+    updateAwayHint();
+}
+function setAwayDays(n) {
+    document.getElementById('pAwayUntil').value = GroupPrefs.todayYmd(Date.now() + n * 864e5);
+    setAwayMode('date');
+    updateAwayHint();
+}
+function pickAwayDate() {
+    setAwayMode('date');
+    updateAwayHint();
+}
+function updateAwayHint() {
+    const el = document.getElementById('awayStatus');
+    if (!el) return;
+    const p = editingId ? players.find(x => x.id === editingId) : null;
+    el.textContent = p && awayRuleOn() ? activityStatusText(p) : '';
+}
+
+// השינויים בכרטיס כשמנהל שומר את הטופס: נעדר באישור, ו"פעיל" שהמנהל שינה בעצמו (סופרים מהיום)
+function activityFormPatch(before, isActive) {
+    const out = { set: {}, del: [], error: '' };
+    if (!before) return out;
+    const today = GroupPrefs.todayYmd();
+    if (awayRuleOn()) {
+        const on = document.getElementById('pAway').value === 'true';
+        const old = before.excused && typeof before.excused === 'object' ? before.excused : null;
+        if (on) {
+            const mode = awayMode(), until = document.getElementById('pAwayUntil').value;
+            if (mode === 'date' && (GroupPrefs.ymdToMs(until) == null || until < today)) {
+                out.error = 'בחר עד מתי הוא נעדר באישור (היום או אחר כך), או "עד שיחזור להירשם"';
+                return out;
+            }
+            const u = mode === 'date' ? until : null;
+            if (!excusedNow(before) || (old.until || null) !== u) out.set.excused = { at: today, until: u };
+            if (before.autoOff && !before.isActive) isActive = out.set.isActive = true;
+        } else if (old) out.del.push('excused');
+    }
+    if (isActive && (!before.isActive || before.autoOff)) out.set.actFrom = today;
+    // ירד אוטומטית ומוכיח את עצמו: נשאר כך כל עוד המנהל לא החזיר אותו
+    if (before.autoOff && (isActive || before.isActive)) out.del.push('autoOff');
+    return out;
 }
 
 // ========== Custom Params Logic ==========
@@ -2653,9 +2809,17 @@ async function savePlayer() {
     }
 
     const isGk = document.getElementById('pIsGk').value === 'true';
-    const isActive = document.getElementById('pIsActive').value === 'true';
+    let isActive = document.getElementById('pIsActive').value === 'true';
     const isNew = document.getElementById('pIsNew').value === 'true';
     const isMoshavResident = document.getElementById('pIsMoshavResident').value === 'true';
+    // נעדר באישור, ו"פעיל" שהמנהל שינה בעצמו (הספירה האוטומטית מתחילה מהיום)
+    const act = activityFormPatch(editingId ? players.find(x => x.id === editingId) : null, isActive);
+    if (act.error) {
+        showToast('⏸️ ' + act.error, 'error');
+        document.getElementById('awayRow').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    if (act.set.isActive) isActive = true;
 
     const hasLocked = Object.keys(currentLockedParams).length > 0;
     const lockedParams = hasLocked ? { ...currentLockedParams } : {};
@@ -2718,6 +2882,8 @@ async function savePlayer() {
             }
             const before = players.find(x => x.id === id);
             if (!joinDate && before && before.joinDate) updateData.joinDate = firebase.firestore.FieldValue.delete();
+            Object.keys(act.set).forEach(k => { if (k !== 'isActive') updateData[k] = act.set[k]; });
+            act.del.forEach(k => { updateData[k] = firebase.firestore.FieldValue.delete(); });
             justSaved = { id, at: Date.now() };
             await playersRef.doc(id).update(updateData);
             closePlayerForm();
@@ -2780,6 +2946,7 @@ function startEdit(id, p) {
     setPlayerFlagUI('isNew','newToggleBtn',isNew,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(isMoshavResident);
     setJoinDateField(GroupPrefs.ymdToMs(p.joinDate) != null ? p.joinDate : '');
+    fillAwayForm(p);
 
     const isGk = !!p.isGk;
     document.getElementById('pIsGk').value = String(isGk);
@@ -3400,6 +3567,11 @@ function getPlayerBadgesHTML(p, small = false) {
         ? `<span class="badge-fresh" style="${sz}" title="בקבוצה פחות מ-${GroupPrefs.weeksText(prioCfg.newWeeks)}">🌱 חדש לגמרי</span>`
         : `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
     if (p.isMoshavResident && priorityLabel) badges += `<span class="badge-resident" style="${sz}">🏠 ${escAdminText(priorityLabel)}</span>`;
+    // הספירה האוטומטית של "פעיל" (רואים רק במצב ניהול)
+    if (awayRuleOn()) {
+        if (p.autoOff && !p.isActive) badges += `<span class="act-badge down" style="${sz}" title="לא נרשם ${GroupPrefs.weeksText(prioCfg.activeWeeks)}">⬇️ ירד מפעיל</span>`;
+        else if (p.isActive && excusedNow(p)) badges += `<span class="act-badge away" style="${sz}">⏸️ נעדר באישור</span>`;
+    }
     return badges;
 }
 function getAvatarHTML(url, className, id) {
@@ -3458,6 +3630,8 @@ function fillPriorityForm() {
     document.getElementById('prioAge').checked = p.age;
     document.getElementById('prioAgeMin').value = p.ageMin;
     document.getElementById('prioNewWeeks').value = p.newWeeks;
+    document.getElementById('prioActiveWeeks').value = p.activeWeeks;
+    document.getElementById('prioBackWeeks').value = p.backWeeks;
     updatePrioForm();
 }
 
@@ -3471,6 +3645,8 @@ function readPriorityForm() {
         age: document.getElementById('prioAge').checked,
         ageMin: Number(document.getElementById('prioAgeMin').value),
         newWeeks: document.getElementById('prioNewWeeks').value.trim(),
+        activeWeeks: document.getElementById('prioActiveWeeks').value.trim(),
+        backWeeks: document.getElementById('prioBackWeeks').value.trim(),
         labelText: (document.getElementById('setPriorityLabel').value || '').trim().slice(0, 30)
     };
 }
@@ -3499,6 +3675,17 @@ function onPrioNewWeeksInput() {
     document.getElementById('prioVeteran').checked = true;
     updatePrioForm();
 }
+function onPrioActiveWeeksInput() {
+    document.getElementById('prioActive').checked = true;
+    updatePrioForm();
+}
+
+// היום שממנו סופרים: נשאר כל עוד הכלל פועל, ומתחיל מהיום כשמדליקים אותו (מהמשחק הבא, אף אחד לא יורד ביום ההפעלה)
+function activeSinceFor(f) {
+    const on = f.mode === 'rules' && f.active && GroupPrefs.validActiveWeeks(f.activeWeeks) && Number(f.activeWeeks) > 0;
+    if (!on) return '';
+    return prioCfg.activeWeeks > 0 && prioCfg.activeSince ? prioCfg.activeSince : GroupPrefs.todayYmd();
+}
 
 function updatePrioForm() {
     const f = readPriorityForm();
@@ -3511,6 +3698,13 @@ function updatePrioForm() {
         : f.veteran ? `שחקן חדש שמסומן ${name} נכנס לפני שחקנים חדשים אחרים`
         : f.active ? `שחקן פעיל שמסומן ${name} נכנס לפני שחקנים פעילים אחרים`
         : `מי שמסומן ${name} נכנס לפני כל האחרים`;
+    // ספירה אוטומטית של "פעיל"
+    const w = Number(f.activeWeeks), autoOn = GroupPrefs.validActiveWeeks(f.activeWeeks) && w > 0;
+    document.getElementById('prioBackRow').hidden = !autoOn;
+    const since = autoOn ? activeSinceFor(f) : '';
+    document.getElementById('prioActiveHint').textContent = !autoOn
+        ? '0 = רק ידנית, בכרטיס של כל שחקן'
+        : `${since === GroupPrefs.todayYmd() ? 'סופרים מהיום' : 'סופרים מ-' + fmtDayMonth(since)}. כל הרשמה נחשבת, גם להמתנה וגם מי שנרשם וביטל. "⏸️ נעדר באישור" בכרטיס השחקן עוצר את הספירה`;
 }
 
 // מחזיר את מה שנשמר ב-settings, או הודעת שגיאה
@@ -3520,6 +3714,8 @@ function priorityFormToSettings() {
         if (f.label && !f.labelText) return { error: 'כתוב שם לקבוצת העדיפות (לדוגמה "תושב השכונה"), או בטל את הסימון שלה.' };
         if (f.age && !GroupPrefs.validPriorityAge(f.ageMin)) return { error: `הגיל לעדיפות צריך להיות מספר שלם בין ${GroupPrefs.PRIORITY_AGE_MIN} ל-${GroupPrefs.PRIORITY_AGE_MAX}.` };
         if (f.veteran && !GroupPrefs.validNewWeeks(f.newWeeks)) return { error: `מספר השבועות של "חדשים לגמרי" צריך להיות מספר שלם בין 0 ל-${GroupPrefs.NEW_WEEKS_MAX} (0 = בלי).` };
+        if (f.active && !GroupPrefs.validActiveWeeks(f.activeWeeks)) return { error: `מספר השבועות בלי הרשמה (עד שיורדים מ"פעיל") צריך להיות מספר שלם בין 0 ל-${GroupPrefs.ACTIVE_WEEKS_MAX} (0 = רק ידנית).` };
+        if (f.active && Number(f.activeWeeks) > 0 && !GroupPrefs.validBackWeeks(f.backWeeks)) return { error: `מספר השבועות הרצופים לחזרה ל"פעיל" צריך להיות מספר שלם בין 1 ל-${GroupPrefs.BACK_WEEKS_MAX}.` };
         if (!f.active && !f.veteran && !f.label && !f.age) return { error: 'סמן לפחות דבר אחד שנותן עדיפות, או בחר "כל הקודם זוכה".' };
     }
     return {
@@ -3527,7 +3723,10 @@ function priorityFormToSettings() {
         regPriority: {
             mode: f.mode, active: f.active, veteran: f.veteran, label: f.label, age: f.age,
             ageMin: GroupPrefs.validPriorityAge(f.ageMin) ? f.ageMin : GroupPrefs.DEFAULT_PRIORITY_AGE,
-            newWeeks: GroupPrefs.validNewWeeks(f.newWeeks) ? Number(f.newWeeks) : GroupPrefs.DEFAULT_NEW_WEEKS
+            newWeeks: GroupPrefs.validNewWeeks(f.newWeeks) ? Number(f.newWeeks) : GroupPrefs.DEFAULT_NEW_WEEKS,
+            activeWeeks: GroupPrefs.validActiveWeeks(f.activeWeeks) ? Number(f.activeWeeks) : 0,
+            backWeeks: GroupPrefs.validBackWeeks(f.backWeeks) ? Number(f.backWeeks) : GroupPrefs.DEFAULT_BACK_WEEKS,
+            activeSince: activeSinceFor(f)
         }
     };
 }
@@ -4795,6 +4994,11 @@ function fmtYmd(s) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
     return m ? `${+m[3]}.${+m[2]}.${m[1]}` : '';
 }
+// "4.10" — לתאריכים קרובים
+function fmtDayMonth(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    return m ? `${+m[3]}.${+m[2]}` : '';
+}
 
 async function openMe() {
     document.getElementById('meOverlay').style.display = 'flex';
@@ -5185,6 +5389,181 @@ async function makeVeteran(id, btn) {
 function snoozeYearCard() {
     try { localStorage.setItem(yearSnoozeKey(), String(Date.now() + 7 * 864e5)); } catch (e) { /* לא קריטי */ }
     renderYearCard();
+}
+
+// ========== פעילות אוטומטית: מי שלא נרשם X שבועות יורד מ"פעיל" (GroupPrefs.activityPlan) ==========
+// אין שרת שרץ ברקע, אז הבדיקה רצה כשמנהל פותח את דף הקבוצה: קוראים את ההרשמות מאז שהכלל הודלק (עד 10 שבועות אחורה),
+// מי נרשם לכל משחק ומתי, ומעדכנים את הכרטיסים. רשימות של משחקים שעברו לפני יותר מיומיים נשמרות בדפדפן,
+// כך שכל כניסה קוראת רק את מה שעוד יכול להשתנות
+const ACT_HORIZON_DAYS = 70, ACT_SETTLED_MS = 2 * 864e5, ACT_RELOAD_MS = 15 * 60e3;
+let actData = null, actKey = '', actLoadedAt = 0, actRunning = false, actQueued = false, actTimer = null;
+let actStates = {};
+const actTried = new Set();
+const actCacheKey = () => 'sm_actRegs_' + currentGroupId;
+function readActCache() {
+    try { const c = JSON.parse(localStorage.getItem(actCacheKey()) || '{}'); return c && typeof c === 'object' ? c : {}; }
+    catch (e) { return {}; }
+}
+function writeActCache(c) {
+    try { localStorage.setItem(actCacheKey(), JSON.stringify(c)); } catch (e) { /* לא קריטי */ }
+}
+
+async function loadActivityData() {
+    const now = Date.now();
+    const fromN = Math.max(GroupPrefs.dayNum(prioCfg.activeSince), GroupPrefs.dayNum(now) - ACT_HORIZON_DAYS);
+    const snap = await groupRef.collection('registrations').where('gameDateRaw', '>=', GroupPrefs.dayYmd(fromN)).get();
+    const cache = readActCache(), keep = {};
+    const regs = await Promise.all(snap.docs.map(async doc => {
+        const r = doc.data() || {};
+        const start = RegAuto.gameAtOf(r, '20:00');
+        if (!start) return null;
+        const doneAt = start.getTime() + RegAuto.GRACE_MS;
+        const settled = doneAt + ACT_SETTLED_MS <= now;
+        let people = settled && cache[doc.id] && Array.isArray(cache[doc.id].p) ? cache[doc.id].p : null;
+        if (!people) {
+            const [es, cs] = await Promise.all([doc.ref.collection('entries').get(), doc.ref.collection('cancelled').get()]);
+            people = [];
+            es.forEach(e => {
+                const d = e.data() || {};
+                const pid = typeof d.playerId === 'string' ? d.playerId : e.id;
+                if (SAFE_ID.test(pid)) people.push([pid, RegAuto.toMs(d.registeredAt), 1]);
+            });
+            cs.forEach(c => {
+                const d = c.data() || {};
+                if (typeof d.playerId === 'string' && SAFE_ID.test(d.playerId)) people.push([d.playerId, RegAuto.toMs(d.registeredAt), 0]);
+            });
+        }
+        if (settled) keep[doc.id] = { p: people };
+        return { day: RegAuto.ymd(start), done: doneAt <= now, people: people.map(x => ({ pid: x[0], at: x[1], listed: !!x[2] })) };
+    }));
+    writeActCache(keep);
+    return GroupPrefs.activityData(regs.filter(Boolean), 2 * (parseInt(groupSettings.playersPerTeam) || 6));
+}
+
+function queueActivityCheck() {
+    clearTimeout(actTimer);
+    actTimer = setTimeout(runActivityCheck, 300);
+}
+async function runActivityCheck() {
+    if (!isAdminNow() || !playersLoaded || !groupRef || !awayRuleOn()) {
+        actStates = {};
+        renderActCard();
+        return;
+    }
+    if (actRunning) { actQueued = true; return; }
+    actRunning = true;
+    let tried = [];
+    try {
+        const key = [currentGroupId, prioCfg.activeSince, groupSettings.playersPerTeam].join('|');
+        if (!actData || key !== actKey || Date.now() - actLoadedAt > ACT_RELOAD_MS) {
+            actData = await loadActivityData();
+            actKey = key;
+            actLoadedAt = Date.now();
+        }
+        const now = Date.now(), FV = firebase.firestore.FieldValue;
+        const batch = db.batch(), downs = [], backs = [], states = {};
+        players.forEach(p => {
+            if (!SAFE_ID.test(p.id)) return;
+            const plan = GroupPrefs.activityPlan(prioCfg, p, actData, now);
+            states[p.id] = plan;
+            if (!plan.set && !plan.del) return;
+            const tag = p.id + JSON.stringify([plan.set || null, plan.del || null]);
+            if (actTried.has(tag)) return;   // כל שינוי נכתב פעם אחת בכל כניסה
+            actTried.add(tag);
+            tried.push(tag);
+            const patch = Object.assign({}, plan.set);
+            (plan.del || []).forEach(k => { patch[k] = FV.delete(); });
+            batch.update(playersRef.doc(p.id), patch);
+            if (plan.kind === 'drop') downs.push(p.name);
+            else if (plan.kind === 'back') backs.push(p.name);
+        });
+        actStates = states;
+        if (tried.length) {
+            await batch.commit();
+            tried = [];
+            const w = GroupPrefs.weeksText(prioCfg.activeWeeks);
+            if (downs.length) showToast(downs.length === 1 ? `⬇️ ${downs[0]} ירד מ"פעיל": לא נרשם ${w}` : `⬇️ ${downs.length} שחקנים ירדו מ"פעיל": לא נרשמו ${w}`, 'info');
+            else if (backs.length) showToast(backs.length === 1 ? `✅ ${backs[0]} חזר להיות פעיל` : `✅ ${backs.length} שחקנים חזרו להיות פעילים`, 'success');
+        }
+    } catch (e) {
+        console.warn('activity check', e);
+        tried.forEach(t => actTried.delete(t));   // לא נשמר: אפשר לנסות שוב בבדיקה הבאה
+    } finally {
+        actRunning = false;
+        renderActCard();
+        updateAwayHint();
+        if (actQueued) { actQueued = false; queueActivityCheck(); }
+    }
+}
+
+// שורת מצב לשחקן (בכרטיס הפעילות ובטופס השחקן)
+function activityStatusText(p) {
+    const s = actStates[p.id];
+    if (!s) return '';
+    const today = GroupPrefs.todayYmd();
+    switch (s.kind) {
+        case 'ok': return s.reg ? `נרשם לאחרונה ב-${fmtDayMonth(s.last)}` : '';
+        case 'risk': return `⏳ לא נרשם מאז ${fmtDayMonth(s.last)} · `
+            + (s.dropBy > today ? `יירד מ"פעיל" אם לא יירשם עד ${fmtDayMonth(s.dropBy)}` : 'יירד מ"פעיל" אם לא יירשם למשחק הבא');
+        case 'away': return s.until ? `⏸️ נעדר באישור עד ${fmtDayMonth(s.until)}` : '⏸️ נעדר באישור עד שיחזור להירשם';
+        case 'drop': return `⬇️ ירד מ"פעיל" אחרי המשחק ב-${fmtDayMonth(s.at)} · עוד לא חזר להירשם`;
+        case 'down': return `⬇️ ירד מ"פעיל" אחרי המשחק ב-${fmtDayMonth(s.since)} · `
+            + (s.done ? `נרשם ${s.done} מתוך ${s.need} השבועות` : 'עוד לא חזר להירשם');
+        case 'back': return '✅ חוזר להיות פעיל';
+        default: return '';
+    }
+}
+function backWeeksText(n) { return n === 1 ? 'שבוע אחד' : `${GroupPrefs.weeksText(n)} רצופים`; }
+
+// בלשונית הסגל: מי שירד אוטומטית, מי שעוד מעט יורד, ומי שנעדר באישור
+function renderActCard() {
+    const box = document.getElementById('actCard'), list = document.getElementById('actList');
+    if (!box || !list) return;
+    const items = [];
+    if (isAdminNow() && awayRuleOn()) players.forEach(p => {
+        const s = actStates[p.id];
+        if (!s || !SAFE_ID.test(p.id)) return;
+        if (s.kind === 'down' || s.kind === 'drop') items.push({ p, s, ord: 0, key: -(GroupPrefs.dayNum(s.since || s.at) || 0) });
+        else if (s.kind === 'risk') items.push({ p, s, ord: 1, key: GroupPrefs.dayNum(s.dropBy) || 0 });
+        else if (s.kind === 'away') items.push({ p, s, ord: 2, key: s.until ? GroupPrefs.dayNum(s.until) : Infinity });
+    });
+    items.sort((a, b) => a.ord - b.ord || a.key - b.key || String(a.p.name).localeCompare(String(b.p.name), 'he'));
+    box.hidden = !items.length;
+    if (box.hidden) { list.innerHTML = ''; return; }
+    document.getElementById('actCount').textContent = items.length > 1 ? `${items.length} שחקנים` : '';
+    document.getElementById('actSub').textContent = `מי שלא נרשם ${GroupPrefs.weeksText(prioCfg.activeWeeks)} יורד מ"פעיל", וחוזר אחרי ${backWeeksText(prioCfg.backWeeks)} של הרשמה.`;
+    list.innerHTML = items.map(({ p, s }) => {
+        const cls = s.kind === 'risk' ? 'is-risk' : s.kind === 'away' ? 'is-away' : 'is-down';
+        const btn = s.kind === 'risk'
+            ? `<button type="button" class="act-alt" onclick="openAway('${p.id}')">⏸️ נעדר באישור</button>`
+            : s.kind === 'away'
+                ? `<button type="button" class="act-alt" onclick="startEditById('${p.id}')">✏️ עריכה</button>`
+                : `<button type="button" class="yr-ok" onclick="restoreActive('${p.id}', this)">↩️ להחזיר</button>`;
+        return `<div class="yr-item act-item ${cls}" data-pid="${p.id}"><div class="yr-tx"><b>${escAdminText(p.name)}</b><small>${escAdminText(activityStatusText(p))}</small></div>${btn}</div>`;
+    }).join('');
+}
+
+async function restoreActive(id, btn) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    if (btn) btn.disabled = true;
+    try {
+        await playersRef.doc(id).update({ isActive: true, autoOff: firebase.firestore.FieldValue.delete(), actFrom: GroupPrefs.todayYmd() });
+        showToast(`✅ ${p.name} שוב פעיל`, 'success');
+    } catch (e) {
+        if (btn) btn.disabled = false;
+        alert('לא נשמר: ' + AdminAuth.errorMessage(e));
+    }
+}
+
+// פותח את הכרטיס של השחקן עם "נעדר באישור" מסומן (עוד לא נשמר)
+function openAway(id) {
+    startEditById(id);
+    if (document.getElementById('pAway').value !== 'true') toggleAway();
+    setTimeout(() => {
+        const row = document.getElementById('awayRow');
+        if (row && !row.hidden) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 350);
 }
 
 // ========== בקשות לחבר כרטיס (למנהלים, בלשונית הסגל) ==========
