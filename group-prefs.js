@@ -408,6 +408,62 @@
         return typeof t === 'string' && /^\d{2}:\d{2}$/.test(t) ? t : '';
     }
 
+    // ===== שדה שעה: מקלדת מספרים, והנקודתיים נוספות לבד ("2030" → "20:30") =====
+    // בורר השעה של הדפדפן (input type=time) לא נפתח בחלק מהטלפונים, למשל בגלקסי, ולכן שדה טקסט עם מקלדת מספרים.
+    // תוך כדי הקלדה: ספרה ראשונה 3–9 היא שעה של ספרה אחת ("930" → "9:30"), אחרת שעה של שתי ספרות ("2030" → "20:30")
+    function typingTime(v) {
+        const d = String(v == null ? '' : v).replace(/\D/g, '');
+        if (!d) return '';
+        if (+d[0] >= 3) return d.length > 1 ? d[0] + ':' + d.slice(1, 3) : d;
+        return d.length > 2 ? d.slice(0, 2) + ':' + d.slice(2, 4) : d;
+    }
+    // "9" → "09:00", "9:3" → "09:30", "20" → "20:00", "2030" → "20:30". ריק → "", שעה לא חוקית → null
+    function normalizeTime(v) {
+        const s = typingTime(v);
+        if (!s) return '';
+        const [h, m = ''] = s.split(':');
+        const hh = Number(h), mm = Number(m.length === 1 ? m + '0' : (m || '0'));
+        if (!(hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59)) return null;
+        return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    }
+    // הערך של שדה שעה, תמיד בפורמט 20:30 (או ריק אם השדה ריק או לא חוקי)
+    function timeValue(el) {
+        const t = el ? normalizeTime(el.value) : '';
+        return t || '';
+    }
+    let timeCssDone = false;
+    function bindTimeInput(el) {
+        if (!el || el.__timeBound) return el;
+        el.__timeBound = true;
+        if (!timeCssDone && document.head) {
+            timeCssDone = true;
+            const st = document.createElement('style');
+            st.textContent = 'input[data-time-input]{direction:ltr;text-align:center;letter-spacing:.04em}'
+                + 'input[data-time-input][aria-invalid="true"]{border-color:#F87171 !important;box-shadow:0 0 0 3px rgba(248,113,113,.18) !important}';
+            document.head.appendChild(st);
+        }
+        try { el.type = 'text'; } catch (e) { /* דפדפן ישן: נשאר כמו שהוא */ }
+        el.setAttribute('data-time-input', '');
+        el.setAttribute('inputmode', 'numeric');
+        el.setAttribute('autocomplete', 'off');
+        el.setAttribute('maxlength', '5');
+        if (!el.placeholder) el.placeholder = '20:00';
+        el.addEventListener('input', () => {
+            const t = typingTime(el.value);
+            if (t !== el.value) el.value = t;
+            el.removeAttribute('aria-invalid');
+        });
+        el.addEventListener('blur', () => {
+            const t = normalizeTime(el.value);
+            if (t === null) { el.setAttribute('aria-invalid', 'true'); return; }
+            if (t !== el.value) {
+                el.value = t;
+                el.dispatchEvent(new Event('input', { bubbles: true }));   // תצוגות שמתעדכנות בהקלדה רואות את השעה המלאה
+            }
+        });
+        return el;
+    }
+
     // "שישי 16:00" / "שני וחמישי · 20:00" / "א׳ ג׳ ה׳ · 20:00"
     function formatSchedule(schedule) {
         const s = schedule || {};
@@ -777,7 +833,7 @@
         ymdToMs, todayYmd, daysInGroup, isFreshNew, freshDaysLeft, weeksText, durationText,
         cleanPlayerName, playerNameKey, parsePlayerList, PLAYER_NAME_MAX, BULK_MAX,
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
-        cleanDays, cleanTime, formatSchedule, normalizePhone, phoneToIntl, buildListing,
+        cleanDays, cleanTime, typingTime, normalizeTime, timeValue, bindTimeInput, formatSchedule, normalizePhone, phoneToIntl, buildListing,
         cleanLatLng, cityCoords, distanceKm, listingAuto, listingStatus, LISTING_STATUS,
         renderDayChips, readDayChips, fillCityList, levelOptionsHTML,
         getRecentGroups, rememberGroup, updateRecentGroup, forgetGroup,
