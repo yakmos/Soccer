@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Soccer Manager — ניהול קבוצת כדורגל בלי בלגן</title>
-<meta name="description" content="הרשמה למשחקים, רשימת המתנה, חלוקה מאוזנת לקבוצות, דירוגים ו-MVP. פותחים קבוצה בדקה ושולחים קישור אחד לוואטסאפ.">
-<meta property="og:title" content="Soccer Manager — ניהול קבוצת כדורגל">
-<meta property="og:description" content="הרשמה למשחקים, חלוקה מאוזנת לקבוצות, דירוגים ו-MVP. הכל בקישור אחד לוואטסאפ.">
+<title>Soccer Manager — מצא קבוצת כדורגל או נהל את שלך</title>
+<meta name="description" content="מחפש משחק? קבוצות באזור על המפה, או פרסם שאתה מחפש ומארגנים יפנו אליך. מארגן? הרשמה, רשימת המתנה, חלוקה מאוזנת ו-MVP בקישור אחד לוואטסאפ.">
+<meta property="og:title" content="Soccer Manager — מצא קבוצת כדורגל או נהל את שלך">
+<meta property="og:description" content="מחפש משחק? קבוצות באזור על המפה, או פרסם שאתה מחפש ומארגנים יפנו אליך. מארגן? הרשמה, חלוקה מאוזנת ו-MVP בקישור אחד.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="he_IL">
 <meta property="og:site_name" content="Soccer Manager">
@@ -264,6 +264,9 @@
     .status-chip.looking { background: rgba(251,191,36,0.12); color: #FCD34D; }
     .status-chip.closed { background: rgba(148,163,184,0.14); color: var(--muted); }
     .listing .dist { color: var(--muted); font-size: .85rem; }
+    /* דיווח על מודעה: קישור שקט מתחת לכפתור הוואטסאפ */
+    .report-link { align-self: center; color: var(--muted); font-size: .8rem; text-decoration: none; padding: 6px 10px; margin-bottom: -6px; border-radius: 8px; }
+    .report-link:hover, .report-link:focus-visible { color: #FCA5A5; text-decoration: underline; }
 
     /* ===== מחפשים שחקן ===== */
     .post-missing { background: rgba(239,68,68,0.15); color: #FCA5A5; border-radius: 8px; padding: 3px 10px; font-weight: 900; font-size: .85rem; white-space: nowrap; }
@@ -1234,6 +1237,13 @@
         }
         renderMarketPosts();
     }
+    // "דיווח" על מודעה של מישהו אחר: טופס יצירת הקשר, עם המודעה כבר בפנייה
+    function reportLinkHTML(kind, id) {
+        if (!/^[A-Za-z0-9_-]{1,40}$/.test(String(id || ''))) return '';
+        return `<a class="report-link" href="contact.html?topic=abuse&amp;from=home&amp;report=${kind}:${id}">🚩 דיווח על המודעה</a>`;
+    }
+    const isMine = ownerUid => !!(currentUser && ownerUid && ownerUid === currentUser.uid);
+
     function postCardHTML(p) {
         const keep = isKeepPost(p);
         const phone = G.normalizePhone(p.phone);
@@ -1254,6 +1264,7 @@
             <div class="meta">📍 ${esc(p.location || '')}</div>
             ${when ? `<div class="meta">🕒 פורסם ${esc(when)}</div>` : ''}
             ${wa ? `<a class="btn btn-wa" href="${esc(wa)}" target="_blank" rel="noopener">📩 אני רוצה להצטרף</a>` : ''}
+            ${isMine(p.ownerUid) ? '' : reportLinkHTML('market', p.id)}
         </article>`;
     }
     function renderMarketPosts() {
@@ -1342,6 +1353,7 @@
             ${at ? `<div class="posted">🕒 פורסם ${esc(shortDate(at))}</div>` : ''}
             ${mine ? '<button class="btn btn-ghost" type="button" onclick="openSeekerForm()">✏️ עריכת המודעה</button>'
                 : wa ? `<a class="btn btn-wa" href="${esc(wa)}" target="_blank" rel="noopener">💬 הזמן אותו לשחק</a>` : ''}
+            ${mine ? '' : reportLinkHTML('seeker', s.id)}
         </article>`;
     }
 
@@ -1561,6 +1573,7 @@
             ${l._dist != null ? `<div class="dist">${distText(l._dist)}</div>` : ''}
             ${l.description ? `<p class="desc">${esc(l.description)}</p>` : ''}
             ${wa ? `<a class="btn btn-wa" href="${wa}" target="_blank" rel="noopener">💬 דבר עם המארגן</a>` : ''}
+            ${isMine(l.ownerUid) ? '' : reportLinkHTML('listing', l.id)}
         </article>`;
     }
 
