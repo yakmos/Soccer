@@ -27,7 +27,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js?v=20261013b"></script>
+    <script src="group-prefs.js?v=20261014"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="reg-ring.js?v=20261008"></script>
 
@@ -428,7 +428,7 @@
                 <div class="game-date-badge" id="gameDateBadge" onclick="startDateEdit()" title="לחץ לעריכה">—</div>
                 <div class="date-edit-wrap" id="dateEditWrap">
                     <input type="date" id="dateEditInput" class="date-edit-input" />
-                    <input type="time" id="timeEditInput" class="time-edit-input" />
+                    <input type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="20:00" dir="ltr" id="timeEditInput" class="time-edit-input" />
                     <button class="edit-save-btn" onclick="saveDateEdit()">✓</button>
                     <button class="edit-cancel-btn" onclick="cancelDateEdit()">✕</button>
                 </div>
@@ -874,6 +874,8 @@ function startDateEdit() {
     const timeInput = document.getElementById('timeEditInput');
     const at = RegAuto.gameAtOf(gameData, '20:00');   // כל פורמטי התאריך שנשמרו אי פעם
     dateInput.value = at ? RegAuto.ymd(at) : '';
+    GroupPrefs.bindTimeInput(timeInput);
+    timeInput.removeAttribute('aria-invalid');
     timeInput.value = gameData.gameTime || '';
     document.getElementById('gameDateBadge').style.display = 'none';
     document.getElementById('dateEditWrap').classList.add('visible');
@@ -887,7 +889,7 @@ function cancelDateEdit() {
 
 async function saveDateEdit() {
     const rawDate = document.getElementById('dateEditInput').value;
-    const rawTime = document.getElementById('timeEditInput').value;
+    const rawTime = GroupPrefs.timeValue(document.getElementById('timeEditInput'));
     if (!rawDate) { showToast('יש לבחור תאריך', 'error'); return; }
     const [y, m, d] = rawDate.split('-');
     const displayDate = `${d}-${m}-${y}`;   // אותו פורמט כמו בפתיחת הרשמה מדף הקבוצה
