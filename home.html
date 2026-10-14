@@ -28,7 +28,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="admin-auth.js?v=20261006"></script>
-<script src="group-prefs.js?v=20261007"></script>
+<script src="group-prefs.js?v=20261014"></script>
 <script src="map-kit.js?v=20261007"></script>
 <script src="profile-kit.js?v=20261007"></script>
 <script src="tour.js?v=20261007"></script>
@@ -676,7 +676,7 @@
             </div>
             <div class="field-row">
                 <div class="field"><span>ימי משחק</span><div class="day-chips" id="cDays"></div></div>
-                <label class="field"><span>שעה</span><input id="cTime" type="time"></label>
+                <label class="field"><span>שעה</span><input id="cTime" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="20:00" dir="ltr"></label>
             </div>
             <fieldset class="vis">
                 <legend>מי יכול למצוא את הקבוצה?</legend>
@@ -1718,6 +1718,8 @@
         $('createForm').reset();
         G.renderIconPicker($('cIcon'), G.DEFAULT_ICON);
         G.renderDayChips($('cDays'), []);
+        G.bindTimeInput($('cTime'));
+        $('cTime').removeAttribute('aria-invalid');
         $('cLevel').innerHTML = G.levelOptionsHTML('');
         toggleCreatePublic();
         $('cSubmit').disabled = false;
@@ -1739,7 +1741,7 @@
         const city = $('cCity').value.trim();
         const venue = $('cVenue').value.trim();
         const days = G.readDayChips($('cDays'));
-        const time = G.cleanTime($('cTime').value);
+        const time = G.timeValue($('cTime'));
         const visibility = document.querySelector('input[name="cVis"]:checked').value;
         if (!name) { alert('נא להזין שם לקבוצה.'); $('cName').focus(); return; }
         if (!city) { alert('נא להזין עיר או יישוב.'); $('cCity').focus(); return; }
