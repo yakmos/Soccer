@@ -80,6 +80,11 @@
         .src-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 8px; font-size: 0.9rem; }
         .src-row:nth-child(odd) { background: rgba(255,255,255,0.03); }
         .act { color: var(--muted); }
+        .backup-last { font-size: 0.85rem; color: var(--muted); margin: 12px 0 0; }
+        .backup-last.stale { color: var(--warn); }
+        .backup-status { font-size: 0.85rem; color: var(--muted); margin-top: 8px; min-height: 18px; line-height: 1.6; word-break: break-word; }
+        .rep-state { font-size: 0.85rem; margin-top: 8px; color: var(--warn); }
+        .rep-state.gone { color: var(--primary); }
         @media (max-width: 560px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .wk em { font-size: 0.55rem; } }
     </style>
 </head>
@@ -126,6 +131,18 @@
             <p style="text-align: center; color: var(--muted);">טוען פניות... ⏳</p>
         </div>
         <p class="card-note">לפי מדיניות הפרטיות, פנייה נמחקת אחרי שהטיפול בה הסתיים, ולכל המאוחר אחרי שנה.</p>
+    </div>
+
+    <div class="card" id="backupCard">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">💾 גיבוי</h3>
+        <p style="font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin: 0;">
+            מוריד קובץ אחד עם כל הנתונים: הקבוצות והשחקנים, ההרשמות, ההיסטוריה, הדירוגים וההצבעות, המודעות והפניות.
+            בתוכנית החינמית של Firebase אין גיבוי אוטומטי, אז כדאי לשמור עותק פעם בשבוע ולפני כל שינוי גדול.
+        </p>
+        <p class="backup-last" id="backupLast"></p>
+        <button class="btn btn-primary" id="backupBtn" onclick="downloadBackup()">הורד גיבוי עכשיו</button>
+        <div class="backup-status" id="backupStatus" aria-live="polite"></div>
+        <p class="card-note">הגיבוי קורא כל מסמך פעם אחת, וזה נספר במכסת הקריאות היומית. פרופילי השחקנים לא נכללים, כי רק השחקן עצמו יכול לקרוא את הפרופיל שלו. בקובץ יש טלפונים ופניות: שמור אותו במקום פרטי, ומחק גיבויים בני יותר משלושה חודשים (כך כתוב במדיניות הפרטיות).</p>
     </div>
 
     <div class="card" id="migrateCard">
@@ -204,6 +221,7 @@
             loadListingsAdmin();
             loadMarketAdmin();
             loadSeekersAdmin();
+            renderBackupLast();
         } else {
             if (user && !user.isAnonymous) {
                 msg.textContent = `החשבון ${user.email || ''} אינו מנהל המערכת.`;
@@ -435,9 +453,10 @@
         }
     }
 
-    // הסרת מודעה: הקבוצה חוזרת להיות פרטית, כדי שהמודעה לא תחזור בשמירה הבאה של ההגדרות
-    async function deleteListing(id) {
-        if (!confirm('להסיר את המודעה מ"מצא משחק"? הקבוצה תהפוך לפרטית.')) return;
+    // הסרת מודעה: הקבוצה חוזרת להיות פרטית, כדי שהמודעה לא תחזור בשמירה הבאה של ההגדרות.
+    // label: שם המודעה לאישור (כשההסרה באה מדיווח בתיבת הפניות). מחזיר true אם המודעה הוסרה
+    async function deleteListing(id, label) {
+        if (!confirm(`להסיר את המודעה${label ? ` "${label}"` : ''} מ"מצא משחק"? הקבוצה תהפוך לפרטית.`)) return false;
         try {
             const batch = db.batch();
             const groups = await db.collection('groups').where('listingId', '==', id).get();
@@ -446,7 +465,8 @@
             await batch.commit();
             loadListingsAdmin();
             loadGroups();
-        } catch (e) { alert('שגיאה: ' + e.message); }
+            return true;
+        } catch (e) { alert('שגיאה: ' + e.message); return false; }
     }
 
     async function deleteFullGroup(groupId) {
@@ -502,19 +522,71 @@
                     ? ` | קבוצה: <a href="index.html?group=${encodeURIComponent(m.groupId)}" target="_blank" rel="noopener">${esc(g ? (g.data().name || m.groupId) : m.groupId)}</a>`
                     : '';
                 const page = m.page ? ` | נשלח מ: ${esc(PAGE_LABELS[m.page] || m.page)}` : '';
+                const rep = reportRef(m);
+                const repKey = rep ? `${rep.col}/${rep.id}` : '';
                 return `<div class="group-row${isNew ? ' row-new' : ''}">
                     <div class="group-info">
                         <div class="group-name">${isNew ? '<span class="badge badge-new">חדש</span>' : ''}<span class="badge badge-topic">${esc(TOPIC_LABELS[m.topic] || m.topic)}</span>${esc(m.name || 'ללא שם')} ${old}</div>
                         <div class="group-meta msg-meta">${esc(when)}${page}${groupLink}<br>לחזרה: ${replyHTML(m.replyTo)}</div>
                         <div class="msg-text">${esc(m.message)}</div>
+                        ${rep ? `<div class="rep-state" data-rep="${repKey}">🚩 בודק את המודעה…</div>` : ''}
                     </div>
-                    <div class="actions"><button class="btn-danger" onclick="deleteMessage('${esc(d.id)}')">מחק</button></div>
+                    <div class="actions">
+                        ${rep ? `<button class="btn-danger" data-rep-btn="${repKey}" hidden onclick="removeReported('${rep.col}', '${rep.id}')">הסר את המודעה</button>` : ''}
+                        <button class="btn-danger" onclick="deleteMessage('${esc(d.id)}')">מחק</button>
+                    </div>
                 </div>`;
             }).join('');
             markMessagesRead(unread.map(d => d.ref));
+            checkReported(snap.docs.map(d => reportRef(d.data())).filter(Boolean));
         } catch (e) {
             el.innerHTML = '<p style="color:var(--danger);">שגיאה בטעינה: ' + esc(e.message) + '</p>';
         }
+    }
+
+    // פנייה מכפתור "דיווח על המודעה": השורה "מזהה: <אוסף>/<מזהה>" אומרת על איזו מודעה מדובר, ואפשר להסיר אותה מכאן
+    const REPORT_RE = /^מזהה: (listings|seekers|market_posts)\/([A-Za-z0-9_-]{1,40})$/m;
+    function reportRef(m) {
+        const r = m && typeof m.message === 'string' ? m.message.match(REPORT_RE) : null;
+        return r ? { col: r[1], id: r[2] } : null;
+    }
+    function reportedLabel(col, x) {
+        x = x || {};
+        const parts = col === 'market_posts' ? [x.groupName, x.location] : [x.name, x.city];
+        return parts.filter(v => typeof v === 'string' && v.trim()).join(' · ') || 'מודעה';
+    }
+    function setReportState(key, exists, label) {
+        document.querySelectorAll(`[data-rep="${key}"]`).forEach(el => {
+            el.classList.toggle('gone', !exists);
+            el.textContent = exists ? `🚩 המודעה עדיין באוויר: ${label}` : '✅ המודעה כבר לא באוויר';
+        });
+        document.querySelectorAll(`[data-rep-btn="${key}"]`).forEach(b => { b.hidden = !exists; });
+    }
+    async function checkReported(refs) {
+        const seen = new Set();
+        for (const r of refs) {
+            const key = `${r.col}/${r.id}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            try {
+                const snap = await db.collection(r.col).doc(r.id).get();
+                setReportState(key, snap.exists, snap.exists ? reportedLabel(r.col, snap.data()) : '');
+            } catch (e) {
+                document.querySelectorAll(`[data-rep="${key}"]`).forEach(el => { el.textContent = 'לא הצלחנו לבדוק את המודעה.'; });
+            }
+        }
+    }
+    async function removeReported(col, id) {
+        const key = `${col}/${id}`;
+        let snap;
+        try { snap = await db.collection(col).doc(id).get(); }
+        catch (e) { alert('שגיאה: ' + e.message); return; }
+        if (!snap.exists) { setReportState(key, false, ''); return; }
+        const label = reportedLabel(col, snap.data());
+        const removed = col === 'listings' ? await deleteListing(id, label)
+            : col === 'seekers' ? await deleteSeeker(id, label)
+            : await deleteMarketPost(id, label);
+        if (removed) setReportState(key, false, '');
     }
 
     async function markMessagesRead(refs) {
@@ -588,12 +660,25 @@
         }
     }
 
-    async function deleteSeeker(id) {
-        if (!confirm('להסיר את המודעה של השחקן מ"מחפשים שחקן"?')) return;
+    async function deleteSeeker(id, label) {
+        if (!confirm(`להסיר את המודעה של ${label ? `"${label}"` : 'השחקן'} מ"שחקנים מחפשים"?`)) return false;
         try {
             await db.collection('seekers').doc(id).delete();
             loadSeekersAdmin();
-        } catch (e) { alert('שגיאה: ' + e.message); }
+            return true;
+        } catch (e) { alert('שגיאה: ' + e.message); return false; }
+    }
+
+    // מודעת "מחפשים שחקן" שדווחה: המודעה והקישור שלה לקבוצה
+    async function deleteMarketPost(id, label) {
+        if (!confirm(`להסיר את המודעה${label ? ` "${label}"` : ''} מ"מחפשים שחקן"?`)) return false;
+        try {
+            const ref = db.collection('market_posts').doc(id);
+            await ref.collection('private').doc('group').delete().catch(() => null);
+            await ref.delete();
+            loadMarketAdmin();
+            return true;
+        } catch (e) { alert('שגיאה: ' + e.message); return false; }
     }
 
     async function cleanupSeekers() {
@@ -617,6 +702,128 @@
             await db.collection('contact_messages').doc(id).delete();
             loadInbox();
         } catch (e) { alert('שגיאה במחיקה: ' + e.message); }
+    }
+
+    // ===== גיבוי: כל מה שמנהל-העל יכול לקרוא, לקובץ JSON אחד =====
+    // docs: נתיב המסמך → הנתונים. ערכים מיוחדים נשמרים כ-{ __type: 'timestamp' | 'geopoint' | 'ref' | 'bytes', ... }
+    const BACKUP_KEY = 'sm_backup_last';
+    const BACKUP_TOP = ['listings', 'market_posts', 'seekers', 'contact_messages'];
+    const BACKUP_GROUP_SUBS = ['players', 'game', 'history', 'history_games', 'registrations', 'voters', 'links', 'adminInvites', 'private'];
+    const BACKUP_NESTED = { registrations: ['entries', 'cancelled'], voters: ['votes'] };
+    const BACKUP_SKIPPED = [
+        { path: 'users', why: 'פרופילי שחקנים: רק השחקן עצמו יכול לקרוא את הפרופיל שלו' },
+        { path: 'groups/*/claims', why: 'הוכחות סיסמה מהעברת קבוצות ותיקות: לא קריאות לאף אחד' },
+        { path: 'market_posts/*/private', why: 'הקישור בין מודעה לקבוצה: לא קריא לאף אחד' }
+    ];
+
+    function backupValue(v) {
+        if (v === null || typeof v !== 'object') return v;
+        if (Array.isArray(v)) return v.map(backupValue);
+        const FS = firebase.firestore;
+        if ((FS.Timestamp && v instanceof FS.Timestamp) || (typeof v.toDate === 'function' && typeof v.seconds === 'number')) {
+            return { __type: 'timestamp', iso: v.toDate().toISOString(), seconds: v.seconds, nanoseconds: v.nanoseconds };
+        }
+        if (FS.GeoPoint && v instanceof FS.GeoPoint) return { __type: 'geopoint', latitude: v.latitude, longitude: v.longitude };
+        if ((FS.DocumentReference && v instanceof FS.DocumentReference) || (typeof v.path === 'string' && typeof v.collection === 'function')) {
+            return { __type: 'ref', path: v.path };
+        }
+        if (FS.Blob && v instanceof FS.Blob) return { __type: 'bytes', base64: v.toBase64() };
+        const o = {};
+        Object.keys(v).forEach(k => { o[k] = backupValue(v[k]); });
+        return o;
+    }
+
+    // מריץ fn על כל הפריטים, עד size במקביל
+    async function backupPool(items, size, fn) {
+        let next = 0;
+        const worker = async () => { while (next < items.length) { const item = items[next++]; await fn(item); } };
+        await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker));
+    }
+
+    async function downloadBackup() {
+        const btn = document.getElementById('backupBtn');
+        const status = document.getElementById('backupStatus');
+        btn.disabled = true;
+        const docs = {}, counts = {}, failed = [];
+        let total = 0;
+        const show = () => { status.textContent = `קורא נתונים… ${total.toLocaleString('he-IL')} מסמכים`; };
+        const keep = (snap, key) => {
+            snap.forEach(d => { docs[d.ref.path] = backupValue(d.data()); });
+            counts[key] = (counts[key] || 0) + snap.size;
+            total += snap.size;
+            show();
+        };
+        // אוסף שלא הצליחו לקרוא נרשם ב-failed, והגיבוי ממשיך
+        const read = async (col, key) => {
+            try { const snap = await col.get(); keep(snap, key); return snap; }
+            catch (e) {
+                if (!failed.some(f => f.path === key)) failed.push({ path: key, error: String((e && (e.code || e.message)) || e) });
+                return null;
+            }
+        };
+        show();
+        try {
+            const groups = await db.collection('groups').get();
+            keep(groups, 'groups');
+            for (const name of BACKUP_TOP) await read(db.collection(name), name);
+            await backupPool(groups.docs, 3, async g => {
+                for (const sub of BACKUP_GROUP_SUBS) {
+                    const snap = await read(g.ref.collection(sub), 'groups/*/' + sub);
+                    const nested = BACKUP_NESTED[sub];
+                    if (!snap || !nested) continue;
+                    await backupPool(snap.docs, 6, async d => {
+                        for (const sub2 of nested) await read(d.ref.collection(sub2), `groups/*/${sub}/*/${sub2}`);
+                    });
+                }
+            });
+        } catch (e) {
+            status.textContent = 'הגיבוי נכשל: ' + ((e && e.message) || e);
+            btn.disabled = false;
+            return;
+        }
+        const sorted = {};
+        Object.keys(docs).sort().forEach(k => { sorted[k] = docs[k]; });
+        const now = new Date();
+        const backup = {
+            app: 'Soccer Manager', kind: 'firestore-backup', version: 1,
+            projectId: firebaseConfig.projectId, createdAt: now.toISOString(),
+            total, counts, skipped: BACKUP_SKIPPED, failed,
+            note: 'כל מפתח ב-docs הוא נתיב של מסמך ב-Firestore. ערך עם __type הוא Timestamp, GeoPoint, הפניה למסמך או בייטים.',
+            docs: sorted
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 1)], { type: 'application/json' });
+        const pad = n => String(n).padStart(2, '0');
+        const fileName = `soccer-backup-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}.json`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        try { localStorage.setItem(BACKUP_KEY, JSON.stringify({ at: now.getTime(), total })); } catch (e) {}
+        const size = blob.size >= 1048576 ? `${(blob.size / 1048576).toFixed(1)}MB` : `${Math.max(1, Math.round(blob.size / 1024))}KB`;
+        status.innerHTML = `✅ נשמר הקובץ <b>${esc(fileName)}</b> · ${total.toLocaleString('he-IL')} מסמכים · ${size}`
+            + (failed.length ? `<br>⚠️ לא הצלחנו לקרוא: ${esc(failed.map(f => f.path).join(', '))}` : '');
+        btn.disabled = false;
+        renderBackupLast();
+    }
+
+    // תזכורת: מתי הורד הגיבוי האחרון מהדפדפן הזה (נשמר רק בדפדפן)
+    function renderBackupLast() {
+        const el = document.getElementById('backupLast');
+        let last = null;
+        try { last = JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null'); } catch (e) {}
+        if (!last || !last.at) {
+            el.textContent = 'עוד לא הורדת גיבוי מהדפדפן הזה.';
+            el.classList.add('stale');
+            return;
+        }
+        const days = Math.floor((Date.now() - last.at) / DAY_MS);
+        const ago = days < 1 ? 'היום' : days === 1 ? 'לפני יום' : `לפני ${days} ימים`;
+        el.textContent = `הגיבוי האחרון מהדפדפן הזה: ${new Date(last.at).toLocaleDateString('he-IL')} (${ago})`;
+        el.classList.toggle('stale', days >= 7);
     }
 
     function logout() {
