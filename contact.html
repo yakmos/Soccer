@@ -54,6 +54,7 @@
     .group-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--primary-soft); border: 1px solid var(--primary-line); border-radius: 12px; padding: 8px 8px 8px 14px; margin-bottom: 14px; font-size: .92rem; color: var(--body); }
     .group-note b { color: var(--text); }
     .group-note button { flex: none; width: 30px; height: 30px; border-radius: 8px; border: none; background: rgba(255,255,255,0.06); color: var(--muted); cursor: pointer; font-size: .9rem; }
+    .group-note.report-note { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.35); }
     .hp { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.35); color: #FECACA; border-radius: 12px; padding: 10px 14px; font-size: .92rem; margin: 0 0 14px; }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 1px solid transparent; border-radius: 12px; padding: 14px 20px; font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer; background: var(--primary); color: var(--primary-ink); }
@@ -93,6 +94,10 @@
         <div class="group-note" id="groupNote" hidden>
             <span>בנוגע לקבוצה: <b id="groupName"></b></span>
             <button type="button" id="groupClear" aria-label="הסירו את הקבוצה מהפנייה" title="הסירו">✕</button>
+        </div>
+        <div class="group-note report-note" id="reportNote" hidden>
+            <span>🚩 דיווח על <span id="reportKind"></span>: <b id="reportName"></b></span>
+            <button type="button" id="reportClear" aria-label="הסירו את המודעה מהפנייה" title="הסירו">✕</button>
         </div>
         <label class="field"><span>נושא</span>
             <select id="topic">
@@ -170,13 +175,47 @@
     const from = /^[a-z]{1,20}$/.test(params.get('from') || '') ? params.get('from') : '';
     let groupId = /^[A-Za-z0-9]{1,40}$/.test(params.get('group') || '') ? params.get('group') : '';
 
+    // דיווח מכפתור "דיווח על המודעה": ?report=listing|seeker|market:<מזהה>.
+    // הפנייה נפתחת בשתי שורות שמזהות את המודעה, כדי שבלוח הבקרה אפשר יהיה להסיר אותה בלחיצה
+    const REPORT_COLS = { listing: 'listings', seeker: 'seekers', market: 'market_posts' };
+    const REPORT_KINDS = { listing: 'קבוצה ב"מצא קבוצה"', seeker: 'שחקן שמחפש קבוצה', market: 'מודעת "מחפשים שחקן"' };
+    const REPORT_HINT = 'כתבו מה הבעיה במודעה. את המודעה עצמה כבר צירפנו לפנייה.';
+    let report = (() => {
+        const m = /^(listing|seeker|market):([A-Za-z0-9_-]{1,40})$/.exec(params.get('report') || '');
+        return m ? { kind: m[1], id: m[2], label: '' } : null;
+    })();
+
     // מצב ההתחברות נטען מהדפדפן פעם אחת. מי שלא מחובר מקבל מזהה אנונימי רק כשהוא שולח
     const authReady = new Promise(resolve => { const off = auth.onAuthStateChanged(u => { off(); resolve(u); }); });
 
     function showHint() {
-        const hint = HINTS[$('topic').value];
+        const hint = report && $('topic').value === 'abuse' ? REPORT_HINT : HINTS[$('topic').value];
         $('topicHint').textContent = hint || '';
         $('topicHint').hidden = !hint;
+    }
+
+    // שם המודעה מוצג בראש הטופס. מודעה שכבר הוסרה לא מצורפת לפנייה
+    async function loadReport() {
+        const r = report;
+        $('reportKind').textContent = REPORT_KINDS[r.kind];
+        $('reportName').textContent = 'מודעה';
+        $('reportNote').hidden = false;
+        $('message').placeholder = 'מה הבעיה במודעה?';
+        try {
+            const snap = await db.collection(REPORT_COLS[r.kind]).doc(r.id).get();
+            if (report !== r) return;
+            if (!snap.exists) { clearReport(); return; }
+            const x = snap.data() || {};
+            r.label = (r.kind === 'market' ? [x.groupName, x.location] : [x.name, x.city])
+                .filter(v => typeof v === 'string' && v.trim()).map(v => v.replace(/[\r\n\u2028\u2029]+/g, ' ').trim()).join(' · ').slice(0, 120);
+            $('reportName').textContent = r.label || 'מודעה';
+        } catch (e) { console.warn('report', e); }
+    }
+    function clearReport() {
+        report = null;
+        $('reportNote').hidden = true;
+        $('message').placeholder = 'כתבו כאן. אם הפנייה על קבוצה מסוימת, ציינו את השם שלה או הדביקו את הקישור אליה.';
+        showHint();
     }
 
     function updateCount() {
@@ -216,9 +255,14 @@
         try {
             let user = await authReady;
             if (!user) user = auth.currentUser || (await auth.signInAnonymously()).user;
+            let text = message.slice(0, 1000);
+            if (report) {
+                text = `🚩 דיווח על ${REPORT_KINDS[report.kind]}: ${report.label || 'מודעה'}\n`
+                    + `מזהה: ${REPORT_COLS[report.kind]}/${report.id}\n\n` + text;
+            }
             const doc = {
                 topic: TOPICS.includes($('topic').value) ? $('topic').value : 'other',
-                message: message.slice(0, 1000),
+                message: text,
                 uid: user.uid,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -256,6 +300,7 @@
 
     function again() {
         $('contactForm').reset();
+        if (report) clearReport();
         showHint();
         updateCount();
         hideError();
@@ -269,10 +314,13 @@
     $('message').addEventListener('input', updateCount);
     $('againBtn').addEventListener('click', again);
     $('groupClear').addEventListener('click', () => { groupId = ''; $('groupNote').hidden = true; });
+    $('reportClear').addEventListener('click', clearReport);
 
     if (TOPICS.includes(params.get('topic'))) $('topic').value = params.get('topic');
+    else if (report) $('topic').value = 'abuse';
     showHint();
     if (groupId) loadGroupName();
+    if (report) loadReport();
 </script>
 </body>
 </html>
