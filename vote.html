@@ -43,6 +43,13 @@
         .player-card { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px 10px; text-align: center; cursor: pointer; transition: 0.2s; position: relative;}
         .player-card:active { transform: scale(0.95); }
         .player-card.voted { border-color: var(--edit-color); background: rgba(59, 130, 246, 0.05); }
+        /* הכרטיס שדורג עכשיו: הבהוב קצר, עם המספרים החדשים */
+        .player-card.just-rated { animation: justRated 2.4s ease-out both; }
+        @keyframes justRated {
+            0%, 40% { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(16,185,129,0.45); }
+            100% { box-shadow: none; }
+        }
+        @media (prefers-reduced-motion: reduce) { .player-card.just-rated { animation: none; border-color: var(--primary-color); } }
         .player-card.is-gk-card { border-color: var(--gk-border); }
         .player-card.is-locked-card { border-color: var(--lock-border); background: rgba(252,211,77,0.04); cursor: default; }
         .player-card.is-locked-card:active { transform: none; }
@@ -678,6 +685,15 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // אחרי שמירה: חוזרים לרשימה ומראים את הכרטיס שדורג, עם הציונים החדשים
+    function showJustRated(id) {
+        const card = document.querySelector(`.player-card[data-id="${CSS.escape(id)}"]`);
+        if (!card) return;
+        card.classList.add('just-rated');
+        setTimeout(() => card.classList.remove('just-rated'), 2600);
+        requestAnimationFrame(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    }
+
     // ========== Submit Vote ==========
     async function submitVote() {
         if (!currentPlayerId) return;
@@ -691,6 +707,7 @@
         const myVoteRef = votesRef.doc(currentPlayerId);
         let wasEditing = false;
         let savedVoteData = null;
+        let applied = null;   // מה שנכתב לכרטיס של השחקן — כדי להציג את המספרים החדשים בלי רענון
 
         try {
             if (currentPlayerIsGk) {
@@ -728,13 +745,15 @@
                     });
                     const gkScore = parseFloat((Object.values(gkAvgs).reduce((a,b) => a+b, 0) / gkKeys.length).toFixed(1));
 
-                    transaction.update(playerRef, {
+                    const gkUpdate = {
                         votesCount: totalVotesCount, gkSums,
                         gkDiv: gkAvgs.gkDiv, gkHan: gkAvgs.gkHan, gkKic: gkAvgs.gkKic,
                         gkPos: gkAvgs.gkPos, gkRef: gkAvgs.gkRef,
                         gkScore, attScore: gkScore, defScore: gkScore,
                         lastVoteToken: token, // מאפשר לחוקי האבטחה לוודא שהמצביע מחזיק בקישור תקף
-                    });
+                    };
+                    transaction.update(playerRef, gkUpdate);
+                    applied = gkUpdate;
                     transaction.set(myVoteRef, { ...newGkVote, isGk: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     if (!isEditing) transaction.update(voterRef, { votedCount: firebase.firestore.FieldValue.increment(1) });
                 });
@@ -815,6 +834,7 @@
                     updateObj['customStats'] = customAvgs;
                     updateObj['lastVoteToken'] = token; // מאפשר לחוקי האבטחה לוודא שהמצביע מחזיק בקישור תקף
                     transaction.update(playerRef, updateObj);
+                    applied = updateObj;
                     transaction.set(myVoteRef, { ...newVotes, customStats: newCustomVotes, isGk: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     if (!isEditing) transaction.update(voterRef, { votedCount: firebase.firestore.FieldValue.increment(1) });
                 });
@@ -823,9 +843,13 @@
 
             logEvt('submit_player_vote', { is_gk: currentPlayerIsGk, is_edit: wasEditing });
 
-            // עדכון מקומי — בלי לקרוא שוב את כל הסגל מה-DB
-            myVotes[currentPlayerId] = savedVoteData;
-            if (!wasEditing) p.votesCount = (p.votesCount || 1) + 1;
+            // עדכון מקומי — בלי לקרוא שוב את כל הסגל מה-DB: הציונים ומספר הדירוגים החדשים, כמו שנשמרו בכרטיס
+            const ratedId = currentPlayerId;
+            myVotes[ratedId] = savedVoteData;
+            if (p && applied) {
+                SHOWN_NUMBERS.forEach(k => { if (applied[k] != null) p[k] = Number(applied[k]) || 0; });
+                if (applied.customStats) p.customStats = applied.customStats;
+            }
 
             btn.disabled = false;
             btn.style.background = currentPlayerIsGk ? "var(--gk-text)" : "var(--primary-color)";
@@ -835,6 +859,7 @@
             renderPortal();
             renderProgress(!wasEditing);
             backToPortal();
+            showJustRated(ratedId);
 
         } catch(e) {
             console.error(e);
