@@ -29,7 +29,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20261007"></script>
-    <script src="group-prefs.js?v=20261013b"></script>
+    <script src="group-prefs.js?v=20261014"></script>
     <script src="map-kit.js?v=20261007"></script>
     <script src="profile-kit.js?v=20261007"></script>
     <script src="tour.js?v=20261007"></script>
@@ -439,15 +439,31 @@
         .btn-whatsapp { background: #25D366; width: 100%; margin-top: 15px; }
 
         .squad-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        .squad-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); }
+        /* כרטיס שחקן בסגל (מצב ניהול): תמונה · שם ומדדים · עריכה והרכב. שורה אחת מסודרת גם בטלפון צר */
+        .squad-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "av main acts" "av meta meta"; align-items: center; column-gap: 10px; row-gap: 2px; background: var(--bg-color); padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border-color); }
+        .squad-item.in-lineup { border-color: rgba(16,185,129,0.35); }
+        .squad-item .avatar-list { grid-area: av; width: 42px; height: 42px; font-size: 18px; }
         .squad-item.just-saved { animation: squadSaved 2.5s ease-out both; }
         @keyframes squadSaved {
             0%, 45% { border-color: var(--primary-color); background: rgba(16,185,129,0.10); box-shadow: 0 0 0 2px rgba(16,185,129,0.30); }
             100% { border-color: var(--border-color); background: var(--bg-color); box-shadow: none; }
         }
-        .squad-info { flex: 1; }
-        .squad-name { font-weight: 800; font-size: 1.05rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-        .squad-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;}
+        .sq-main { grid-area: main; min-width: 0; cursor: pointer; }
+        .sq-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .sq-name { font-weight: 800; font-size: 1rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .sq-meta { grid-area: meta; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; cursor: pointer; }
+        .sq-meta:empty { display: none; }
+        .sq-rate { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 900; line-height: 1.5; white-space: nowrap; }
+        .sq-goals { font-size: 0.78rem; font-weight: 800; color: #FCD34D; white-space: nowrap; }
+        .sq-meta .lock-badge { font-size: 0.68rem; }
+        .sq-acts { grid-area: acts; display: flex; align-items: center; gap: 8px; }
+        .sq-btn { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; font-family: inherit; font-size: 1rem; padding: 0; }
+        .sq-btn.btn-edit { background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); }
+        .sq-btn.sq-lineup { border-radius: 50%; border: 1.5px dashed var(--text-muted); background: transparent; color: var(--text-muted); font-size: 1.3rem; font-weight: 900; line-height: 1; }
+        .sq-btn.sq-lineup.active { border: 1.5px solid var(--primary-color); background: var(--primary-color); color: #fff; font-size: 1.1rem; }
+        .del-player-btn { display: block; margin: 14px auto 0; background: none; border: none; color: #FCA5A5; font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; padding: 6px 10px; border-radius: 8px; }
+        .del-player-btn:hover, .del-player-btn:focus-visible { text-decoration: underline; }
+        .del-player-btn[hidden] { display: none; }
         .action-btn { width: 35px; height: 35px; border-radius: 8px; border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; color: white; font-size: 16px; font-weight: bold;}
         .btn-toggle { background: var(--border-color); }
         .btn-toggle.active { background: var(--primary-color); }
@@ -1007,7 +1023,7 @@
                                 </div>
                                 <div class="ra-field">
                                     <label class="ra-label" for="raTime">שעת המשחק</label>
-                                    <input type="time" id="raTime" class="ra-input" oninput="updateAutoPreview()">
+                                    <input type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="20:00" dir="ltr" id="raTime" class="ra-input" oninput="updateAutoPreview()">
                                 </div>
                                 <div class="ra-field">
                                     <label class="ra-label" for="raOpenDays">ההרשמה נפתחת</label>
@@ -1022,7 +1038,7 @@
                                             <option value="6">6 ימים לפני</option>
                                         </select>
                                         <span>בשעה</span>
-                                        <input type="time" id="raOpenTime" class="ra-input" aria-label="שעת פתיחת ההרשמה" oninput="updateAutoPreview()">
+                                        <input type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="12:00" dir="ltr" id="raOpenTime" class="ra-input" aria-label="שעת פתיחת ההרשמה" oninput="updateAutoPreview()">
                                     </div>
                                 </div>
                                 <div class="ra-preview" id="raPreview" aria-live="polite"></div>
@@ -1312,8 +1328,9 @@
 
                         <div style="display:flex; gap:10px;">
                             <button class="btn" id="saveBtn" onclick="savePlayer()">שמור שחקן</button>
-                            <button class="btn" id="cancelBtn" onclick="closePlayerForm()" style="display:none; background:var(--danger);">בטל עריכה</button>
+                            <button class="btn" id="cancelBtn" onclick="closePlayerForm()" style="display:none; background:var(--border-color); color:var(--text-main);">בטל עריכה</button>
                         </div>
+                        <button type="button" class="del-player-btn" id="deletePlayerBtn" onclick="deleteEditingPlayer()" hidden>🗑️ מחיקת השחקן מהקבוצה</button>
                     </div>
                 </div>
 
@@ -1339,7 +1356,7 @@
                 <div class="card admin-only">
                     <h2 class="card-title">👥 כל הסגל <span class="squad-count" id="squadCount"></span></h2>
                     <input type="search" id="squadSearch" class="form-input squad-search" placeholder="🔍 חיפוש שחקן לפי שם" oninput="render()" aria-label="חיפוש שחקן בסגל" autocomplete="off" hidden>
-                    <div class="squad-hint">➕ מוסיף את השחקן להרכב של המשחק, ✓ מוריד אותו</div>
+                    <div class="squad-hint">➕ מוסיף את השחקן להרכב של המשחק, ✓ מוריד אותו. לחיצה על שחקן פותחת עריכה</div>
                     <div class="squad-list" id="squadList"></div>
                 </div>
             </div>
@@ -1610,7 +1627,7 @@
                 </div>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                     <div class="day-chips" id="setDays"></div>
-                    <input type="time" id="setTime" class="form-input" style="width:auto; margin-bottom:0; padding:8px 12px;" aria-label="שעת משחק">
+                    <input type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="20:00" dir="ltr" id="setTime" class="form-input" style="width:96px; margin-bottom:0; padding:8px 12px;" aria-label="שעת משחק">
                 </div>
                 <div style="color:var(--text-main); font-weight:bold; margin:16px 0 8px;">🌍 מי יכול למצוא את הקבוצה?</div>
                 <div class="vis-opts">
@@ -3025,6 +3042,7 @@ function startEdit(id, p) {
     fillLockedParamsUI(p.lockedParams || null);
     document.getElementById('saveBtn').innerText = "עדכן נתונים";
     document.getElementById('cancelBtn').style.display = "block";
+    document.getElementById('deletePlayerBtn').hidden = false;
     if (currentSection !== 'squad') goSection('squad');
     setPlayerFormOpen(true);
     document.getElementById('playerFormCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3048,6 +3066,7 @@ function cancelEdit() {
     customParams.forEach(p => { const el = document.getElementById(`cp_${p.id}`); if(el) el.value = 5; });
     document.getElementById('saveBtn').innerText = "שמור שחקן";
     document.getElementById('cancelBtn').style.display = "none";
+    document.getElementById('deletePlayerBtn').hidden = true;
     document.getElementById('acctRow').hidden = true;
     resetLockedParamsUI();
     resetBirthdayField();
@@ -3074,14 +3093,22 @@ function closePlayerForm() {
 }
 async function deletePlayer(id) {
     const p = players.find(x => x.id === id);
-    if (!p) return;
-    if (!confirm(`למחוק את ${p.name} מהקבוצה לצמיתות?\nפעולה זו לא ניתנת לביטול.`)) return;
+    if (!p) return false;
+    if (!confirm(`למחוק את ${p.name} מהקבוצה לצמיתות?\nפעולה זו לא ניתנת לביטול.`)) return false;
     try {
         await playersRef.doc(id).delete();
-    } catch(e) { 
-        console.error(e); 
-        alert("שגיאה במחיקת השחקן."); 
+        return true;
+    } catch(e) {
+        console.error(e);
+        alert("שגיאה במחיקת השחקן.");
+        return false;
     }
+}
+// מחיקה מתוך טופס העריכה (בשורות של הסגל אין כפתור מחיקה, כדי שלא ימחקו בטעות)
+async function deleteEditingPlayer() {
+    const id = editingId;
+    if (!id) return;
+    if (await deletePlayer(id)) closePlayerForm();
 }
 async function toggleLineup(id, currentState) { await playersRef.doc(id).update({ inLineup: !currentState }); }
 async function clearLineup() {
@@ -3527,31 +3554,31 @@ function render() {
     } else if (squadList && !shown.length) {
         squadList.innerHTML = `<div class="squad-none">אין בסגל שחקן בשם הזה</div>`;
     } else if (squadList) {
+        // שורה לכל שחקן: תמונה (פותחת את הכרטיס), שם ומדדים (לחיצה פותחת עריכה), ✏️ ו-➕/✓ להרכב. מחיקה נמצאת בטופס העריכה
+        const esc = escAdminText;
         squadList.innerHTML = shown.map(p => {
             const lockedCount = p.lockedParams ? Object.keys(p.lockedParams).length : 0;
-            const lockTag = lockedCount > 0 ? `<span class="admin-only lock-badge">🔒 ${lockedCount} נעולים</span>` : '';
-            const playerBadges = getPlayerBadgesHTML(p);
             const saved = justSavedAttrs(p.id);
-            return `<div class="squad-item${saved.cls}" data-pid="${p.id}"${saved.style}>
+            const goals = Number(p.goals) || 0;
+            const inL = !!p.inLineup;
+            const rates = p.isGk ? squadRateHTML('🧤', p.gkScore, 'ציון שוער') : squadRateHTML('🛡️', p.defScore, 'הגנה') + squadRateHTML('🎯', p.attScore, 'התקפה');
+            return `<div class="squad-item${inL ? ' in-lineup' : ''}${saved.cls}" data-pid="${p.id}"${saved.style}>
                 ${getAvatarHTML(p.imgUrl, 'avatar-list', p.id)}
-                <div class="squad-info">
-                    <div class="squad-name">
-                        ${p.name}
+                <div class="sq-main" onclick="startEditById('${p.id}')">
+                    <div class="sq-top">
+                        <span class="sq-name">${esc(p.name)}</span>
                         ${p.uid ? '<span class="link-badge" title="מחובר לפרופיל שחקן" aria-label="מחובר לפרופיל שחקן">🔗</span>' : ''}
-                        ${p.isGk ? '<span class="gk-badge">🧤 שוער</span>' : ''}
-                        ${playerBadges}
-                        ${lockTag}
-                        <span style="font-size:0.8rem; color:#FCD34D;">(⚽ ${p.goals || 0})</span>
-                    </div>
-                    <div class="chip-stats-container" style="justify-content:flex-start;">
-                        ${p.isGk ? getColoredGkBadge(p.gkScore) : `${getColoredBadge('🛡️', p.defScore)} ${getColoredBadge('🎯', p.attScore)}`}
                     </div>
                 </div>
-                <div class="squad-actions">
-                    <button class="action-btn btn-toggle ${p.inLineup ? 'active' : ''}" onclick="toggleLineup('${p.id}', ${!!p.inLineup})">${p.inLineup ? '✓' : '+'}</button>
-                    <button class="action-btn btn-edit" onclick="startEditById('${p.id}')">✏️</button>
-                    <button class="action-btn admin-only" onclick="deletePlayer('${p.id}')" style="background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.4); color:var(--danger);">🗑️</button>
+                <div class="sq-meta" onclick="startEditById('${p.id}')">
+                    ${rates}
+                    ${goals ? `<span class="sq-goals" title="שערים">⚽ ${goals}</span>` : ''}
+                    ${getPlayerBadgesHTML(p, true)}
+                    ${lockedCount ? `<span class="lock-badge" title="${lockedCount} מדדים נעולים">🔒 ${lockedCount}</span>` : ''}
                 </div>
+                <div class="sq-acts">
+                    <button type="button" class="sq-btn btn-edit" onclick="startEditById('${p.id}')" title="עריכה" aria-label="עריכת ${esc(p.name)}">✏️</button>
+                    <button type="button" class="sq-btn sq-lineup btn-toggle${inL ? ' active' : ''}" onclick="toggleLineup('${p.id}', ${inL})" aria-pressed="${inL}" title="${inL ? 'בהרכב. לחיצה מורידה אותו' : 'הוספה להרכב'}" aria-label="${inL ? 'הסרה מההרכב' : 'הוספה להרכב'}">${inL ? '✓' : '+'}</button>
                 </div>
             </div>`;
         }).join('');
@@ -3607,6 +3634,11 @@ function getColorStyles(val) {
     else if (v < 8.5) { r=16; g=185; b=129; hex='#10B981'; }
     else { r=6; g=182; b=212; hex='#06B6D4'; }
     return { hex, bg: `rgba(${r},${g},${b},0.15)`, text: hex, border: `rgba(${r},${g},${b},0.3)` };
+}
+// ציון קטן בשורת הסגל, באותם צבעים כמו בשאר האתר
+function squadRateHTML(icon, val, label) {
+    const v = val || 5; const c = getColorStyles(v);
+    return `<span class="sq-rate" style="background:${c.bg}; color:${c.text}; border:1px solid ${c.border};" title="${label}: ${v}">${icon} ${v}</span>`;
 }
 function getColoredBadge(icon, val) {
     const v = val || 5; const c = getColorStyles(v);
@@ -3835,7 +3867,9 @@ async function fillGroupDetailsForm() {
     GroupPrefs.renderIconPicker(document.getElementById('setIcon'), d.icon);
     document.getElementById('setCity').value = loc.city || '';
     document.getElementById('setVenue').value = loc.venue || '';
+    GroupPrefs.bindTimeInput(document.getElementById('setTime'));
     document.getElementById('setTime').value = GroupPrefs.cleanTime(sch.time);
+    document.getElementById('setTime').removeAttribute('aria-invalid');
     GroupPrefs.renderDayChips(document.getElementById('setDays'), sch.days);
     GroupPrefs.fillCityList(document.getElementById('cityList'));
     const vis = d.visibility === 'public' ? 'public' : 'private';
@@ -3957,7 +3991,7 @@ async function saveGroupSettings() {
         const city = document.getElementById('setCity').value.trim().slice(0, 40);
         const venue = document.getElementById('setVenue').value.trim().slice(0, 60);
         const days = GroupPrefs.readDayChips(document.getElementById('setDays'));
-        const time = GroupPrefs.cleanTime(document.getElementById('setTime').value);
+        const time = GroupPrefs.timeValue(document.getElementById('setTime'));
         const visEl = document.querySelector('input[name="setVis"]:checked');
         const vis = visEl && visEl.value === 'public' ? 'public' : 'private';
         if (!name) return alert('לקבוצה חייב להיות שם.');
@@ -5980,6 +6014,7 @@ function openAutoEditor() {
     const daysBox = document.getElementById('raDays');
     GroupPrefs.renderDayChips(daysBox, v.days.length ? v.days : GroupPrefs.cleanDays(sch.days));
     daysBox.onclick = () => updateAutoPreview();
+    ['raTime', 'raOpenTime'].forEach(id => { const el = document.getElementById(id); GroupPrefs.bindTimeInput(el); el.removeAttribute('aria-invalid'); });
     document.getElementById('raTime').value = v.time || GroupPrefs.cleanTime(sch.time) || '20:00';
     const odb = Number.isInteger(v.openDaysBefore) && v.openDaysBefore >= 0 && v.openDaysBefore <= 6 ? v.openDaysBefore : 3;
     document.getElementById('raOpenDays').value = String(odb);
@@ -5996,12 +6031,14 @@ function closeAutoEditor() {
 }
 
 function readAutoForm() {
+    // שעה שהוקלדה חלקית ("20", "9:3") נקראת כשעה מלאה; שעה לא חוקית נשארת כמו שהיא, וההודעה מסבירה
+    const tv = id => { const el = document.getElementById(id); return GroupPrefs.timeValue(el) || el.value; };
     return {
         enabled: true,
         days: GroupPrefs.readDayChips(document.getElementById('raDays')),
-        time: document.getElementById('raTime').value,
+        time: tv('raTime'),
         openDaysBefore: Number(document.getElementById('raOpenDays').value),
-        openTime: document.getElementById('raOpenTime').value,
+        openTime: tv('raOpenTime'),
         notice: document.getElementById('raNotice').value
     };
 }
