@@ -598,7 +598,7 @@
     const LISTING_STATUS = {
         open: { icon: '🟢', text: 'יש משחק פתוח להרשמה', color: '#10B981' },
         looking: { icon: '🟡', text: 'מחפשים שחקנים', color: '#FBBF24' },
-        closed: { icon: '⚪', text: 'לא מחפשים כרגע', color: '#94A3B8' }
+        closed: { icon: '⚪', text: 'לא מחפשים כרגע', color: '#A4ACDC' }
     };
 
     // ===== רכיבי טופס משותפים =====
@@ -718,7 +718,7 @@
                     const c = document.createElement('canvas');
                     c.width = c.height = size;
                     const ctx = c.getContext('2d');
-                    ctx.fillStyle = '#1E293B';          // רקע לתמונות שקופות (לוגו PNG)
+                    ctx.fillStyle = '#111748';          // רקע לתמונות שקופות (לוגו PNG)
                     ctx.fillRect(0, 0, size, size);
                     ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
@@ -743,14 +743,14 @@
         st.textContent = `
             .gp-icons { display: flex; flex-wrap: wrap; gap: 6px; }
             .gp-icon-opt { width: 38px; height: 38px; padding: 0; border-radius: 10px; display: grid; place-items: center; overflow: hidden;
-                font-size: 1.2rem; line-height: 1; cursor: pointer; font-family: inherit; color: var(--muted, var(--text-muted, #94A3B8));
-                border: 1px solid var(--border, var(--border-color, #334155)); background: var(--bg, var(--bg-color, #0F172A)); }
-            .gp-icon-opt[aria-pressed="true"] { border-color: var(--primary, var(--primary-color, #10B981)); background: rgba(16,185,129,0.15);
-                box-shadow: 0 0 0 2px rgba(16,185,129,0.25); }
+                font-size: 1.2rem; line-height: 1; cursor: pointer; font-family: inherit; color: var(--muted, var(--text-muted, #A4ACDC));
+                border: 1px solid var(--border, var(--border-color, #28306F)); background: var(--bg, var(--bg-color, #080B2B)); }
+            .gp-icon-opt[aria-pressed="true"] { border-color: var(--primary, var(--primary-color, #4D7CFF)); background: rgba(77,124,255,0.15);
+                box-shadow: 0 0 0 2px rgba(77,124,255,0.25); }
             .gp-icon-opt:disabled { opacity: 0.5; cursor: default; }
             .gp-icon-upload { font-size: 1.05rem; }
             .gp-icon-upload img { width: 100%; height: 100%; object-fit: cover; display: block; }
-            .gp-icon-msg { font-size: 0.8rem; color: var(--muted, var(--text-muted, #94A3B8)); margin-top: 6px; min-height: 1em; }
+            .gp-icon-msg { font-size: 0.8rem; color: var(--muted, var(--text-muted, #A4ACDC)); margin-top: 6px; min-height: 1em; }
             .gp-icon-msg.err { color: #F87171; }`;
         document.head.appendChild(st);
     }
