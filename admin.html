@@ -13,17 +13,17 @@
 
     <style>
         :root {
-            --bg: #0F172A; --surface: #1E293B; --primary: #10B981;
-            --text: #F8FAFC; --muted: #94A3B8; --danger: #EF4444; --warn: #FCD34D;
+            --bg: #080B2B; --surface: #111748; --primary: #4D7CFF;
+            --text: #F5F7FF; --muted: #A4ACDC; --danger: #EF4444; --warn: #FCD34D;
         }
         body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; direction: rtl; }
         .container { max-width: 800px; margin: 0 auto; }
-        .card { background: var(--surface); border-radius: 16px; padding: 25px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        .card { background: var(--surface); border-radius: 16px; padding: 25px; border: 1px solid #28306F; box-shadow: 0 10px 25px rgba(0,0,0,0.3); margin-bottom: 20px; }
         h1 { color: var(--primary); text-align: center; font-weight: 900; margin-bottom: 30px; }
 
         .form-group { margin-bottom: 15px; }
         input {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155;
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #28306F;
             background: var(--bg); color: white; font-family: 'Heebo'; box-sizing: border-box;
         }
         .btn {
@@ -31,11 +31,11 @@
             font-weight: bold; font-family: 'Heebo'; transition: 0.2s; width: 100%;
         }
         .btn:disabled { opacity: 0.5; cursor: default; }
-        .btn-primary { background: var(--primary); color: white; margin-top: 10px; }
+        .btn-primary { background: linear-gradient(120deg, #3B63F5 0%, #7046F0 55%, #C23CB8 100%); color: white; margin-top: 10px; }
         .btn-google { background: #fff; color: #1F2937; margin-top: 10px; }
         .btn-warn { background: rgba(252,211,77,0.15); color: var(--warn); border: 1px solid rgba(252,211,77,0.4); margin-top: 10px; }
         .btn-danger { background: var(--danger); color: white; width: auto; padding: 6px 12px; font-size: 0.85rem; }
-        .btn-small { background: rgba(255,255,255,0.08); color: var(--text); width: auto; padding: 6px 12px; font-size: 0.85rem; border: 1px solid #334155; }
+        .btn-small { background: rgba(255,255,255,0.08); color: var(--text); width: auto; padding: 6px 12px; font-size: 0.85rem; border: 1px solid #28306F; }
         .btn-view { background: #3B82F6; color: white; width: auto; padding: 6px 12px; font-size: 0.85rem; text-decoration: none; border-radius: 8px; }
         .divider { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 14px 0 4px; }
 
@@ -45,14 +45,14 @@
         }
         .group-row {
             display: flex; justify-content: space-between; align-items: center; gap: 10px;
-            padding: 15px; border-bottom: 1px solid #334155; flex-wrap: wrap;
+            padding: 15px; border-bottom: 1px solid #28306F; flex-wrap: wrap;
         }
         .group-row:last-child { border-bottom: none; }
         .group-info { flex: 1; min-width: 200px; }
         .group-name { font-weight: 800; font-size: 1.1rem; }
         .group-meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; line-height: 1.6; }
         .badge { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; margin-right: 6px; }
-        .badge-ok { background: rgba(16,185,129,0.15); color: var(--primary); border: 1px solid rgba(16,185,129,0.35); }
+        .badge-ok { background: rgba(77,124,255,0.15); color: var(--primary); border: 1px solid rgba(77,124,255,0.35); }
         .badge-legacy { background: rgba(252,211,77,0.12); color: var(--warn); border: 1px solid rgba(252,211,77,0.35); }
         .actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .logout-link { color: var(--danger); cursor: pointer; font-size: 0.9rem; display: block; text-align: center; margin-top: 20px; }
@@ -62,10 +62,10 @@
         .badge-new { background: #EF4444; color: #fff; border: 1px solid #EF4444; }
         .row-new { border-color: rgba(239,68,68,0.55) !important; }
         .msg-meta a { color: #93C5FD; }
-        .msg-text { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: 0.95rem; line-height: 1.6; }
+        .msg-text { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid #28306F; border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: 0.95rem; line-height: 1.6; }
         .card-note { font-size: 0.8rem; color: var(--muted); margin: 10px 0 0; }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .stat { background: var(--bg); border: 1px solid #334155; border-radius: 12px; padding: 12px 6px; text-align: center; }
+        .stat { background: var(--bg); border: 1px solid #28306F; border-radius: 12px; padding: 12px 6px; text-align: center; }
         .stat b { display: block; font-size: 1.7rem; font-weight: 900; color: var(--primary); line-height: 1.2; }
         .stat span { font-size: 0.8rem; color: var(--muted); }
         .stats-sub { font-size: 0.85rem; color: var(--muted); margin: 10px 0 0; text-align: center; }
@@ -86,6 +86,11 @@
         .rep-state { font-size: 0.85rem; margin-top: 8px; color: var(--warn); }
         .rep-state.gone { color: var(--primary); }
         @media (max-width: 560px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .wk em { font-size: 0.55rem; } }
+        /* ===== ליל גמר: כחול-לילה, כחול חשמלי וזוהר סגול-מג'נטה ===== */
+        body { background-color: #080B2B; background-image:
+            radial-gradient(1100px 520px at 12% -200px, rgba(61,107,255,0.30), transparent 70%),
+            radial-gradient(900px 480px at 95% -160px, rgba(217,70,200,0.20), transparent 70%);
+            background-repeat: no-repeat; }
     </style>
 </head>
 <body>
@@ -110,7 +115,7 @@
     <h1>לוח בקרה גלובלי ⚽</h1>
 
     <div class="card" id="statsCard">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">📈 מספרים</h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">📈 מספרים</h3>
         <div class="stats-grid">
             <div class="stat"><b id="stTotal">–</b><span>קבוצות</span></div>
             <div class="stat"><b id="stWeek">–</b><span>נפתחו השבוע</span></div>
@@ -126,7 +131,7 @@
     </div>
 
     <div class="card" id="inboxCard">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">📬 פניות מטופס יצירת הקשר <span id="inboxCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">📬 פניות מטופס יצירת הקשר <span id="inboxCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="inboxList">
             <p style="text-align: center; color: var(--muted);">טוען פניות... ⏳</p>
         </div>
@@ -134,7 +139,7 @@
     </div>
 
     <div class="card" id="backupCard">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">💾 גיבוי</h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">💾 גיבוי</h3>
         <p style="font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin: 0;">
             מוריד קובץ אחד עם כל הנתונים: הקבוצות והשחקנים, ההרשמות, ההיסטוריה, הדירוגים וההצבעות, המודעות והפניות.
             בתוכנית החינמית של Firebase אין גיבוי אוטומטי, אז כדאי לשמור עותק פעם בשבוע ולפני כל שינוי גדול.
@@ -146,7 +151,7 @@
     </div>
 
     <div class="card" id="migrateCard">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🔐 אבטחת קבוצות ותיקות</h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">🔐 אבטחת קבוצות ותיקות</h3>
         <p style="font-size: 0.9rem; color: var(--muted); line-height: 1.6; margin: 0;">
             קבוצות שנוצרו בשיטת הסיסמה שומרות אותה במסמך שכל אחד יכול לקרוא.
             הפעולה מעבירה את הסיסמאות לאחסון מוגן שאף משתמש לא יכול לקרוא. המנהלים ממשיכים להשתמש באותה סיסמה פעם אחת, כדי להעביר את הקבוצה לכניסת Google.
@@ -156,21 +161,21 @@
     </div>
 
     <div class="card">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">📣 מודעות ב"מצא משחק" <span id="listingsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">📣 מודעות ב"מצא משחק" <span id="listingsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="listingsList">
             <p style="text-align: center; color: var(--muted);">טוען מודעות... ⏳</p>
         </div>
     </div>
 
     <div class="card">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🤝 מודעות "מחפשים שחקן" <span id="marketCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">🤝 מודעות "מחפשים שחקן" <span id="marketCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <p id="marketStatus" style="font-size: 0.9rem; color: var(--muted); margin: 0;">טוען... ⏳</p>
         <button class="btn btn-warn" id="marketCleanBtn" onclick="cleanupMarket()" disabled>מחק מודעות ישנות</button>
         <p class="card-note">מודעה מוצגת 24 שעות. אחר כך היא נמחקת כאן, יחד עם מספר הטלפון שבה. מודעות בפורמט הישן כללו את מזהה הקבוצה, ולכן גם הן נמחקות.</p>
     </div>
 
     <div class="card">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">🙋 שחקנים שמחפשים קבוצה <span id="seekersCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">🙋 שחקנים שמחפשים קבוצה <span id="seekersCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="seekersAdminList">
             <p style="text-align: center; color: var(--muted);">טוען... ⏳</p>
         </div>
@@ -179,7 +184,7 @@
     </div>
 
     <div class="card">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px;">רשימת כל הקבוצות <span id="groupsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
+        <h3 style="margin-top: 0; border-bottom: 1px solid #28306F; padding-bottom: 10px;">רשימת כל הקבוצות <span id="groupsCount" style="color: var(--muted); font-weight: 400;"></span></h3>
         <div id="groupsList">
             <p style="text-align: center; color: var(--muted);">טוען קבוצות... ⏳</p>
         </div>
