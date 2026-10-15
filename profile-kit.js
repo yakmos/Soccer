@@ -154,27 +154,27 @@
         st.id = 'profileKitStyle';
         st.textContent = `
             .pk-overlay { position: fixed; inset: 0; z-index: 1200; background: rgba(2,6,23,0.72); display: flex; align-items: center; justify-content: center; padding: 16px; }
-            .pk-card { position: relative; width: 100%; max-width: 440px; max-height: calc(100vh - 32px); overflow-y: auto; background: #1E293B; color: #F1F5F9;
-                border: 1px solid #334155; border-radius: 18px; padding: 22px; font-family: 'Heebo', sans-serif; direction: rtl; text-align: right; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+            .pk-card { position: relative; width: 100%; max-width: 440px; max-height: calc(100vh - 32px); overflow-y: auto; background: #111748; color: #EEF0FD;
+                border: 1px solid #28306F; border-radius: 18px; padding: 22px; font-family: 'Heebo', sans-serif; direction: rtl; text-align: right; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
             .pk-card h2 { margin: 0 0 6px; font-size: 1.3rem; font-weight: 900; padding-left: 30px; }
-            .pk-x { position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.08); color: #F1F5F9; font-size: 0.95rem; cursor: pointer; }
-            .pk-intro { color: #94A3B8; font-size: 0.9rem; line-height: 1.55; margin: 0 0 14px; }
-            .pk-photo-row { display: flex; align-items: center; gap: 14px; margin: 6px 0 16px; padding: 12px; border: 1px solid #334155; border-radius: 14px; background: rgba(255,255,255,0.03); }
-            .pk-av, .pk-av-lg { flex: none; display: grid; place-items: center; border-radius: 50%; overflow: hidden; background: #0F172A; border: 2px solid #334155; color: #94A3B8; font-weight: 900; }
+            .pk-x { position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.08); color: #EEF0FD; font-size: 0.95rem; cursor: pointer; }
+            .pk-intro { color: #A4ACDC; font-size: 0.9rem; line-height: 1.55; margin: 0 0 14px; }
+            .pk-photo-row { display: flex; align-items: center; gap: 14px; margin: 6px 0 16px; padding: 12px; border: 1px solid #28306F; border-radius: 14px; background: rgba(255,255,255,0.03); }
+            .pk-av, .pk-av-lg { flex: none; display: grid; place-items: center; border-radius: 50%; overflow: hidden; background: #080B2B; border: 2px solid #28306F; color: #A4ACDC; font-weight: 900; }
             .pk-av { width: 40px; height: 40px; font-size: 1rem; }
             .pk-av-lg { width: 72px; height: 72px; font-size: 1.6rem; }
             .pk-av img, .pk-av-lg img { width: 100%; height: 100%; object-fit: cover; display: block; }
             .pk-photo-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
             .pk-photo-tx b { font-size: 0.95rem; }
-            .pk-photo-tx small { color: #94A3B8; font-size: 0.82rem; line-height: 1.45; }
+            .pk-photo-tx small { color: #A4ACDC; font-size: 0.82rem; line-height: 1.45; }
             .pk-photo-acts { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
-            .pk-btn-sm { display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(16,185,129,0.45); color: #6EE7B7; background: rgba(16,185,129,0.1); border-radius: 9px; padding: 5px 11px; font: 800 0.82rem 'Heebo', sans-serif; cursor: pointer; }
-            .pk-btn-sm:focus-within { outline: 2px solid #10B981; outline-offset: 2px; }
-            .pk-link { background: none; border: 0; padding: 0; color: #94A3B8; font: 700 0.82rem 'Heebo', sans-serif; text-decoration: underline; cursor: pointer; }
-            .pk-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; font-size: 0.85rem; font-weight: 800; color: #CBD5E1; }
-            .pk-field input { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 10px; border: 1px solid #334155; background: #0F172A; color: #F1F5F9; font: 700 1rem 'Heebo', sans-serif; color-scheme: dark; }
-            .pk-field input:focus { outline: none; border-color: #10B981; }
-            .pk-field small { color: #94A3B8; font-weight: 500; font-size: 0.8rem; }
+            .pk-btn-sm { display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(77,124,255,0.45); color: #AFC2FF; background: rgba(77,124,255,0.1); border-radius: 9px; padding: 5px 11px; font: 800 0.82rem 'Heebo', sans-serif; cursor: pointer; }
+            .pk-btn-sm:focus-within { outline: 2px solid #4D7CFF; outline-offset: 2px; }
+            .pk-link { background: none; border: 0; padding: 0; color: #A4ACDC; font: 700 0.82rem 'Heebo', sans-serif; text-decoration: underline; cursor: pointer; }
+            .pk-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; font-size: 0.85rem; font-weight: 800; color: #D3D8F6; }
+            .pk-field input { width: 100%; box-sizing: border-box; padding: 11px 12px; border-radius: 10px; border: 1px solid #28306F; background: #080B2B; color: #EEF0FD; font: 700 1rem 'Heebo', sans-serif; color-scheme: dark; }
+            .pk-field input:focus { outline: none; border-color: #4D7CFF; }
+            .pk-field small { color: #A4ACDC; font-weight: 500; font-size: 0.8rem; }
             .pk-consent { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 14px; padding: 10px 12px; border-radius: 10px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.35); color: #FDE68A; font-size: 0.86rem; font-weight: 700; line-height: 1.45; cursor: pointer; }
             .pk-consent[hidden] { display: none; }
             .pk-consent input { margin-top: 3px; width: 17px; height: 17px; accent-color: #F59E0B; flex: none; }
@@ -182,11 +182,11 @@
             .pk-err[hidden] { display: none; }
             .pk-acts { display: flex; gap: 10px; }
             .pk-save, .pk-cancel { flex: 1; border-radius: 12px; padding: 12px; font: 900 1rem 'Heebo', sans-serif; cursor: pointer; }
-            .pk-save { background: #10B981; color: #04241A; border: 0; }
+            .pk-save { background: linear-gradient(120deg, #3B63F5 0%, #7046F0 55%, #C23CB8 100%); color: #FFFFFF; border: 0; }
             .pk-save:disabled { opacity: 0.6; cursor: default; }
-            .pk-cancel { background: transparent; color: #CBD5E1; border: 1px solid #334155; flex: 0 0 auto; padding-inline: 18px; }
-            .pk-note { color: #94A3B8; font-size: 0.78rem; line-height: 1.5; margin: 14px 0 0; }
-            .pk-note a { color: #6EE7B7; }
+            .pk-cancel { background: transparent; color: #D3D8F6; border: 1px solid #28306F; flex: 0 0 auto; padding-inline: 18px; }
+            .pk-note { color: #A4ACDC; font-size: 0.78rem; line-height: 1.5; margin: 14px 0 0; }
+            .pk-note a { color: #AFC2FF; }
             @media (max-width: 560px) {
                 .pk-overlay { align-items: flex-end; padding: 0; }
                 .pk-card { border-radius: 18px 18px 0 0; max-height: 92vh; padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); }
