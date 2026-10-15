@@ -13,15 +13,15 @@
         st.id = 'regRingStyle';
         st.textContent = `
             .rr { --rr-size: 88px; position: relative; flex: none; width: var(--rr-size); height: var(--rr-size); }
-            .rr svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 6px rgba(34,211,238,0.28)); }
-            .rr-track { fill: none; stroke: rgba(148,163,184,0.16); stroke-width: 10; }
+            .rr svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 7px rgba(140,90,255,0.34)); }
+            .rr-track { fill: none; stroke: rgba(164,172,220,0.16); stroke-width: 10; }
             .rr-fill { fill: none; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 100 100; stroke-dashoffset: 100;
                 transition: stroke-dashoffset 0.9s cubic-bezier(.22,1,.36,1), opacity 0.3s; }
             .rr.rr-intro .rr-fill { animation: rrFill ${INTRO_MS}ms cubic-bezier(.22,1,.36,1) ${INTRO_DELAY}ms both; }
             @keyframes rrFill { from { stroke-dashoffset: 100; } }
             .rr-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; pointer-events: none; }
-            .rr-num { font-size: calc(var(--rr-size) * 0.32); font-weight: 900; color: #F8FAFC; font-variant-numeric: tabular-nums; }
-            .rr-of { margin-top: calc(var(--rr-size) * 0.045); font-size: max(10px, calc(var(--rr-size) * 0.125)); font-weight: 800; color: #94A3B8; white-space: nowrap; }
+            .rr-num { font-size: calc(var(--rr-size) * 0.32); font-weight: 900; color: #F5F7FF; font-variant-numeric: tabular-nums; }
+            .rr-of { margin-top: calc(var(--rr-size) * 0.045); font-size: max(10px, calc(var(--rr-size) * 0.125)); font-weight: 800; color: #A4ACDC; white-space: nowrap; }
             .rr.full .rr-of { color: #FBBF24; }
             @media (prefers-reduced-motion: reduce) { .rr-fill { transition: none; } .rr.rr-intro .rr-fill { animation: none; } }`;
         document.head.appendChild(st);
@@ -68,10 +68,10 @@
         // עד שהמילוי מתחיל (הטבעת עוד מוסתרת, או בהשהיה הקצרה) המספר נשאר 0, כדי שלא יקפוץ לסוף ואז יחזור לאפס
         if (!calm) { el.classList.add('rr-intro'); el.__counting = 'pending'; watchPending(el); }
         el.setAttribute('role', 'img');
-        // הקשת מתחילה למעלה ומתמלאת עם כיוון השעון: ירוק, תכלת, ובסוף סגול
+        // הקשת מתחילה למעלה ומתמלאת עם כיוון השעון: כחול חשמלי, סגול, ובסוף מג'נטה (כמו הכפתורים)
         el.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
             <defs><linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="50" y1="5" x2="50" y2="95">
-                <stop offset="0" stop-color="#34D399"/><stop offset="0.5" stop-color="#22D3EE"/><stop offset="1" stop-color="#A78BFA"/>
+                <stop offset="0" stop-color="#5B86FF"/><stop offset="0.5" stop-color="#9C6BFF"/><stop offset="1" stop-color="#E35BD2"/>
             </linearGradient></defs>
             <circle class="rr-track" cx="50" cy="50" r="45"/>
             <path class="rr-fill" d="M50 5 A45 45 0 1 1 49.99 5" pathLength="100" stroke="url(#${gid})"/>
