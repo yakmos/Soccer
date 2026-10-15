@@ -15,20 +15,20 @@
             .sm-promo-wrap { max-width: 540px; margin: 28px auto 12px; padding: 0 16px; direction: rtl; }
             body.is-admin .sm-promo-wrap { display: none; }
             #smPromo { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px;
-                background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.28);
-                color: #E2E8F0; text-decoration: none; font-family: 'Heebo', system-ui, sans-serif; line-height: 1.45;
+                background: rgba(77,124,255,0.07); border: 1px solid rgba(77,124,255,0.28);
+                color: #E3E7FB; text-decoration: none; font-family: 'Heebo', system-ui, sans-serif; line-height: 1.45;
                 transition: background .15s, border-color .15s; }
-            #smPromo:hover, #smPromo:focus-visible { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.5); }
+            #smPromo:hover, #smPromo:focus-visible { background: rgba(77,124,255,0.12); border-color: rgba(77,124,255,0.5); }
             #smPromo .sm-ic { font-size: 1.5rem; flex: none; }
-            #smPromo .sm-tx { flex: 1; min-width: 0; font-size: .88rem; color: #94A3B8; }
-            #smPromo .sm-tx b { display: block; color: #F8FAFC; font-size: .98rem; font-weight: 800; }
+            #smPromo .sm-tx { flex: 1; min-width: 0; font-size: .88rem; color: #A4ACDC; }
+            #smPromo .sm-tx b { display: block; color: #F5F7FF; font-size: .98rem; font-weight: 800; }
             #smPromo .sm-nw { white-space: nowrap; }
-            #smPromo .sm-go { flex: none; background: #10B981; color: #052E22; font-weight: 800; font-size: .85rem;
+            #smPromo .sm-go { flex: none; background: linear-gradient(120deg, #3B63F5 0%, #7046F0 55%, #C23CB8 100%); color: #FFFFFF; font-weight: 800; font-size: .85rem;
                 padding: 8px 12px; border-radius: 10px; white-space: nowrap; }
             .sm-legal { max-width: 540px; margin: 12px auto 28px; padding: 0 16px; text-align: center; direction: rtl;
-                font-family: 'Heebo', system-ui, sans-serif; font-size: .8rem; line-height: 1.8; color: #64748B; }
-            .sm-legal a { color: #94A3B8; text-decoration: none; }
-            .sm-legal a:hover, .sm-legal a:focus-visible { color: #F8FAFC; text-decoration: underline; }
+                font-family: 'Heebo', system-ui, sans-serif; font-size: .8rem; line-height: 1.8; color: #7079B2; }
+            .sm-legal a { color: #A4ACDC; text-decoration: none; }
+            .sm-legal a:hover, .sm-legal a:focus-visible { color: #F5F7FF; text-decoration: underline; }
             .sm-legal span { margin: 0 8px; }`;
         document.head.appendChild(style);
 
