@@ -17,18 +17,18 @@
         const st = document.createElement('style');
         st.id = 'mapKitStyle';
         st.textContent = `
-            .mk-map { direction: ltr; background: #0B1220; isolation: isolate; z-index: 0; }   /* השכבות של Leaflet נשארות מתחת לסרגלים של הדף */
+            .mk-map { direction: ltr; background: #05071F; isolation: isolate; z-index: 0; }   /* השכבות של Leaflet נשארות מתחת לסרגלים של הדף */
             .mk-map .leaflet-tile-pane { filter: brightness(0.86) saturate(0.85); }
             .mk-map .leaflet-control-attribution { font: 11px/1.4 'Heebo', sans-serif; direction: ltr; }
             .mk-pin { position: relative; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
-                background: #1E293B; border: 3px solid var(--mk-c, #FBBF24); box-shadow: 0 3px 10px rgba(0,0,0,0.45); font-size: 17px; line-height: 1; overflow: hidden; }
+                background: #111748; border: 3px solid var(--mk-c, #FBBF24); box-shadow: 0 3px 10px rgba(0,0,0,0.45); font-size: 17px; line-height: 1; overflow: hidden; }
             .mk-pin img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
             .mk-pin.sel { transform: scale(1.18); box-shadow: 0 0 0 4px rgba(255,255,255,0.35), 0 3px 12px rgba(0,0,0,0.5); }
             .mk-pin.approx { border-style: dashed; }
             .mk-me { width: 16px; height: 16px; border-radius: 50%; background: #3B82F6; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(59,130,246,0.25); }
             .mk-drop { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #EF4444; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.4); }
             .leaflet-div-icon.mk-icon { background: none; border: 0; }
-            .map-msg { height: 100%; display: grid; place-items: center; text-align: center; color: #94A3B8; padding: 20px; direction: rtl; font-family: 'Heebo', sans-serif; }`;
+            .map-msg { height: 100%; display: grid; place-items: center; text-align: center; color: #A4ACDC; padding: 20px; direction: rtl; font-family: 'Heebo', sans-serif; }`;
         document.head.appendChild(st);
     }
 
