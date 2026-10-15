@@ -1193,12 +1193,12 @@
                         <!-- Player Classification Toggles: רק לכללי העדיפות שפועלים בקבוצה (applyPriorityUI) -->
                         <div id="flagRows" style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px;">
                             <!-- Active toggle -->
-                            <div id="activeFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(77,124,255,0.06); border:1px solid rgba(77,124,255,0.2); border-radius:12px; padding:12px 16px;">
+                            <div id="activeFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:12px 16px;">
                                 <div>
-                                    <div style="font-weight:800; color:#4D7CFF; font-size:0.95rem;">✅ שחקן פעיל?</div>
+                                    <div style="font-weight:800; color:#10B981; font-size:0.95rem;">✅ שחקן פעיל?</div>
                                     <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">שחקנים פעילים מקבלים קדימות בהרשמה</div>
                                 </div>
-                                <button type="button" id="activeToggleBtn" onclick="togglePlayerFlag('isActive','activeToggleBtn','✅ פעיל','לא פעיל','rgba(77,124,255,0.2)','#4D7CFF','rgba(77,124,255,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא פעיל</button>
+                                <button type="button" id="activeToggleBtn" onclick="togglePlayerFlag('isActive','activeToggleBtn','✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)')" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא פעיל</button>
                             </div>
                             <!-- נעדר באישור: כשהכלל "יורד מ'פעיל' אחרי X שבועות בלי הרשמה" פועל (רק בעריכת שחקן) -->
                             <div id="awayRow" class="away-row" hidden>
@@ -2401,7 +2401,7 @@ function applyPriorityUI() {
 
 // שחקן שנוסף לסגל: כשהכלל "ותיקים לפני חדשים" פועל הוא מתחיל כ"חדש" (אפשר להוריד), ותאריך ההצטרפות הוא היום
 function resetAllFlagButtons() {
-    setPlayerFlagUI('isActive','activeToggleBtn',false,'✅ פעיל','לא פעיל','rgba(77,124,255,0.2)','#4D7CFF','rgba(77,124,255,0.4)');
+    setPlayerFlagUI('isActive','activeToggleBtn',false,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
     setPlayerFlagUI('isNew','newToggleBtn',!!(prioCfg && prioCfg.veteran),'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(false);
     setJoinDateField(GroupPrefs.todayYmd());
@@ -2478,7 +2478,7 @@ function toggleAway() {
     }
     // מי שירד אוטומטית חוזר להיות פעיל כשמסמנים אותו "נעדר באישור" (וחוזר למצב שלו כשמבטלים לפני השמירה)
     const p = editingId ? players.find(x => x.id === editingId) : null;
-    if (p && p.autoOff && !p.isActive) setPlayerFlagUI('isActive','activeToggleBtn',on,'✅ פעיל','לא פעיל','rgba(77,124,255,0.2)','#4D7CFF','rgba(77,124,255,0.4)');
+    if (p && p.autoOff && !p.isActive) setPlayerFlagUI('isActive','activeToggleBtn',on,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
     updateAwayHint();
 }
 function setAwayDays(n) {
@@ -3020,7 +3020,7 @@ function startEdit(id, p) {
     const isActive = !!p.isActive;
     const isNew = !!p.isNew;
     const isMoshavResident = !!p.isMoshavResident;
-    setPlayerFlagUI('isActive','activeToggleBtn',isActive,'✅ פעיל','לא פעיל','rgba(77,124,255,0.2)','#4D7CFF','rgba(77,124,255,0.4)');
+    setPlayerFlagUI('isActive','activeToggleBtn',isActive,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
     setPlayerFlagUI('isNew','newToggleBtn',isNew,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(isMoshavResident);
     setJoinDateField(GroupPrefs.ymdToMs(p.joinDate) != null ? p.joinDate : '');
