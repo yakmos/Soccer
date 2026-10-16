@@ -341,15 +341,18 @@
         return s;
     }
 
-    // "1. אבי כהן ✅" → "אבי כהן". אחרי stripLineExtras: מוריד אימוג'ים וסימנים, ומרכאות מסביב לשם
+    // "1. אבי כהן ✅" → "אבי כהן". אחרי stripLineExtras: מוריד אימוג'ים וסימנים, ומרכאות מסביב לשם.
+    // סימנים נסתרים (סימני כיוון מהוואטסאפ, רווח באפס רוחב) נמחקים בלי להשאיר רווח
     function cleanPlayerName(raw) {
-        const s = stripLineExtras(raw).replace(/[^\p{L}\p{M}\p{N}\s'"׳״.\-]/gu, ' ');
+        const s = stripLineExtras(raw).replace(/\p{Cf}/gu, '').replace(/[^\p{L}\p{M}\p{N}\s'"׳״.\-]/gu, ' ');
         return s.replace(/\s+/g, ' ').trim().replace(/^[.\-'"׳״]+/, '').replace(/[.\-'"׳״]+$/, '').trim();
     }
 
-    // להשוואת שמות: בלי הבדלי רווחים, גרש וגדולות/קטנות
+    // להשוואת שמות: בלי הבדלי רווחים, גרש, מקף וגדולות/קטנות, ובלי סימנים נסתרים — שם שהודבק מהוואטסאפ
+    // (עם סימני כיוון שלא רואים) הוא אותו שם
     function playerNameKey(name) {
-        return String(name || '').toLowerCase().replace(/[׳`’]/g, "'").replace(/[״”“]/g, '"').replace(/\s+/g, ' ').trim();
+        return String(name || '').replace(/\p{Cf}/gu, '').toLowerCase().replace(/[׳`’]/g, "'").replace(/[״”“]/g, '"')
+            .replace(/[\u05be\u2010-\u2015]/g, '-').replace(/\s+/g, ' ').trim();
     }
 
     // { names: שמות להוספה, existing: כבר בסגל, dupes: פעמיים ברשימה, tooLong, skipped: שורות שלא נראו כמו שם, overflow: מעבר למגבלה }
