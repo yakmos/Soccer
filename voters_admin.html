@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js?v=20261014b"></script>
+    <script src="group-prefs.js?v=20261016"></script>
     <style>
         :root {
             --bg-color: #080B2B; --surface-color: #111748; --primary-color: #4D7CFF;
@@ -55,6 +55,17 @@
         .note { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
         .back-link { display: inline-block; color: var(--text-muted); text-decoration: none; font-weight: 700; font-size: .88rem; margin-bottom: 10px; }
         .back-link:hover { color: var(--text-main); }
+        /* קישורים כפולים לאותו שחקן */
+        .dup-card { border-color: rgba(252,211,77,0.45); background: linear-gradient(180deg, rgba(252,211,77,0.07), rgba(252,211,77,0) 70%), var(--surface-color); }
+        .dup-card h3 { border-bottom-color: rgba(252,211,77,0.3); }
+        .dup-text { font-size: 0.88rem; color: var(--text-muted); line-height: 1.6; margin: 0 0 12px; }
+        .dup-list { display: grid; gap: 8px; }
+        .dup-item { display: flex; align-items: flex-start; gap: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+        .dup-item input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--primary-color); flex: none; }
+        .dup-item b { display: block; font-size: 0.98rem; font-weight: 800; }
+        .dup-item small { display: block; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; margin-top: 2px; }
+        .dup-warn { font-size: 0.82rem; color: var(--warn); line-height: 1.55; margin-top: 10px; }
+        .badge-dup { background: rgba(252,211,77,0.12); color: var(--warn); border: 1px solid rgba(252,211,77,0.35); }
     
     /* ===== ליל גמר: כחול-לילה, כחול חשמלי וזוהר סגול-מג'נטה (כמו אצטדיון מואר בלילה) ===== */
     :root { --primary-strong: #3B63F5; --grad: linear-gradient(120deg, #3B63F5 0%, #7046F0 55%, #C23CB8 100%);
@@ -80,6 +91,14 @@
         </div>
 
         <div id="adminArea" style="display:none;">
+        <div class="card dup-card" id="dupCard" hidden>
+            <h3>🧹 קישורים כפולים (<span id="dupCount">0</span>)</h3>
+            <p class="dup-text" id="dupText"></p>
+            <div class="dup-list" id="dupList"></div>
+            <div id="dupWarn"></div>
+            <button class="btn" id="dupBtn" type="button" onclick="cleanDuplicates()">🧹 מחק את הכפולים</button>
+            <div class="hint" id="dupStatus"></div>
+        </div>
         <div class="card">
             <h3>➕ יצירת קישורים</h3>
             <button class="btn" id="squadBtn" onclick="createSquadVoters()" disabled>👥 קישור לכל שחקן בסגל</button>
@@ -131,7 +150,13 @@
     let playersCount = 0;
     let playerIds = new Set();
     let squadNames = [];   // שמות השחקנים בסגל, ליצירת קישור לכל אחד
+    let squad = [];        // [{ id, name (כמו שנשמר בכרטיס), key (להשוואה), clean (בלי אימוג'י ומספור) }]
     let voters = [];
+    let dupSets = [];      // שחקנים שיש להם יותר מקישור אחד (findDuplicates)
+    let dupDrop = new Set();
+    let dupDone = '';      // ההודעה אחרי ניקוי
+    const dupSkip = new Set();   // שחקנים שהמנהל הוריד מהם את הסימון: נשארים לא מסומנים גם אחרי רענון הרשימה
+    const dupKey = s => (s.card ? 'c:' + s.card.id : 'n:' + s.keep.token);
 
     function voteBaseUrl() {
         return location.origin + location.pathname.replace(/voters_admin\.html$/, 'vote.html');
@@ -176,7 +201,11 @@
         const playersSnap = await db.collection('groups').doc(groupId).collection('players').get();
         playersCount = playersSnap.size;
         playerIds = new Set(playersSnap.docs.map(d => d.id));
-        squadNames = playersSnap.docs.map(d => String((d.data() || {}).name || '').trim()).filter(Boolean);
+        squad = playersSnap.docs.map(d => {
+            const name = String((d.data() || {}).name || '');
+            return { id: d.id, name, key: GroupPrefs.playerNameKey(name), clean: cleanKey(name) };
+        }).filter(c => c.key);
+        squadNames = squad.map(c => c.name.trim());
         await loadVoters();
     }
 
@@ -211,8 +240,187 @@
             if (diff !== 0) return diff;
             return (a.name || '').localeCompare(b.name || '', 'he');
         });
+        dupSets = findDuplicates();
+        dupDrop = new Set([].concat(...dupSets.map(s => s.drop.map(v => v.token))));
+        renderDuplicates();
         renderVoters();
         renderSquadHint();
+    }
+
+    // ===== קישורים כפולים: כמה קישורים לאותו שחקן =====
+    // קישורים ישנים נוצרו מהשמות כמו שהודבקו, לפעמים עם סימני כיוון נסתרים מהוואטסאפ, אימוג'י או מספור.
+    // לכן הם לא זוהו כשנוצרו קישורים לכל הסגל, ואותו שחקן קיבל קישור נוסף. מזהים את השחקן לפי הכרטיס שלו בסגל
+    const votesOf = v => Number(v.votedCount) || 0;
+    const msOf = t => t && typeof t.toMillis === 'function' ? t.toMillis() : 0;
+    function cleanKey(name) { return GroupPrefs.playerNameKey(GroupPrefs.cleanPlayerName(name)); }
+
+    // הכרטיס בסגל שהקישור שייך לו. מהבטוח לפחות בטוח: דרך הכרטיס (pid), אותו שם (בלי הבדלי רווחים וסימנים נסתרים),
+    // אותו שם בלי אימוג'י ומספור, ושם פרטי מול שם מלא. רק כשיש בסגל שחקן אחד שמתאים; כמה שמתאימים = AMBIG, לא נוגעים
+    const AMBIG = '?';
+    function cardOf(v) {
+        if (v.pid && playerIds.has(v.pid)) return v.pid;
+        const pick = list => (list.length === 1 ? list[0].id : AMBIG);
+        const key = GroupPrefs.playerNameKey(v.name);
+        if (!key) return null;
+        let hit = squad.filter(c => c.key === key);
+        if (hit.length) return pick(hit);
+        const ck = cleanKey(v.name);
+        if (!ck) return null;
+        hit = squad.filter(c => c.clean === ck);
+        if (hit.length) return pick(hit);
+        const vw = ck.split(' ');
+        hit = squad.filter(c => {
+            const cw = c.clean.split(' ');
+            const [short, long] = vw.length <= cw.length ? [vw, cw] : [cw, vw];
+            return short.length < long.length && short.every((w, i) => long[i] === w);
+        });
+        return hit.length ? pick(hit) : null;
+    }
+
+    // לכל שחקן עם כמה קישורים: נשאר הקישור שדירגו בו הכי הרבה (אחריו: זה שכבר נפתח, זה ששמו כמו בסגל, הוותיק).
+    // drop: ההעתקים שלא דירגו בהם, למחיקה. busy: העתקים שגם בהם דירגו — לא נוגעים בהם
+    function findDuplicates() {
+        const groups = new Map();
+        voters.forEach(v => {
+            const cid = cardOf(v);
+            if (cid === AMBIG) return;
+            const key = cid ? 'c:' + cid : 'n:' + GroupPrefs.playerNameKey(v.name);
+            if (key === 'n:') return;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(v);
+        });
+        const sets = [];
+        groups.forEach((list, key) => {
+            if (list.length < 2) return;
+            const card = key.startsWith('c:') ? squad.find(c => c.id === key.slice(2)) : null;
+            const rank = v => [votesOf(v), v.uid || v.acct ? 1 : 0, card && v.name === card.name ? 1 : 0, -msOf(v.createdAt)];
+            const sorted = list.slice().sort((a, b) => {
+                const ra = rank(a), rb = rank(b);
+                for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return rb[i] - ra[i];
+                return 0;
+            });
+            const keep = sorted[0];
+            sets.push({
+                card, keep,
+                drop: sorted.slice(1).filter(v => votesOf(v) === 0),
+                busy: sorted.slice(1).filter(v => votesOf(v) > 0),
+                // הקישור שנשאר מקבל את השם שבכרטיס, כדי ששחקן שמחובר לכרטיס ימשיך ממנו כשהוא מדרג מדף הקבוצה
+                rename: card && !keep.pid && keep.name !== card.name ? card.name : null
+            });
+        });
+        return sets;
+    }
+
+    // קישורים שהשם שלהם שונה מהכרטיס רק בסימנים נסתרים, רווחים או גדולות/קטנות: מתוקנים יחד עם הניקוי
+    function nameFixes() {
+        const fixed = new Set([].concat(...dupSets.map(s => [s.keep].concat(s.drop, s.busy).map(v => v.token))));
+        const out = [];
+        voters.forEach(v => {
+            if (v.pid || fixed.has(v.token)) return;
+            const key = GroupPrefs.playerNameKey(v.name);
+            const hit = squad.filter(c => c.key === key);
+            if (hit.length === 1 && hit[0].name !== v.name) out.push({ token: v.token, name: hit[0].name });
+        });
+        return out;
+    }
+
+    const votesText = n => n === 1 ? 'דירוג אחד' : `${n} דירוגים`;
+    function renderDuplicates() {
+        const card = document.getElementById('dupCard');
+        const fix = dupSets.filter(s => s.drop.length);
+        const busy = dupSets.filter(s => !s.drop.length && s.busy.length);
+        document.getElementById('dupStatus').textContent = dupDone;
+        if (!fix.length && !busy.length) {
+            card.hidden = !dupDone;
+            document.getElementById('dupCount').textContent = '0';
+            document.getElementById('dupText').textContent = dupDone ? 'עכשיו לכל שחקן יש קישור אחד.' : '';
+            ['dupList', 'dupWarn'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+            document.getElementById('dupBtn').hidden = true;
+            return;
+        }
+        card.hidden = false;
+        document.getElementById('dupCount').textContent = fix.length + busy.length;
+        const renamed = fix.some(s => s.rename);
+        document.getElementById('dupText').textContent = fix.length
+            ? 'לשחקנים האלה יש יותר מקישור אחד, ולכן הם מופיעים ברשימה פעמיים. נשאר הקישור שדירגו בו, וההעתק שלא דירגו בו יימחק. כך כל שחקן מופיע פעם אחת, ואף אחד לא יוכל לדרג פעמיים.'
+              + (renamed ? ' לקישור שנשאר יהיה השם שבסגל.' : '')
+            : 'לשחקנים האלה יש יותר מקישור אחד, ודירגו בכל אחד מהם.';
+        document.getElementById('dupList').innerHTML = fix.map((s, i) => {
+            const n = votesOf(s.keep);
+            const was = s.card && GroupPrefs.playerNameKey(s.keep.name) !== s.card.key ? ` (עד עכשיו בשם „${esc(s.keep.name)}“)` : '';
+            const opened = !s.drop.some(v => v.uid || v.acct) ? '' : s.drop.length === 1 ? ' (כבר פתחו אותו, אבל לא דירגו בו)' : ' (חלק מהם כבר נפתחו, אבל לא דירגו בהם)';
+            const gone = (s.drop.length === 1 ? 'יימחק העתק שלא דירגו בו' : `יימחקו ${s.drop.length} העתקים שלא דירגו בהם`) + opened;
+            const detail = n ? `נשאר הקישור עם ${votesText(n)}${was}. ${gone}.`
+                : `עוד לא דירגו באף אחד מהם. נשאר קישור אחד${s.keep.uid ? ', זה שכבר נפתח' : ''}${was}, ו${s.drop.length === 1 ? 'יימחק השני' : `יימחקו ${s.drop.length} האחרים`}.`;
+            return `<label class="dup-item"><input type="checkbox"${dupSkip.has(dupKey(s)) ? '' : ' checked'} data-i="${i}"><span><b>${esc(s.card ? s.card.name : s.keep.name)}</b><small>${detail}</small></span></label>`;
+        }).join('');
+        document.getElementById('dupWarn').innerHTML = dupSets.filter(s => s.busy.length).map(s =>
+            `<div class="dup-warn">⚠️ <b>${esc(s.card ? s.card.name : s.keep.name)}</b>: דירגו בכמה קישורים (${[s.keep].concat(s.busy).map(votesOf).join(' ו-')} דירוגים). הם נשארים כמו שהם.</div>`).join('');
+        document.querySelectorAll('#dupList input').forEach(i => i.addEventListener('change', () => {
+            const set = fix[+i.dataset.i];
+            if (set) { if (i.checked) dupSkip.delete(dupKey(set)); else dupSkip.add(dupKey(set)); }
+            paintDupButton();
+        }));
+        paintDupButton();
+    }
+
+    function paintDupButton() {
+        const btn = document.getElementById('dupBtn');
+        const fix = dupSets.filter(s => s.drop.length);
+        const n = [...document.querySelectorAll('#dupList input:checked')].reduce((a, i) => a + ((fix[+i.dataset.i] || {}).drop || []).length, 0);
+        btn.hidden = !fix.length;
+        btn.disabled = !n;
+        btn.textContent = !n ? '🧹 סמן מה למחוק' : n === 1 ? '🧹 מחק העתק אחד' : `🧹 מחק ${n} העתקים`;
+    }
+
+    let cleaning = false;
+    async function cleanDuplicates() {
+        if (cleaning) return;
+        const fix = dupSets.filter(s => s.drop.length);
+        const picked = [...document.querySelectorAll('#dupList input:checked')].map(i => fix[+i.dataset.i]).filter(Boolean);
+        const n = picked.reduce((a, s) => a + s.drop.length, 0);
+        if (!n) return;
+        if (!confirm(`למחוק ${n === 1 ? 'העתק אחד' : n + ' העתקים'} של קישורים? באף אחד מהם עוד לא דירגו, והקישורים שדירגו בהם נשארים.`)) return;
+        cleaning = true;
+        const btn = document.getElementById('dupBtn'), status = document.getElementById('dupStatus');
+        btn.disabled = true;
+        status.textContent = 'מנקה… ⏳';
+        let removed = 0, skipped = 0;
+        try {
+            for (const s of picked) {
+                const batch = db.batch();
+                let ops = 0, gone = 0;
+                for (const d of s.drop) {
+                    // בודקים שבאמת אין בו דירוגים. אם יש (המונה לא היה מעודכן), הוא נשאר והמונה שלו מתוקן
+                    const votes = await votersRef.doc(d.token).collection('votes').get();
+                    if (!votes.empty) {
+                        batch.update(votersRef.doc(d.token), { votedCount: votes.size });
+                        ops++; skipped++;
+                        continue;
+                    }
+                    batch.delete(votersRef.doc(d.token));
+                    ops++; gone++;
+                }
+                if (s.rename) { batch.update(votersRef.doc(s.keep.token), { name: s.rename }); ops++; }
+                if (ops) await batch.commit();
+                removed += gone;
+            }
+            const fixes = nameFixes();
+            for (let i = 0; i < fixes.length; i += 20) {
+                const batch = db.batch();
+                fixes.slice(i, i + 20).forEach(f => batch.update(votersRef.doc(f.token), { name: f.name }));
+                await batch.commit();
+            }
+            dupDone = (removed === 1 ? '✅ נמחק העתק אחד' : `✅ נמחקו ${removed} העתקים`)
+                + (skipped ? `. ${skipped === 1 ? 'אחד נשאר' : skipped + ' נשארו'}, כי נמצאו בו דירוגים` : '') + '.';
+        } catch (e) {
+            console.error(e);
+            status.textContent = '';
+            alert('הניקוי נעצר באמצע: ' + AdminAuth.errorMessage(e) + '\nאפשר ללחוץ שוב, ומה שכבר נוקה לא ייפגע.');
+        } finally {
+            cleaning = false;
+            try { await loadVoters(); } catch (e) { console.error(e); }
+        }
     }
 
     function renderVoters() {
@@ -229,9 +437,10 @@
             // דרך הכרטיס לא מדרגים את עצמך, ולכן אחד פחות
             const total = viaCard && playerIds.has(v.pid) ? Math.max(playersCount - 1, 0) : playersCount;
             const progress = `${Number(v.votedCount) || 0}/${total}`;
-            const badge = viaCard ? '<span class="badge badge-card">🔗 דרך הכרטיס</span>'
+            const badge = (viaCard ? '<span class="badge badge-card">🔗 דרך הכרטיס</span>'
                 : `<span class="badge ${claimed ? 'badge-claimed' : 'badge-unclaimed'}">${claimed ? '🟢 שויך' : '🟡 ממתין'}</span>`
-                  + (v.acct ? ' <span class="badge badge-card">🔗 גם דרך הכרטיס</span>' : '');
+                  + (v.acct ? ' <span class="badge badge-card">🔗 גם דרך הכרטיס</span>' : ''))
+                + (dupDrop.has(v.token) ? ' <span class="badge badge-dup">🧹 כפול</span>' : '');
             return `
             <div class="voter-row">
                 <div class="voter-info">
@@ -255,15 +464,15 @@
     const CREATE_CHUNK = 10;   // כתיבות בכל batch: כל אחת נבדקת בחוקי האבטחה מול מסמך הקבוצה
     let creating = false;
 
-    // שחקני הסגל שעוד אין להם קישור (לפי השם), כל שם פעם אחת
+    // שחקני הסגל שעוד אין להם קישור, כל שם פעם אחת. קישור שייך לשחקן גם כשהשם בו קצת שונה (cardOf)
     function squadWithoutLink() {
+        const covered = new Set(voters.map(cardOf).filter(c => c && c !== AMBIG));
         const have = new Set(voters.map(v => GroupPrefs.playerNameKey(v.name)));
         const seen = new Set(), out = [];
-        squadNames.forEach(name => {
-            const key = GroupPrefs.playerNameKey(name);
-            if (!key || have.has(key) || seen.has(key)) return;
-            seen.add(key);
-            out.push(name);
+        squad.forEach(c => {
+            if (covered.has(c.id) || have.has(c.key) || seen.has(c.key)) return;
+            seen.add(c.key);
+            out.push(c.name.trim());
         });
         return out;
     }
