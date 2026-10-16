@@ -76,9 +76,11 @@
         }
     }
 
+    // auth/in-app-browser: המשתמש סגר את חלון "ממשיכים בדפדפן" (ראו למטה)
     function isCancel(e) {
         const code = (e && e.code) || '';
-        return code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled';
+        return code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled'
+            || code === 'auth/in-app-browser';
     }
 
     function googleProvider() {
@@ -87,10 +89,234 @@
         return provider;
     }
 
+    // ===== דפדפן מובנה של אפליקציה (פייסבוק, אינסטגרם, מסנג'ר ועוד) =====
+    // Google חוסמת כניסה מתוך הדפדפנים שאפליקציות מציגות בתוכן, ומראה דף שגיאה. לכן שם, במקום חלון ההתחברות,
+    // מציגים חלון קצר: פתיחת הדף בדפדפן הרגיל של הטלפון (עם מה שכבר מילאו, אם הדף העביר קישור כזה), העתקת קישור,
+    // ואפשרות שקטה לנסות בכל זאת, למקרה שהזיהוי טעה.
+    const UA = navigator.userAgent || '';
+    const IS_IOS = /iPhone|iPad|iPod/i.test(UA) || (/Macintosh/.test(UA) && (navigator.maxTouchPoints || 0) > 1);
+    const IS_ANDROID = /Android/i.test(UA);
+    // שם האפליקציה, לטקסט. '' = אפליקציה אחרת שמציגה דפים בתוכה. null = דפדפן רגיל
+    const IN_APP_NAME = (() => {
+        if (/Instagram/i.test(UA)) return 'אינסטגרם';
+        if (/MessengerForiOS|FB_IAB\/MESSENGER|Orca-Android/i.test(UA)) return "מסנג'ר";
+        if (/FBAN|FBAV|FB_IAB/i.test(UA)) return 'פייסבוק';
+        if (/TikTok|musical_ly|Bytedance/i.test(UA)) return 'טיקטוק';
+        if (/Snapchat/i.test(UA)) return "סנאפצ'ט";
+        if (/LinkedInApp/i.test(UA)) return 'לינקדאין';
+        if (/WhatsApp/i.test(UA)) return 'וואטסאפ';
+        if (/\bLine\//.test(UA)) return 'LINE';
+        if (/MicroMessenger/i.test(UA)) return 'WeChat';
+        if (IS_ANDROID && /; wv\)/.test(UA)) return '';
+        return null;
+    })();
+    const IN_APP = IN_APP_NAME !== null;
+
+    // הדף הנוכחי, בלי fbclid (מזהה מעקב שפייסבוק מוסיפה לכל קישור)
+    function currentHref() {
+        try {
+            const u = new URL(location.href);
+            if (!u.searchParams.has('fbclid')) return location.href;
+            u.searchParams.delete('fbclid');
+            return u.toString();
+        } catch (e) { return location.href; }
+    }
+
+    // קישור שמוציא את הכתובת מהאפליקציה. אנדרואיד: intent בלי חבילה מסוימת, כלומר הדפדפן הרגיל של הטלפון.
+    // אייפון: באינסטגרם דרך הקישור הפנימי שלה לדפדפן, ובשאר האפליקציות ישר ל-Safari
+    function outsideLink(url) {
+        try {
+            if (IS_ANDROID) {
+                const u = new URL(url);
+                return { label: 'פתח בדפדפן', href: 'intent://' + u.host + u.pathname + u.search + u.hash
+                    + '#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url='
+                    + encodeURIComponent(url) + ';end' };
+            }
+            if (IS_IOS && /Instagram/i.test(UA)) return { label: 'פתח בדפדפן', href: 'instagram://extbrowser/?url=' + encodeURIComponent(url) };
+            if (IS_IOS && /^https:\/\//.test(url)) return { label: 'פתח ב-Safari', href: 'x-safari-' + url };
+        } catch (e) { /* כתובת לא תקינה: נשארים עם העתקת הקישור */ }
+        return null;
+    }
+
+    // העתקה ללוח. קודם הדרך הישנה, שעובדת רק בתוך הלחיצה עצמה, ואחר כך ה-API החדש
+    function copyText(text) {
+        let ok = false;
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            ok = document.execCommand('copy');
+            ta.remove();
+        } catch (e) { ok = false; }
+        if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).then(() => true, () => false);
+        }
+        return Promise.resolve(ok);
+    }
+
+    // הצבעים כתובים כאן במפורש: הקובץ משותף לכמה דפים, ולא בכולם מוגדרים אותם משתנים
+    function injectSheetCSS() {
+        if (document.getElementById('sm-iab-css')) return;
+        const st = document.createElement('style');
+        st.id = 'sm-iab-css';
+        st.textContent = `
+            .sm-iab { position: fixed; inset: 0; z-index: 2147483000; display: flex; align-items: center; justify-content: center; padding: 16px;
+                background: rgba(2,6,23,0.74); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); direction: rtl; }
+            .sm-iab .sm-iab-card { position: relative; box-sizing: border-box; width: 100%; max-width: 420px; max-height: calc(100vh - 32px); overflow-y: auto;
+                margin: 0; padding: 24px 20px 20px; background: #111748; color: #F5F7FF; border: 1px solid #28306F; border-radius: 20px;
+                box-shadow: 0 30px 60px rgba(0,0,0,0.5); font-family: 'Heebo', system-ui, -apple-system, sans-serif; line-height: 1.55; text-align: right; }
+            .sm-iab h2 { margin: 0 0 8px; padding: 0 0 0 44px; font-family: inherit; font-size: 1.3rem; font-weight: 900; line-height: 1.25; color: #F5F7FF; text-align: right; }
+            .sm-iab p { margin: 0 0 10px; padding: 0; font-size: 0.97rem; font-weight: 400; color: #D3D8F6; }
+            .sm-iab .sm-iab-keep { color: #AFC2FF; font-size: 0.9rem; font-weight: 700; }
+            .sm-iab .sm-iab-go, .sm-iab .sm-iab-copy { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%;
+                margin: 10px 0 0; padding: 14px 18px; border-radius: 12px; font-family: inherit; font-size: 1.05rem; font-weight: 800; line-height: 1.3;
+                text-decoration: none; text-align: center; cursor: pointer; -webkit-appearance: none; appearance: none; }
+            .sm-iab .sm-iab-go { margin-top: 16px; border: 0; color: #FFFFFF; background: linear-gradient(120deg, #3B63F5 0%, #7046F0 55%, #C23CB8 100%);
+                box-shadow: 0 10px 26px rgba(112,70,240,0.35); }
+            .sm-iab .sm-iab-go:active, .sm-iab .sm-iab-copy:active { transform: scale(0.98); }
+            .sm-iab .sm-iab-copy { color: #F5F7FF; background: transparent; border: 1px solid #28306F; }
+            .sm-iab .sm-iab-copy.ok { color: #AFC2FF; border-color: rgba(77,124,255,0.55); background: rgba(77,124,255,0.12); }
+            .sm-iab .sm-iab-url { display: block; box-sizing: border-box; width: 100%; margin: 10px 0 0; padding: 11px 12px; border-radius: 10px;
+                border: 1px solid #28306F; background: #080B2B; color: #F5F7FF; font-family: inherit; font-size: 0.85rem; line-height: 1.4; direction: ltr; text-align: left; }
+            .sm-iab .sm-iab-how { margin: 14px 0 0; color: #A4ACDC; font-size: 0.86rem; }
+            .sm-iab .sm-iab-key { display: inline-block; min-width: 1.5em; padding: 0 5px; border: 1px solid #28306F; border-radius: 6px; background: #1A2161;
+                color: #F5F7FF; font-weight: 900; line-height: 1.35; text-align: center; }
+            .sm-iab .sm-iab-try { display: block; margin: 12px auto 0; padding: 6px 10px; background: none; border: 0; color: #A4ACDC; font-family: inherit;
+                font-size: 0.86rem; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+            .sm-iab .sm-iab-x { position: absolute; top: 14px; left: 14px; width: 36px; height: 36px; margin: 0; padding: 0; border-radius: 10px; border: 0;
+                background: #1A2161; color: #A4ACDC; font-size: 1rem; line-height: 36px; text-align: center; cursor: pointer; }
+            .sm-iab :focus-visible { outline: 2px solid #4D7CFF; outline-offset: 2px; }
+            @media (max-width: 560px) {
+                .sm-iab { align-items: flex-end; padding: 0; }
+                .sm-iab .sm-iab-card { max-width: none; max-height: 92vh; border-radius: 20px 20px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+            }
+            @media (prefers-reduced-motion: reduce) { .sm-iab .sm-iab-go:active, .sm-iab .sm-iab-copy:active { transform: none; } }`;
+        document.head.appendChild(st);
+    }
+
+    function inAppError() {
+        const e = new Error('Google sign-in is blocked inside in-app browsers');
+        e.code = 'auth/in-app-browser';
+        return e;
+    }
+
+    let sheet = null;
+    // opts.url: מה לפתוח בדפדפן (ברירת מחדל: הדף הנוכחי). opts.keep: להגיד שמה שמילאו עובר איתם.
+    // opts.text: הסבר משלך. opts.trySignIn: כשיש, כפתור שקט "להתחבר כאן בכל זאת" שמריץ אותו ישר מהלחיצה.
+    // מחזיר Promise: מה ש-trySignIn החזיר, או דחייה עם auth/in-app-browser כשסוגרים את החלון
+    function openInAppSheet(opts) {
+        opts = opts || {};
+        if (sheet) sheet.done('replaced');
+        injectSheetCSS();
+        const url = opts.url || currentHref();
+        const out = outsideLink(url);
+        const key = '<span class="sm-iab-key">' + (IS_IOS ? '⋯' : '⋮') + '</span>';
+        const howText = (out && IS_IOS && !/Instagram/i.test(UA) ? 'אם מופיעה שאלה, אשר אותה. ' : '')
+            + (out ? 'לא נפתח? בתפריט ' + key + ' שבפינת המסך בחר לפתוח בדפדפן, או העתק את הקישור והדבק אותו בדפדפן.'
+                   : 'בתפריט ' + key + ' שבפינת המסך בחר לפתוח בדפדפן, או העתק את הקישור והדבק אותו בדפדפן.');
+        const el = document.createElement('div');
+        el.className = 'sm-iab';
+        el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-modal', 'true');
+        el.setAttribute('aria-labelledby', 'smIabTitle');
+        el.innerHTML = `<div class="sm-iab-card">
+            <button class="sm-iab-x" type="button" aria-label="סגור">✕</button>
+            <h2 id="smIabTitle">ממשיכים בדפדפן</h2>
+            <p class="sm-iab-text"></p>
+            ${opts.keep ? '<p class="sm-iab-keep">מה שמילאת יעבור איתך.</p>' : ''}
+            ${out ? '<a class="sm-iab-go"></a>' : ''}
+            <button class="sm-iab-copy" type="button">העתק קישור</button>
+            <p class="sm-iab-how">${howText}</p>
+            ${opts.trySignIn ? '<button class="sm-iab-try" type="button">להתחבר כאן בכל זאת</button>' : ''}
+        </div>`;
+        el.querySelector('.sm-iab-text').textContent = opts.text
+            || 'Google לא מאפשרת להתחבר מתוך ' + (IN_APP_NAME || 'האפליקציה הזו') + '. בדפדפן הרגיל של הטלפון זה עובד.';
+        const go = el.querySelector('.sm-iab-go');
+        if (go) { go.textContent = out.label; go.setAttribute('href', out.href); }
+        const copyBtn = el.querySelector('.sm-iab-copy');
+        const how = el.querySelector('.sm-iab-how');
+        copyBtn.addEventListener('click', () => {
+            copyText(url).then(ok => {
+                if (!el.isConnected) return;
+                if (ok) {
+                    copyBtn.textContent = '✓ הקישור הועתק';
+                    copyBtn.classList.add('ok');
+                    how.textContent = 'עכשיו פתח את ' + (IS_IOS ? 'Safari' : 'הדפדפן') + ' והדבק את הקישור בשורת הכתובת.';
+                } else if (!el.querySelector('.sm-iab-url')) {
+                    // ההעתקה נחסמה: מציגים את הקישור, לבחירה ידנית
+                    const box = document.createElement('input');
+                    box.className = 'sm-iab-url';
+                    box.readOnly = true;
+                    box.value = url;
+                    box.setAttribute('aria-label', 'הקישור לדף');
+                    copyBtn.insertAdjacentElement('afterend', box);
+                    box.addEventListener('focus', () => box.select());
+                    box.focus();
+                    how.textContent = 'לחץ לחיצה ארוכה על הקישור ובחר "העתק", ואז הדבק אותו בדפדפן.';
+                }
+            });
+        });
+
+        const prevFocus = document.activeElement;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.body.appendChild(el);
+        const onKey = e => {
+            // Esc סוגר רק את החלון הזה, לא את הטופס שמתחתיו
+            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (sheet && sheet.el === el) sheet.done('closed'); return; }
+            if (e.key !== 'Tab') return;
+            // הפוקוס נשאר בתוך החלון
+            const items = Array.from(el.querySelectorAll('a[href], button, input')).filter(x => x.getClientRects().length);
+            if (!items.length) return;
+            const first = items[0], last = items[items.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        };
+        document.addEventListener('keydown', onKey, true);
+        setTimeout(() => { if (el.isConnected) (go || copyBtn).focus(); }, 30);
+
+        return new Promise((resolve, reject) => {
+            const me = {
+                el,
+                done(how, tried) {
+                    if (sheet === me) sheet = null;
+                    el.remove();
+                    document.removeEventListener('keydown', onKey, true);
+                    document.body.style.overflow = prevOverflow;
+                    if (how !== 'replaced') { try { if (prevFocus && prevFocus.focus && prevFocus.isConnected) prevFocus.focus(); } catch (e) { /* לא קריטי */ } }
+                    if (how === 'tried') tried.then(resolve, reject);
+                    else reject(inAppError());
+                }
+            };
+            sheet = me;
+            el.querySelector('.sm-iab-x').addEventListener('click', () => me.done('closed'));
+            el.addEventListener('click', e => { if (e.target === el) me.done('closed'); });
+            const tryBtn = el.querySelector('.sm-iab-try');
+            if (tryBtn) tryBtn.addEventListener('click', () => {
+                let p;
+                try { p = Promise.resolve(opts.trySignIn()); } catch (e) { p = Promise.reject(e); }
+                me.done('tried', p);
+            });
+        });
+    }
+
+    // opts.resume: הקישור לפתיחה בדפדפן, כשהדף רוצה להעביר טופס מלא. opts.keep: הקישור כולל את מה שמילאו.
+    // בדפדפן רגיל: ישר לחלון של Google
+    function signInWithGoogle(opts) {
+        opts = opts || {};
+        if (IN_APP) return openInAppSheet({ url: opts.resume, keep: !!opts.keep, trySignIn: googlePopup });
+        return googlePopup();
+    }
+
     // חשוב: הפונקציה פותחת חלון מיד, בלי await לפני כן — אחרת הדפדפן חוסם את החלון.
     // משתמש אנונימי (מי שדירג שחקנים מהמכשיר הזה) מקושר ל-Google ושומר את אותו מזהה,
     // כך שקישור ההצבעה שלו ממשיך לעבוד.
-    async function signInWithGoogle() {
+    async function googlePopup() {
         const provider = googleProvider();
         const cur = auth().currentUser;
         if (cur && cur.isAnonymous) {
@@ -346,6 +572,7 @@
         getUser, isRealUser, isSuperAdmin, isAdminOf, isOwnerOf, isLegacyGroup,
         displayName, errorMessage, isCancel,
         signInWithGoogle, ensureGoogleUser, loginAsAdmin,
+        inApp: IN_APP, inAppName: IN_APP_NAME, openInBrowser: openInAppSheet,
         createInvite, inviteLink, acceptInvite, removeAdmin, signOut,
         deleteGroup, watchUnreadMessages
     };
