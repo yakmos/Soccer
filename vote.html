@@ -137,6 +137,19 @@
         .progress-track { height:12px; background:var(--bg-color); border:1px solid var(--border-color); border-radius:10px; overflow:hidden; }
         .progress-fill { height:100%; width:0%; background:linear-gradient(270deg, #4D7CFF 0%, #8B5CF6 55%, #D946C8 100%); border-radius:10px; transition: width 0.6s ease; }
         .all-done-banner { text-align:center; background:rgba(77,124,255,0.1); border:1px solid rgba(77,124,255,0.35); color:var(--primary-color); font-weight:900; padding:14px; border-radius:12px; margin-bottom:18px; line-height:1.7; }
+        /* חיפוש שחקן: נשאר בראש המסך בזמן הגלילה */
+        .search-bar { position: sticky; top: 0; z-index: 5; margin: 0 -20px 14px; padding: 10px 20px; background: var(--surface-color); }
+        .search-bar[hidden] { display: none; }
+        .search-wrap { position: relative; }
+        .search-input { width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 12px; padding: 12px 42px 12px 46px; font-family: 'Heebo', sans-serif; font-size: 1rem; -webkit-appearance: none; appearance: none; }
+        .search-input::placeholder { color: var(--text-muted); opacity: 1; }
+        .search-input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(77,124,255,0.18); }
+        .search-input::-webkit-search-cancel-button, .search-input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
+        .search-ic { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 0.95rem; opacity: 0.75; }
+        .search-clear { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; border-radius: 9px; background: rgba(255,255,255,0.07); color: var(--text-muted); font-size: 0.95rem; cursor: pointer; }
+        .search-clear[hidden] { display: none; }
+        .search-empty { grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 22px 12px; border: 1px dashed var(--border-color); border-radius: 14px; line-height: 1.6; }
+        .player-card[hidden] { display: none; }
         /* Confetti */
         .confetti-piece { position:fixed; top:-30px; font-size:22px; z-index:9999; pointer-events:none; animation: confettiFall linear forwards; }
         @keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.9; } }
@@ -167,6 +180,13 @@
                 <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
             </div>
             <div id="allDoneBanner" style="display:none;" class="all-done-banner">🏆 דירגת את כל השחקנים! תודה ענקית 🙌<br><span style="font-size:0.85rem; font-weight:500;">אפשר לחזור לכאן בכל רגע ולעדכן דירוגים</span></div>
+            <div class="search-bar" id="searchBar" hidden>
+                <div class="search-wrap">
+                    <span class="search-ic" aria-hidden="true">🔍</span>
+                    <input class="search-input" id="playerSearch" type="search" placeholder="חיפוש שחקן לפי שם" aria-label="חיפוש שחקן לפי שם" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+                    <button class="search-clear" id="searchClear" type="button" aria-label="ניקוי החיפוש" hidden>✕</button>
+                </div>
+            </div>
             <div id="playersGrid" class="players-grid"></div>
         </div>
 
@@ -540,6 +560,7 @@
 
     // ========== Portal ==========
     function renderPortal() {
+        document.getElementById('searchBar').hidden = playersData.length <= SEARCH_FROM;
         const grid = document.getElementById('playersGrid');
         grid.innerHTML = playersData.map(p => {
             const isGk = !!p.isGk;
@@ -572,7 +593,61 @@
                     ${actionBadge}
                 </div>`;
         }).join('');
+        applySearch();
     }
+
+    // ========== חיפוש שחקן ==========
+    // בלי ניקוד, בלי הבדל בין אות סופית לרגילה, בלי סימנים נסתרים. כמה מילים: כל אחת צריכה להופיע בשם, בכל סדר
+    const SEARCH_FROM = 8;   // ברשימה קצרה יותר אין צורך בחיפוש
+    const FINALS = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+    function searchKey(s) {
+        return String(s || '').replace(/\p{Cf}/gu, '').replace(/[\u0591-\u05C7]/g, '').toLowerCase()
+            .replace(/[ךםןףץ]/g, c => FINALS[c]).replace(/[׳`’]/g, "'").replace(/[״”“]/g, '"').replace(/\s+/g, ' ').trim();
+    }
+    function applySearch() {
+        const input = document.getElementById('playerSearch');
+        const grid = document.getElementById('playersGrid');
+        const words = searchKey(input.value).split(' ').filter(Boolean);
+        document.getElementById('searchClear').hidden = !input.value;
+        const names = new Map(playersData.map(p => [p.id, searchKey(p.name)]));
+        let shown = 0;
+        grid.querySelectorAll('.player-card').forEach(card => {
+            const name = names.get(card.dataset.id) || '';
+            const ok = words.every(w => name.includes(w));
+            card.hidden = !ok;
+            if (ok) shown++;
+        });
+        let empty = document.getElementById('searchEmpty');
+        if (words.length && !shown) {
+            if (!empty) {
+                empty = document.createElement('div');
+                empty.id = 'searchEmpty';
+                empty.className = 'search-empty';
+                grid.appendChild(empty);
+            }
+            empty.textContent = `לא נמצא שחקן בשם „${input.value.trim()}“. אפשר לנסות חלק מהשם.`;
+        } else if (empty) {
+            empty.remove();
+        }
+    }
+    (function bindSearch() {
+        const input = document.getElementById('playerSearch');
+        input.addEventListener('input', applySearch);
+        // חיפוש נוסף: ההקלדה מחליפה את החיפוש הקודם
+        input.addEventListener('focus', () => { if (input.value) setTimeout(() => input.select(), 0); });
+        input.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const shown = document.querySelectorAll('#playersGrid .player-card:not([hidden])');
+            input.blur();   // סוגר את המקלדת
+            if (shown.length === 1) openVote(shown[0].dataset.id);
+        });
+        document.getElementById('searchClear').addEventListener('click', () => {
+            input.value = '';
+            applySearch();
+            input.focus();
+        });
+    })();
 
     // ========== Build Custom Sliders ==========
     function buildCustomSliders(savedCustomVotes) {
@@ -599,9 +674,13 @@
     }
 
     // ========== Open Vote Screen ==========
+    // איפה הייתה הרשימה כשנפתח שחקן: הכרטיס שנבחר והמרחק שלו מראש המסך
+    let listSpot = null;
     function openVote(id) {
         const p = playersData.find(player => player.id === id);
         if (!p) return;
+        const card = document.querySelector(`.player-card[data-id="${CSS.escape(id)}"]`);
+        listSpot = { id, y: window.scrollY, top: card ? card.getBoundingClientRect().top : null };
         currentPlayerId = id;
         currentPlayerIsGk = !!p.isGk;
         const lockedParams = p.lockedParams || {};
@@ -668,7 +747,7 @@
 
         document.getElementById('portalScreen').style.display = 'none';
         document.getElementById('voteScreen').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo(0, 0);
     }
 
     function paramDisplayName(key) {
@@ -690,16 +769,26 @@
         currentPlayerIsGk = false;
         document.getElementById('voteScreen').style.display = 'none';
         document.getElementById('portalScreen').style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        restoreListSpot();
     }
 
-    // אחרי שמירה: חוזרים לרשימה ומראים את הכרטיס שדורג, עם הציונים החדשים
+    // חזרה לרשימה (אחרי דירוג, עריכה או "חזור לרשימה"): הכרטיס שנפתח חוזר לאותו מקום על המסך, ולא לראש הרשימה
+    function restoreListSpot() {
+        const spot = listSpot;
+        if (!spot) return;
+        const card = document.querySelector(`.player-card[data-id="${CSS.escape(spot.id)}"]`);
+        if (card && !card.hidden && spot.top !== null) window.scrollTo(0, card.getBoundingClientRect().top + window.scrollY - spot.top);
+        else window.scrollTo(0, spot.y);
+    }
+
+    // אחרי שמירה: הכרטיס שדורג מהבהב רגע, עם הציונים החדשים
     function showJustRated(id) {
         const card = document.querySelector(`.player-card[data-id="${CSS.escape(id)}"]`);
         if (!card) return;
         card.classList.add('just-rated');
         setTimeout(() => card.classList.remove('just-rated'), 2600);
-        requestAnimationFrame(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+        const r = card.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) card.scrollIntoView({ block: 'center' });
     }
 
     // ========== Submit Vote ==========
