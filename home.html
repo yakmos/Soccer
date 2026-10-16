@@ -27,7 +27,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="admin-auth.js?v=20261006"></script>
+<script src="admin-auth.js?v=20261016"></script>
 <script src="group-prefs.js?v=20261014b"></script>
 <script src="map-kit.js?v=20261014b"></script>
 <script src="profile-kit.js?v=20261014b"></script>
@@ -76,9 +76,12 @@
     .nav-link { padding: 8px 12px; border-radius: 10px; color: var(--muted); font-weight: 700; font-size: .95rem; white-space: nowrap; }
     .nav-link:hover, .nav-link.active { color: var(--text); background: var(--surface); }
     .nav-btn { padding: 8px 14px; font-size: .92rem; }
-    .banner { background: rgba(252,211,77,0.1); border-bottom: 1px solid rgba(252,211,77,0.3); color: var(--amber); font-size: .88rem; }
+    .banner { background: rgba(77,124,255,0.1); border-bottom: 1px solid rgba(77,124,255,0.3); color: #C9D6FF; font-size: .88rem; }
     .banner .wrap { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding-top: 8px; padding-bottom: 8px; }
-    .banner button { background: none; border: none; color: inherit; font-size: 1.1rem; cursor: pointer; }
+    .banner-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+    .banner .banner-go { background: none; border: 1px solid rgba(77,124,255,0.55); color: var(--text); border-radius: 999px; padding: 4px 12px; font: inherit; font-weight: 800; font-size: .84rem; cursor: pointer; white-space: nowrap; }
+    .banner .banner-go:hover { background: rgba(77,124,255,0.15); }
+    .banner .banner-x { background: none; border: none; color: inherit; font-size: 1.1rem; cursor: pointer; padding: 4px 6px; }
 
     /* ===== Hero ===== */
     .hero { position: relative; overflow: hidden; padding: 56px 0 64px;
@@ -405,10 +408,14 @@
 </head>
 <body>
 
+<!-- בתוך פייסבוק, אינסטגרם וכו': כניסה עם Google עובדת רק בדפדפן הרגיל -->
 <div class="banner" id="inAppBanner" hidden>
     <div class="wrap">
-        <span>💡 כדי להתחבר עם Google, פתח את הדף בדפדפן (בתפריט: "פתח בדפדפן").</span>
-        <button type="button" aria-label="סגור" onclick="this.closest('.banner').hidden = true">✕</button>
+        <span>💡 כניסה עם Google עובדת רק בדפדפן.</span>
+        <span class="banner-acts">
+            <button class="banner-go" type="button" onclick="openInBrowserInfo()">פתח בדפדפן</button>
+            <button class="banner-x" type="button" aria-label="סגור" onclick="this.closest('.banner').hidden = true">✕</button>
+        </span>
     </div>
 </div>
 
@@ -767,7 +774,7 @@
     let profileStates = {};      // gid -> 'linked' | 'pending', אחרי בדיקה מול הקבוצה
 
     const $ = id => document.getElementById(id);
-    const IN_APP = /FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|MicroMessenger/i.test(navigator.userAgent);
+    const IN_APP = !!AdminAuth.inApp;   // דפדפן בתוך אפליקציה (פייסבוק, אינסטגרם וכו'), שם Google חוסמת כניסה
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -798,6 +805,44 @@
         } catch (e) { return null; }
     }
     captureSource();
+
+    // ===== מעבר לדפדפן עם מה שמילאו =====
+    // בתוך פייסבוק או אינסטגרם אי אפשר להתחבר עם Google, ולכן חלון ההתחברות מציע לפתוח את הדף בדפדפן (admin-auth.js).
+    // הקישור שנפתח שם מחזיר לאותו טופס, מלא: הטיוטה כתובה אחרי ה-# (החלק הזה לא נשלח לשרת) ונמחקת מהכתובת מיד כשהדף נטען
+    function b64Encode(str) {
+        let bin = '';
+        new TextEncoder().encode(str).forEach(b => { bin += String.fromCharCode(b); });
+        return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+    function b64Decode(s) {
+        const b = s.replace(/-/g, '+').replace(/_/g, '/');
+        const bin = atob(b + '==='.slice((b.length + 3) % 4));
+        return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+    }
+    // kind: create | seek | profile. גם מאיפה הגיעו (?from=) עובר, כי בדפדפן החדש אין את מה שנשמר במכשיר
+    function resumeLink(kind, data) {
+        const src = readSource();
+        let d = '';
+        if (data) {
+            const o = {};
+            Object.keys(data).forEach(k => { const v = data[k]; if (v !== '' && v !== false && v != null && !(Array.isArray(v) && !v.length)) o[k] = v; });
+            d = '&d=' + b64Encode(JSON.stringify(o));
+        }
+        return location.origin + location.pathname + (src ? '?from=' + src : '') + '#resume=' + kind + d;
+    }
+    function readResume() {
+        const m = /^#resume=(create|seek|profile)(?:&d=([A-Za-z0-9_-]{1,8000}))?$/.exec(location.hash);
+        if (!m) return null;
+        let data = {};
+        if (m[2]) {
+            try { const o = JSON.parse(b64Decode(m[2])); if (o && typeof o === 'object' && !Array.isArray(o)) data = o; }
+            catch (e) { /* קישור פגום: הטופס נפתח ריק */ }
+        }
+        history.replaceState(null, '', location.pathname + location.search + (m[1] === 'profile' ? '#profile' : ''));
+        return { kind: m[1], data };
+    }
+    const resumeState = readResume();
+    let resumeProfile = false;   // הגיעו מ"יצירת פרופיל": העורך נפתח מיד אחרי הכניסה
     const CHEVRON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // ===== תצוגה של שחקן או של מארגן (נשמר במכשיר; בלי בחירה — דף הנחיתה, שיש בו כפתור לכל אחד מהם).
@@ -922,6 +967,7 @@
         authKnown = true;
         if (AdminAuth.isRealUser(u)) { myGroups = undefined; loadMyGroups(); loadMyProfile(); loadMySeeker(); }
         else { myProfile = null; profileLoad = null; profileStates = {}; mySeeker = null; renderSeekBands(); }
+        if (resumeProfile && AdminAuth.isRealUser(u)) { resumeProfile = false; setTimeout(createProfile, 0); }
         if (AdminAuth.isSuperAdmin(u)) watchInbox();
         else stopInbox();
         route();
@@ -1094,14 +1140,14 @@
         refreshProfileViews();
     }
 
-    async function ensureSignedIn() {
+    async function ensureSignedIn(opts) {
         if (AdminAuth.isRealUser(auth.currentUser)) return true;
-        try { await AdminAuth.signInWithGoogle(); }
+        try { await AdminAuth.signInWithGoogle(opts); }
         catch (e) { if (!AdminAuth.isCancel(e)) authErrorAlert(e); return false; }
         return AdminAuth.isRealUser(auth.currentUser);
     }
     async function createProfile() {
-        if (!(await ensureSignedIn())) return;
+        if (!(await ensureSignedIn({ resume: resumeLink('profile') }))) return;
         const user = auth.currentUser;
         // בודקים מול השרת, כדי לא לדרוס פרופיל שכבר קיים לחשבון הזה (למשל אחרי כניסה ממכשיר אחר)
         let existing = myProfile || null;
@@ -1477,7 +1523,7 @@
         // הכניסה עם Google רק עכשיו, ישירות מהלחיצה ולפני כל await (אחרת הדפדפן חוסם את החלון)
         if (!AdminAuth.isRealUser(auth.currentUser)) {
             btn.textContent = 'מתחברים עם Google…';
-            try { await AdminAuth.signInWithGoogle(); }
+            try { await AdminAuth.signInWithGoogle({ resume: resumeLink('seek', seekDraft()), keep: true }); }
             catch (e) { back(); if (!AdminAuth.isCancel(e)) authErrorAlert(e); return; }
             if (!AdminAuth.isRealUser(auth.currentUser)) { back(); return; }
             $('sAuthHint').hidden = true;
@@ -1770,7 +1816,7 @@
         if (!AdminAuth.isRealUser(auth.currentUser)) {
             btn.textContent = 'מתחברים עם Google…';
             const back = () => { btn.disabled = false; btn.textContent = 'צור קבוצה'; };
-            try { await AdminAuth.signInWithGoogle(); }
+            try { await AdminAuth.signInWithGoogle({ resume: resumeLink('create', createDraft()), keep: true }); }
             catch (e) { back(); if (!AdminAuth.isCancel(e)) authErrorAlert(e); return; }
             if (!AdminAuth.isRealUser(auth.currentUser)) { back(); return; }
             $('cAuthHint').hidden = true;
@@ -1822,6 +1868,61 @@
         }
     }
 
+    // ===== הטיוטות שעוברות לדפדפן (ראו resumeLink למעלה) =====
+    // תמונה שהועלתה כסמל לא נכנסת לקישור (ארוכה מדי). סמל אימוג'י כן
+    function createDraft() {
+        const icon = G.readIconPicker($('cIcon'));
+        return { n: $('cName').value, c: $('cCity').value, v: $('cVenue').value, dy: G.readDayChips($('cDays')), t: $('cTime').value,
+            vis: document.querySelector('input[name="cVis"]:checked').value, p: $('cPhone').value, l: $('cLevel').value, ds: $('cDesc').value,
+            ic: G.isImageIcon(icon) ? '' : icon };
+    }
+    function seekDraft() {
+        return { n: $('sName').value, c: $('sCity').value, dy: G.readDayChips($('sDays')), l: $('sLevel').value, gk: $('sGk').checked,
+            nt: $('sNote').value, p: $('sPhone').value };
+    }
+    // הערכים מגיעים מהקישור, ולכן נכנסים לשדות רק כטקסט, בגבולות האורך של הטופס
+    function applyResume(r) {
+        const d = r.data || {};
+        const txt = (v, n) => typeof v === 'string' ? v.slice(0, n) : '';
+        const days = Array.isArray(d.dy) ? d.dy : [];
+        const level = typeof d.l === 'string' && Object.prototype.hasOwnProperty.call(G.LEVELS, d.l) ? d.l : '';
+        if (r.kind === 'create') {
+            openCreate();
+            $('cName').value = txt(d.n, 60);
+            G.renderIconPicker($('cIcon'), typeof d.ic === 'string' ? d.ic : G.DEFAULT_ICON);
+            $('cCity').value = txt(d.c, 40);
+            $('cVenue').value = txt(d.v, 60);
+            G.renderDayChips($('cDays'), days);
+            $('cTime').value = txt(d.t, 5);
+            document.querySelector(`input[name="cVis"][value="${d.vis === 'public' ? 'public' : 'private'}"]`).checked = true;
+            toggleCreatePublic();
+            $('cPhone').value = txt(d.p, 20);
+            $('cLevel').innerHTML = G.levelOptionsHTML(level);
+            $('cDesc').value = txt(d.ds, 300);
+        } else if (r.kind === 'seek') {
+            openSeekerForm();
+            $('sName').value = txt(d.n, 40);
+            $('sCity').value = txt(d.c, 40);
+            G.renderDayChips($('sDays'), days);
+            $('sLevel').innerHTML = G.levelOptionsHTML(level);
+            $('sGk').checked = d.gk === true;
+            $('sNote').value = txt(d.nt, 200);
+            $('sPhone').value = txt(d.p, 20);
+        } else if (r.kind === 'profile') {
+            // הכפתור "יצירת פרופיל" נמצא בדף הבית לשחקן
+            if (!getRole()) setRole('player');
+            resumeProfile = true;
+            if (AdminAuth.isRealUser(auth.currentUser)) { resumeProfile = false; setTimeout(createProfile, 0); }
+        }
+    }
+
+    // הכפתור בפס העליון: הסבר קצר ופתיחה בדפדפן, בלי קשר לכניסה מסוימת
+    function openInBrowserInfo() {
+        if (!AdminAuth.openInBrowser) return;
+        AdminAuth.openInBrowser({ text: 'כאן אפשר לחפש קבוצות ולפנות למארגנים. כדי לפתוח קבוצה, ליצור פרופיל או לפרסם שאתה מחפש צריך להתחבר עם Google, וזה עובד רק בדפדפן הרגיל של הטלפון.' })
+            .catch(() => { /* נסגר */ });
+    }
+
     document.querySelectorAll('input[name="cVis"]').forEach(r => r.addEventListener('change', toggleCreatePublic));
     $('createModal').addEventListener('click', e => { if (e.target === $('createModal')) closeCreate(); });
     $('seekModal').addEventListener('click', e => { if (e.target === $('seekModal')) closeSeekerForm(); });
@@ -1831,7 +1932,12 @@
         if (!$('seekModal').hidden) closeSeekerForm();
     });
     G.fillCityList($('cityList'));
-    if (IN_APP) $('inAppBanner').hidden = false;
+    if (IN_APP) {
+        $('inAppBanner').hidden = false;
+        const hop = `🔐 בלחיצה נעבור לדפדפן כדי להתחבר עם Google (מתוך ${AdminAuth.inAppName || 'האפליקציה'} זה לא עובד). מה שמילאת יעבור איתך.`;
+        $('cAuthHint').textContent = hop;
+        $('sAuthHint').textContent = hop;
+    }
     if (window.ProfileKit) ProfileKit.injectCSS();
     // מדף הקבוצה: home.html?q=<העיר>#seekers — רשימת השחקנים מתחילה מסוננת לפי העיר של הקבוצה
     (function prefillSeekSearch() {
@@ -1845,6 +1951,7 @@
     })();
     renderSeekBands();
     route();
+    if (resumeState) applyResume(resumeState);
     refreshRecentGroups();
 </script>
 </body>
