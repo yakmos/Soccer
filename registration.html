@@ -589,6 +589,7 @@ let priorityLabel  = '';   // שם קבוצת העדיפות כשהכלל פוע
 let cancelled      = [];
 let customParams   = [];
 let authUser       = null;   // החשבון המחובר: אם הכרטיס שלו מחובר לפרופיל, נרשמים בלחיצה אחת
+let isHealing      = false;  // מונע לולאה כפולה בזמן תיקון אוטומטי של רשימה שחרגה מ-maxPlayers
 
 window.onload = async () => {
     if (!groupId) { showClosed(); return; }
@@ -638,8 +639,7 @@ window.onload = async () => {
             }
         } catch (e) { console.warn('auth init', e); }
 
-        // האזנה חיה לכרטיסי השחקנים - ה-snapshot הראשון משמש גם כטעינה הראשונית
-        // (חוסך get() כפול = חצי מקריאות השחקנים בכל פתיחת דף)
+        // 1. האזנה חיה לכרטיסי השחקנים - מחכים לטעינה הראשונית
         const playersCol = db.collection('groups').doc(groupId).collection('players');
         await new Promise(resolve => {
             playersCol.onSnapshot(snap => {
@@ -651,6 +651,49 @@ window.onload = async () => {
             });
         });
 
+        // 2. האזנה חיה לרשימת הנרשמים - מחכים לטעינה הראשונית לפני שפותחים את הדף ללחיצות!
+        const entriesCol = db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId)
+            .collection('entries');
+
+        await new Promise(resolve => {
+            entriesCol.orderBy('registeredAt', 'asc').onSnapshot(async snap => {
+                registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // תיקון אוטומטי (Self-Healing): אם יש יותר מ-maxPlayers עם isWaiting: false, מעביר את העודפים להמתנה
+                const confirmedSorted = registrations.filter(r => !r.isWaiting)
+                    .sort((a, b) => {
+                        const pa = getPriorityScore(a), pb = getPriorityScore(b);
+                        if (pa !== pb) return pa - pb;
+                        return (a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0) -
+                               (b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0);
+                    });
+
+                if (confirmedSorted.length > maxPlayers && !isHealing) {
+                    isHealing = true;
+                    try {
+                        const healBatch = db.batch();
+                        confirmedSorted.slice(maxPlayers).forEach(extra => {
+                            healBatch.update(entriesCol.doc(extra.id), { isWaiting: true });
+                        });
+                        await healBatch.commit();
+                    } catch (err) {
+                        console.warn('Auto-heal excess players failed:', err);
+                    } finally {
+                        isHealing = false;
+                    }
+                    resolve();
+                    return;
+                }
+
+                renderPlayersList();
+                updateCapacityBar();
+                renderMeBox();
+                resolve();
+            });
+        });
+
+        // 3. רק אחרי שגם השחקנים וגם הנרשמים נטענו במלואם, מציגים את המסך הראשי
         document.getElementById('gameHeader').style.display = 'block';
         const groupNameEl = document.getElementById('groupNameEl');
         groupNameEl.innerHTML = GroupPrefs.iconHTML(groupData.icon) + ' ';
@@ -666,17 +709,6 @@ window.onload = async () => {
 
         document.getElementById('loadingView').style.display = 'none';
         document.getElementById('mainView').style.display    = 'block';
-
-        db.collection('groups').doc(groupId)
-            .collection('registrations').doc(registrationId)
-            .collection('entries')
-            .orderBy('registeredAt', 'asc')
-            .onSnapshot(snap => {
-                registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                renderPlayersList();
-                updateCapacityBar();
-                renderMeBox();
-            });
 
         db.collection('groups').doc(groupId)
             .collection('registrations').doc(registrationId)
@@ -1103,14 +1135,31 @@ async function registerPlayer() {
     btn.textContent = 'רושם... ⏳';
 
     try {
-        if (registrations.some(r => r.playerId === selectedPlayer.id)) {
+        const entriesRef = db.collection('groups').doc(groupId)
+            .collection('registrations').doc(registrationId).collection('entries');
+
+        // שליפה טרייה ישירות מהשרת של Firebase (מונע הסתננות מכרטיסייה ישנה/מוקפאת או Race Condition)
+        let freshRegs = registrations;
+        try {
+            const freshSnap = await entriesRef.get({ source: 'server' });
+            freshRegs = freshSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            registrations = freshRegs;
+        } catch (fetchErr) {
+            console.warn('Server fetch fallback to default:', fetchErr);
+            const fallbackSnap = await entriesRef.get();
+            freshRegs = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            registrations = freshRegs;
+        }
+
+        if (freshRegs.some(r => r.playerId === selectedPlayer.id)) {
             showToast('כבר רשום למשחק זה!', 'info');
             btn.textContent = 'הירשם למשחק ⚽';
             btn.disabled = false;
             return;
         }
 
-        const confirmedCount  = registrations.filter(r => !r.isWaiting).length;
+        const confirmedList   = freshRegs.filter(r => !r.isWaiting);
+        const confirmedCount  = confirmedList.length;
         const isFullBeforeAdd = confirmedCount >= maxPlayers;
 
         // ב-4 השעות שלפני המשחק אין דחיקה לפי עדיפות: מי שמגיע מאוחר נכנס להמתנה
@@ -1125,7 +1174,7 @@ async function registerPlayer() {
         let bumpedPlayerDocId = null;
         if (isFullBeforeAdd && !isWithin4Hours) {
             const newPriority = getPriorityScore(selectedPlayer);
-            const worst = registrations.filter(r => !r.isWaiting)
+            const worst = confirmedList
                 .sort((a,b) => {
                     const pa=getPriorityScore(a), pb=getPriorityScore(b);
                     if (pb!==pa) return pb-pa;
@@ -1139,8 +1188,6 @@ async function registerPlayer() {
 
         const isWaiting = isFullBeforeAdd && !bumpedPlayerDocId;
         const batch = db.batch();
-        const entriesRef = db.collection('groups').doc(groupId)
-            .collection('registrations').doc(registrationId).collection('entries');
 
         // שימוש ב-selectedPlayer.id כ-document ID — מונע כפילויות
         batch.set(entriesRef.doc(selectedPlayer.id), {
