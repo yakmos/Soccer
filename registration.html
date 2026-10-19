@@ -410,7 +410,16 @@
         .link-tip b { display: block; color: #93C5FD; }
         .link-tip a { color: #93C5FD; font-weight: 800; text-decoration: none; }
         .link-tip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; flex: none; }
-    
+
+        /* מנהל: מקומות פנויים כשיש ממתינים, וכפתור שמעלה את הבאים בתור (renderListFix) */
+        .list-fix { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: var(--primary-dim); border: 1px solid var(--primary-border); font-size: 0.88rem; line-height: 1.55; }
+        .list-fix[hidden] { display: none; }
+        .list-fix-tx { flex: 1; min-width: 200px; }
+        .list-fix-tx b { display: block; color: var(--primary); font-size: 0.95rem; }
+        .list-fix-btn { flex: none; background: var(--grad); color: #FFFFFF; border: 0; border-radius: 10px; padding: 9px 14px; font-family: inherit; font-size: 0.9rem; font-weight: 900; cursor: pointer; }
+        .list-fix-btn:disabled { opacity: 0.6; cursor: default; }
+        .list-fix-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
     /* ===== ליל גמר: כחול-לילה, כחול חשמלי וזוהר סגול-מג'נטה (כמו אצטדיון מואר בלילה) ===== */
     :root { --primary-strong: #3B63F5; --grad: linear-gradient(120deg, #3B63F5 0%, #7046F0 55%, #C23CB8 100%);
             --grad-hover: linear-gradient(120deg, #4A70FF 0%, #7D55F7 55%, #CF48C4 100%); }
@@ -517,6 +526,7 @@
 
         <div class="card" id="playersCard">
             <div class="card-title">👥 רשימת שחקנים</div>
+            <div class="list-fix" id="listFix" role="status" hidden></div>
             <div id="playersList">
                 <div class="empty-state">
                     <div class="icon">📋</div>
@@ -589,7 +599,7 @@ let priorityLabel  = '';   // שם קבוצת העדיפות כשהכלל פוע
 let cancelled      = [];
 let customParams   = [];
 let authUser       = null;   // החשבון המחובר: אם הכרטיס שלו מחובר לפרופיל, נרשמים בלחיצה אחת
-let isHealing      = false;  // מונע לולאה כפולה בזמן תיקון אוטומטי של רשימה שחרגה מ-maxPlayers
+let healing        = null;   // התיקון האוטומטי שרץ עכשיו (healOverflow): אחד בכל פעם, ומי שמבקש בינתיים מחכה לו
 
 window.onload = async () => {
     if (!groupId) { showClosed(); return; }
@@ -652,45 +662,17 @@ window.onload = async () => {
         });
 
         // 2. האזנה חיה לרשימת הנרשמים - מחכים לטעינה הראשונית לפני שפותחים את הדף ללחיצות!
-        const entriesCol = db.collection('groups').doc(groupId)
-            .collection('registrations').doc(registrationId)
-            .collection('entries');
-
         await new Promise(resolve => {
-            entriesCol.orderBy('registeredAt', 'asc').onSnapshot(async snap => {
+            entriesCol().orderBy('registeredAt', 'asc').onSnapshot(snap => {
                 registrations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                // תיקון אוטומטי (Self-Healing): אם יש יותר מ-maxPlayers עם isWaiting: false, מעביר את העודפים להמתנה
-                const confirmedSorted = registrations.filter(r => !r.isWaiting)
-                    .sort((a, b) => {
-                        const pa = getPriorityScore(a), pb = getPriorityScore(b);
-                        if (pa !== pb) return pa - pb;
-                        return (a.registeredAt?.toMillis ? a.registeredAt.toMillis() : 0) -
-                               (b.registeredAt?.toMillis ? b.registeredAt.toMillis() : 0);
-                    });
-
-                if (confirmedSorted.length > maxPlayers && !isHealing) {
-                    isHealing = true;
-                    try {
-                        const healBatch = db.batch();
-                        confirmedSorted.slice(maxPlayers).forEach(extra => {
-                            healBatch.update(entriesCol.doc(extra.id), { isWaiting: true });
-                        });
-                        await healBatch.commit();
-                    } catch (err) {
-                        console.warn('Auto-heal excess players failed:', err);
-                    } finally {
-                        isHealing = false;
-                    }
-                    resolve();
-                    return;
-                }
-
+                // תיקון אוטומטי (Self-Healing): יותר מאושרים מהמקסימום, העודף עובר להמתנה (healOverflow).
+                // רק לפי רשימה שהשרת כבר אישר: בהרשמה שעוד בדרך שעת ההרשמה לא ידועה, והסדר לא אמין
+                if (!snap.metadata.hasPendingWrites && registrations.filter(r => !r.isWaiting).length > maxPlayers) healOverflow();
                 renderPlayersList();
                 updateCapacityBar();
                 renderMeBox();
                 resolve();
-            });
+            }, err => { console.warn('entries listener', err); resolve(); });
         });
 
         // 3. רק אחרי שגם השחקנים וגם הנרשמים נטענו במלואם, מציגים את המסך הראשי
@@ -1127,92 +1109,135 @@ function maybeShowLinkTip() {
     wrap.innerHTML = `<div class="link-tip"><div style="flex:1"><b>💡 בפעם הבאה, בלחיצה אחת</b>חבר את הכרטיס שלך לפרופיל שחקן, ותירשם בלי לחפש את השם. <a href="index.html?group=${encodeURIComponent(groupId)}#me">לחיבור הכרטיס ←</a></div><button type="button" aria-label="סגירה" onclick="this.closest('.link-tip').remove()">✕</button></div>`;
 }
 
+// ===== הרשימה כפי שהיא בשרת =====
+// הדף מציג את הרשימה דרך האזנה חיה, אבל טלפון שחוזר מהרקע עוד לא תמיד התעדכן, ושניים יכולים ללחוץ באותו רגע.
+// לכן כל החלטה שמשנה את הרשימה (מאושר / המתנה / דחיקה / עלייה מההמתנה) נעשית מול השרת ולא מול מה שעל המסך.
+// חוקי האבטחה לא סופרים מקומות, כך שהבדיקה כאן היא שמונעת יותר מאושרים מהמקסימום
+function entriesCol() {
+    return db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('entries');
+}
+async function fetchEntries() {
+    const snap = await entriesCol().orderBy('registeredAt', 'asc').get({ source: 'server' });
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+// המנהל יכול לשנות את מספר הקבוצות או את כללי העדיפות בזמן שהדף פתוח
+async function refreshGroupSettings() {
+    try {
+        const g = await db.collection('groups').doc(groupId).get({ source: 'server' });
+        if (!g.exists) return;
+        const before = maxPlayers + '|' + JSON.stringify(prioCfg);
+        groupData = g.data();
+        const s = groupData.settings || {};
+        maxPlayers = (s.numTeams || 3) * (s.playersPerTeam || 6);
+        prioCfg = GroupPrefs.regPriority(groupId, groupData);
+        priorityLabel = prioCfg.label;
+        if (before !== maxPlayers + '|' + JSON.stringify(prioCfg)) { renderPriorityInfo(); renderPlayersList(); updateCapacityBar(); }
+    } catch (e) { console.warn('group settings refresh', e); }
+}
+function regMs(r) { return r.registeredAt && r.registeredAt.toMillis ? r.registeredAt.toMillis() : 0; }
+// סדר הרשימה: לפי עדיפות, ובאותה עדיפות מי שנרשם קודם
+function byPriority(a, b) {
+    const pa = getPriorityScore(a), pb = getPriorityScore(b);
+    return pa !== pb ? pa - pb : regMs(a) - regMs(b);
+}
+// ב-4 השעות שלפני המשחק אין דחיקה לפי עדיפות: מי שמגיע מאוחר נכנס להמתנה
+function isWithin4Hours() {
+    const at = RegAuto.gameAtOf(gameData);   // gameAt, או תאריך + שעה בכל הפורמטים
+    if (!at) return false;
+    const diffMs = at - new Date();
+    return diffMs >= 0 && diffMs <= 4 * 60 * 60 * 1000;
+}
+// שחקן חדש: מאושר אם יש מקום. כשמלא, דוחק את מי שבעדיפות נמוכה ממנו (באותה עדיפות: מי שנרשם אחרון), ואחרת המתנה
+function planRegistration(entries, player) {
+    const confirmed = entries.filter(r => !r.isWaiting);
+    if (confirmed.length < maxPlayers) return { isWaiting: false, bumpId: null };
+    if (!isWithin4Hours()) {
+        const worst = confirmed.slice().sort(byPriority).pop();
+        if (worst && getPriorityScore(worst) > getPriorityScore(player)) return { isWaiting: false, bumpId: worst.id };
+    }
+    return { isWaiting: true, bumpId: null };
+}
+// יותר מאושרים מהמקסימום: מי עובר להמתנה. מי שהיה נדחק אילו נרשמו בזה אחר זה: העדיפות הנמוכה ביותר,
+// ובאותה עדיפות מי שנרשם אחרון. ב-4 השעות שלפני המשחק אין דחיקה, ולכן פשוט מי שנרשם אחרון
+function overflowExcess(entries) {
+    const confirmed = entries.filter(r => !r.isWaiting);
+    const extra = confirmed.length - maxPlayers;
+    if (extra <= 0) return [];
+    const order = isWithin4Hours() ? (a, b) => regMs(a) - regMs(b) : byPriority;
+    return confirmed.slice().sort(order).slice(-extra);
+}
+// מקומות פנויים כשיש ממתינים (למשל אחרי שהמנהל הגדיל את מספר הקבוצות או השחקנים): מי עולה, לפי סדר ההמתנה
+function promotePlan(entries) {
+    const free = maxPlayers - entries.filter(r => !r.isWaiting).length;
+    return free > 0 ? entries.filter(r => r.isWaiting).sort(byPriority).slice(0, free) : [];
+}
+// תיקון אוטומטי (Self-Healing): יותר מאושרים מהמקסימום, העודף עובר להמתנה (חוקי האבטחה מתירים לכל אחד להעביר
+// שחקן להמתנה). קורה כששניים נרשמים באותו רגע על המקום האחרון, כשהמנהל הקטין את מספר השחקנים, או ברשימה מלפני
+// התיקון. כל דף פתוח מתקן, תמיד לפי ההגדרות והרשימה שבשרת ברגע התיקון: דף שנפתח לפני שהמנהל הגדיל את הקבוצות
+// לא מחזיר שחקנים להמתנה בטעות, וכל הדפים מגיעים לאותה תוצאה (כתיבה כפולה לא מזיקה). מחזיר את מי שהועבר
+function healOverflow() {
+    if (!healing) healing = (async () => {
+        try {
+            const [entries] = await Promise.all([fetchEntries(), refreshGroupSettings()]);
+            const excess = overflowExcess(entries);
+            if (!excess.length) return [];
+            const batch = db.batch();
+            excess.forEach(r => batch.update(entriesCol().doc(r.id), { isWaiting: true }));
+            await batch.commit();
+            return excess;
+        } catch (e) { console.warn('Auto-heal excess players failed:', e); return []; }
+    })().finally(() => { healing = null; });
+    return healing;
+}
+
 async function registerPlayer() {
     if (!selectedPlayer) return;
-    const regPlayer = selectedPlayer;
+    const regPlayer = selectedPlayer;   // החיפוש יכול להשתנות בזמן שמחכים לשרת
     const btn = document.getElementById('registerBtn');
     btn.disabled = true;
     btn.textContent = 'רושם... ⏳';
 
     try {
-        const entriesRef = db.collection('groups').doc(groupId)
-            .collection('registrations').doc(registrationId).collection('entries');
-
-        // שליפה טרייה ישירות מהשרת של Firebase (מונע הסתננות מכרטיסייה ישנה/מוקפאת או Race Condition)
-        let freshRegs = registrations;
-        try {
-            const freshSnap = await entriesRef.get({ source: 'server' });
-            freshRegs = freshSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            registrations = freshRegs;
-        } catch (fetchErr) {
-            console.warn('Server fetch fallback to default:', fetchErr);
-            const fallbackSnap = await entriesRef.get();
-            freshRegs = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            registrations = freshRegs;
-        }
-
-        if (freshRegs.some(r => r.playerId === selectedPlayer.id)) {
+        const [entries] = await Promise.all([fetchEntries(), refreshGroupSettings()]);
+        if (entries.some(r => r.playerId === regPlayer.id || r.id === regPlayer.id)) {
             showToast('כבר רשום למשחק זה!', 'info');
             btn.textContent = 'הירשם למשחק ⚽';
             btn.disabled = false;
             return;
         }
 
-        const confirmedList   = freshRegs.filter(r => !r.isWaiting);
-        const confirmedCount  = confirmedList.length;
-        const isFullBeforeAdd = confirmedCount >= maxPlayers;
-
-        // ב-4 השעות שלפני המשחק אין דחיקה לפי עדיפות: מי שמגיע מאוחר נכנס להמתנה
-        const isWithin4Hours = (() => {
-            const gameDateTime = RegAuto.gameAtOf(gameData);   // gameAt, או תאריך + שעה בכל הפורמטים
-            if (!gameDateTime) return false;
-            const diffMs = gameDateTime - new Date();
-            return diffMs >= 0 && diffMs <= 4*60*60*1000;
-        })();
-
-        // bumpedPlayerDocId = ה-document ID (= r.id) של השחקן שנדחק להמתנה
-        let bumpedPlayerDocId = null;
-        if (isFullBeforeAdd && !isWithin4Hours) {
-            const newPriority = getPriorityScore(selectedPlayer);
-            const worst = confirmedList
-                .sort((a,b) => {
-                    const pa=getPriorityScore(a), pb=getPriorityScore(b);
-                    if (pb!==pa) return pb-pa;
-                    const ta=a.registeredAt?.toMillis?a.registeredAt.toMillis():0;
-                    const tb=b.registeredAt?.toMillis?b.registeredAt.toMillis():0;
-                    return tb-ta;
-                })[0];
-            // שמור את r.id (document ID האמיתי) ולא את playerId
-            if (worst && getPriorityScore(worst) > newPriority) bumpedPlayerDocId = worst.id;
-        }
-
-        const isWaiting = isFullBeforeAdd && !bumpedPlayerDocId;
+        const confirmedBefore = entries.filter(r => !r.isWaiting).length;
+        const { isWaiting, bumpId } = planRegistration(entries, regPlayer);
+        const entriesRef = entriesCol();
         const batch = db.batch();
 
-        // שימוש ב-selectedPlayer.id כ-document ID — מונע כפילויות
-        batch.set(entriesRef.doc(selectedPlayer.id), {
-            playerId: selectedPlayer.id,
-            name: selectedPlayer.name,
-            imgUrl: selectedPlayer.imgUrl || null,
-            isActive: !!selectedPlayer.isActive,
-            isNew: !!selectedPlayer.isNew,
-            isMoshavResident: !!selectedPlayer.isMoshavResident,
-            isGk: !!selectedPlayer.isGk,
-            birthDate: selectedPlayer.birthDate || null,
-            attScore: selectedPlayer.attScore || 5,
-            defScore: selectedPlayer.defScore || 5,
-            gkScore: selectedPlayer.gkScore || 5,
+        // מזהה השחקן הוא גם מזהה ההרשמה: מונע כפילויות
+        batch.set(entriesRef.doc(regPlayer.id), {
+            playerId: regPlayer.id,
+            name: regPlayer.name,
+            imgUrl: regPlayer.imgUrl || null,
+            isActive: !!regPlayer.isActive,
+            isNew: !!regPlayer.isNew,
+            isMoshavResident: !!regPlayer.isMoshavResident,
+            isGk: !!regPlayer.isGk,
+            birthDate: regPlayer.birthDate || null,
+            attScore: regPlayer.attScore || 5,
+            defScore: regPlayer.defScore || 5,
+            gkScore: regPlayer.gkScore || 5,
             isWaiting,
             registeredAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-
-        // עדכון לפי document ID האמיתי
-        if (bumpedPlayerDocId) batch.update(entriesRef.doc(bumpedPlayerDocId), { isWaiting: true });
+        if (bumpId) batch.update(entriesRef.doc(bumpId), { isWaiting: true });
         await batch.commit();
+
+        // ליד המקסימום בודקים שוב מול השרת: אם מישהו נרשם באותו רגע והרשימה עברה את המקסימום, העודף עובר להמתנה,
+        // וההודעה אומרת לשחקן איפה הוא באמת. רחוק מהמקסימום רק שלושה שנרשמים באותה שנייה היו עוברים אותו
+        const moved = confirmedBefore >= maxPlayers - 2 ? await healOverflow() : [];
+        const endedWaiting = isWaiting || moved.some(r => r.id === regPlayer.id);
 
         try {
             await db.collection('groups').doc(groupId)
-                .collection('players').doc(selectedPlayer.id)
+                .collection('players').doc(regPlayer.id)
                 .update({ registrationCount: firebase.firestore.FieldValue.increment(1) });
         } catch(e) { console.warn('registrationCount update failed:', e); }
 
@@ -1220,9 +1245,9 @@ async function registerPlayer() {
         selectedPlayer = null;
         btn.textContent = 'הירשם למשחק ⚽';
 
-        if (isWaiting)              showToast('נרשמת לרשימת המתנה ⏳', 'info');
-        else if (bumpedPlayerDocId) showToast('נרשמת! שחקן אחר עבר להמתנה ✅', 'success');
-        else                        showToast('נרשמת בהצלחה! ✅', 'success');
+        if (endedWaiting)  showToast(isWaiting ? 'נרשמת לרשימת המתנה ⏳' : 'המקום האחרון נתפס, נרשמת להמתנה ⏳', 'info');
+        else if (bumpId)   showToast('נרשמת! שחקן אחר עבר להמתנה ✅', 'success');
+        else               showToast('נרשמת בהצלחה! ✅', 'success');
         if (!isAdmin && !myPlayer() && !regPlayer.uid) maybeShowLinkTip();
 
     } catch(e) {
@@ -1231,6 +1256,8 @@ async function registerPlayer() {
         const opensMs = RegAuto.toMs(gameData.opensAt);
         if (e && e.code === 'permission-denied' && opensMs && Math.abs(Date.now() - opensMs) < 15 * 60 * 1000) {
             showToast('ההרשמה נפתחת ממש עכשיו, נסה שוב בעוד רגע ⏳', 'info');
+        } else if (e && e.code === 'unavailable') {
+            showToast('אין חיבור לאינטרנט, נסה שוב', 'error');
         } else {
             showToast('שגיאה ברישום, נסה שוב', 'error');
         }
@@ -1240,6 +1267,7 @@ async function registerPlayer() {
 }
 
 function renderPlayersList() {
+    renderListFix();
     const container = document.getElementById('playersList');
     if (registrations.length === 0) {
         container.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>עוד אף אחד לא נרשם.<br>היה הראשון!</p></div>`;
@@ -1288,17 +1316,72 @@ function renderPlayerRow(r, pos, isWaiting) {
     </div>`;
 }
 
+// ===== מנהל: מקומות פנויים כשיש ממתינים =====
+// למשל אחרי שהמנהל הגדיל את מספר הקבוצות או השחקנים. רק מנהל יכול להעלות שחקן מההמתנה (חוקי האבטחה),
+// ולכן רק הוא רואה את זה, עם כפתור שמעלה את הבאים בתור בלחיצה אחת
+let listFixKey = '', listFixIds = '';
+function firstName(name) { return String(name || '').trim().split(/\s+/)[0] || 'השחקן'; }
+const idsOf = list => list.map(r => r.id).sort().join(',');
+function renderListFix() {
+    const box = document.getElementById('listFix');
+    if (!box) return;
+    const up = isAdmin ? promotePlan(registrations) : [];
+    listFixIds = idsOf(up);
+    if (!up.length) { listFixKey = ''; box.hidden = true; box.innerHTML = ''; return; }
+    const confirmedN = registrations.filter(r => !r.isWaiting).length;
+    const waitingN = registrations.length - confirmedN;
+    const key = listFixIds + '|' + confirmedN + '|' + waitingN + '|' + maxPlayers;
+    if (key === listFixKey) return;   // בלי לצייר מחדש: הכפתור לא קופץ, וקורא המסך לא מכריז שוב
+    listFixKey = key;
+    const free = maxPlayers - confirmedN, one = up.length === 1;
+    const names = up.map(r => escHtml(r.name)).join(', ');
+    const title = `יש ${free === 1 ? 'מקום פנוי' : free + ' מקומות פנויים'} ו${waitingN === 1 ? 'ממתין אחד' : '-' + waitingN + ' ממתינים'}`;
+    const text = one ? `הבא בתור: ${names}.` : `הבאים בתור: ${names}.`;
+    const btn = one ? `העלה את ${escHtml(firstName(up[0].name))} לרשימה` : `העלה ${up.length} לרשימה`;
+    box.innerHTML = `<div class="list-fix-tx"><b>${title}</b>${text}</div><button type="button" class="list-fix-btn" id="listFixBtn" onclick="applyListFix()">${btn}</button>`;
+    box.hidden = false;
+}
+async function applyListFix() {
+    if (!isAdmin || !listFixIds) return;
+    const ids = listFixIds;
+    const btn = document.getElementById('listFixBtn');
+    if (!confirm((btn ? btn.textContent : 'להעלות מההמתנה') + '?')) return;
+    if (btn) btn.disabled = true;
+    try {
+        // שוב מול השרת: אם הרשימה השתנתה מאז שהוצגה, לא מעלים מישהו אחר ממה שהמנהל אישר
+        const [entries] = await Promise.all([fetchEntries(), refreshGroupSettings()]);
+        const up = promotePlan(entries);
+        if (idsOf(up) !== ids) {
+            listFixKey = '';
+            renderListFix();
+            showToast(up.length ? 'הרשימה השתנתה, בדוק שוב' : 'הרשימה כבר מלאה ✅', up.length ? 'info' : 'success');
+            return;
+        }
+        const batch = db.batch();
+        up.forEach(r => batch.update(entriesCol().doc(r.id), { isWaiting: false }));
+        await batch.commit();
+        showToast(up.length === 1 ? `${firstName(up[0].name)} עלה לרשימה ✅` : `${up.length} שחקנים עלו לרשימה ✅`, 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('שגיאה בעדכון הרשימה', 'error');
+        const b = document.getElementById('listFixBtn');
+        if (b) b.disabled = false;
+    }
+}
+
 async function removePlayer(entryDocId) {
     if (!isAdmin) return;
     if (!confirm('להסיר שחקן זה מהרשימה?')) return;
 
-    const entriesRef   = db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('entries');
+    const entriesRef   = entriesCol();
     const cancelledRef = db.collection('groups').doc(groupId).collection('registrations').doc(registrationId).collection('cancelled');
 
     try {
-        // מחפש לפי r.id — document ID האמיתי, עובד גם לentries ישנים וגם חדשים
-        const removedEntry = registrations.find(r => r.id === entryDocId);
-        if (!removedEntry) return;
+        // לפי הרשימה בשרת: האם הוא היה מאושר, והאם באמת התפנה מקום למישהו מההמתנה
+        // (כשהרשימה הייתה מעל המקסימום, הסרה של מאושר רק מחזירה אותה למקסימום)
+        const [entries] = await Promise.all([fetchEntries(), refreshGroupSettings()]);
+        const removedEntry = entries.find(r => r.id === entryDocId);
+        if (!removedEntry) { showToast('השחקן כבר לא ברשימה', 'info'); return; }
 
         const wasConfirmed = !removedEntry.isWaiting;
         const batch = db.batch();
@@ -1318,12 +1401,13 @@ async function removePlayer(entryDocId) {
         // מוחק לפי document ID האמיתי — תמיד עובד
         batch.delete(entriesRef.doc(removedEntry.id));
 
+        // המקומות שהתפנו מתמלאים מראש רשימת ההמתנה (לפי עדיפות, ואז מי שנרשם קודם)
+        let promoted = [];
         if (wasConfirmed) {
-            const wl = registrations
-                .filter(r => r.isWaiting && r.id !== entryDocId)
-                .sort((a,b)=>{ const pa=getPriorityScore(a),pb=getPriorityScore(b); if(pa!==pb)return pa-pb; return (a.registeredAt?.toMillis?a.registeredAt.toMillis():0)-(b.registeredAt?.toMillis?b.registeredAt.toMillis():0); });
-            // מקדם לפי document ID האמיתי
-            if (wl.length > 0) batch.update(entriesRef.doc(wl[0].id), { isWaiting: false });
+            const rest = entries.filter(r => r.id !== entryDocId);
+            const free = maxPlayers - rest.filter(r => !r.isWaiting).length;
+            if (free > 0) promoted = rest.filter(r => r.isWaiting).sort(byPriority).slice(0, free);
+            promoted.forEach(r => batch.update(entriesRef.doc(r.id), { isWaiting: false }));
         }
 
         await batch.commit();
@@ -1334,7 +1418,7 @@ async function removePlayer(entryDocId) {
                 .update({ registrationCount: firebase.firestore.FieldValue.increment(-1) });
         } catch(e) { console.warn('registrationCount decrement failed:', e); }
 
-        showToast('השחקן הוסר ✅', 'success');
+        showToast(promoted.length === 1 ? `הוסר, ו${firstName(promoted[0].name)} עלה מההמתנה ✅` : 'השחקן הוסר ✅', 'success');
     } catch(e) {
         console.error(e);
         showToast('שגיאה בהסרה', 'error');
@@ -1385,6 +1469,7 @@ function markAdminUI() {
     const btn = document.getElementById('adminLoginBtn');
     if (btn) { btn.textContent='✅ מנהל'; btn.style.color='var(--primary)'; btn.style.borderColor='var(--primary-border)'; }
     if (gameData) updateDateBadge(gameData);
+    renderListFix();
 }
 
 // כניסת מנהל עם Google (במקום סיסמה). חייבת להיקרא ישירות מלחיצה.
@@ -1415,16 +1500,22 @@ function showToast(msg, type='success') {
 }
 
 async function generateTeamsFromReg() {
-    const confirmed = registrations.filter(r => !r.isWaiting);
+    const btn = document.getElementById('generateTeamsBtn');
+    if (btn.disabled) return;
+    btn.disabled = true;   // גם בזמן הבדיקה מול השרת: לחיצה כפולה לא יוצרת קבוצות פעמיים
+    // הקבוצות נבנות ממי שמאושר בשרת עכשיו, גם אם הדף היה פתוח ברקע ועוד לא התעדכן
+    let entries;
+    try { [entries] = await Promise.all([fetchEntries(), refreshGroupSettings()]); }
+    catch (e) { console.warn('entries for teams', e); showToast('אין חיבור לאינטרנט, נסה שוב', 'error'); btn.disabled = false; return; }
+    const confirmed = entries.filter(r => !r.isWaiting);
     if (confirmed.length !== maxPlayers) {
         showToast(`צריך בדיוק ${maxPlayers} שחקנים (יש ${confirmed.length})`, 'error');
+        btn.disabled = false;
         return;
     }
-    if (!confirm(`לסגור את ההרשמה וליצור קבוצות מ-${confirmed.length} שחקנים?`)) return;
+    if (!confirm(`לסגור את ההרשמה וליצור קבוצות מ-${confirmed.length} שחקנים?`)) { btn.disabled = false; return; }
 
     document.getElementById('generatingOverlay').classList.add('visible');
-    const btn = document.getElementById('generateTeamsBtn');
-    btn.disabled = true;
 
     try {
         const lineup = confirmed.map(r => {
@@ -1494,7 +1585,7 @@ async function generateTeamsFromReg() {
         await gameRef.set(gameData2);
 
         const allGroupPlayers = await db.collection('groups').doc(groupId).collection('players').get();
-        const registeredIds   = new Set(registrations.map(r => r.playerId));
+        const registeredIds   = new Set(entries.map(r => r.playerId));
         const attendanceBatch = db.batch();
         allGroupPlayers.docs.forEach(doc => {
             const wasPresent   = registeredIds.has(doc.id) && !cancelled.some(c => c.playerId === doc.id);
