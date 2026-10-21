@@ -28,8 +28,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
-    <script src="admin-auth.js?v=20261007"></script>
-    <script src="group-prefs.js?v=20261014b"></script>
+    <script src="admin-auth.js?v=20261021"></script>
+    <script src="group-prefs.js?v=20261021"></script>
     <script src="map-kit.js?v=20261014b"></script>
     <script src="profile-kit.js?v=20261014b"></script>
     <script src="tour.js?v=20261014b"></script>
@@ -749,6 +749,27 @@
         body.is-admin .act-badge { display: inline-flex; }
         .act-badge.away { background: rgba(164,172,220,0.12); color: #D3D8F6; border: 1px dashed rgba(164,172,220,0.5); }
         .act-badge.down { background: rgba(239,68,68,0.1); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.35); }
+        /* ⏸️ נעדר באישור בלחיצה מהכרטיסים בלשונית הסגל: לכמה זמן, ונשמר במקום (openAwaySheet) */
+        .away-modal { max-width: 380px; text-align: right; }
+        .away-modal .modal-name { font-size: 1.3rem; margin: 0 0 6px 36px; }
+        .away-who { font-weight: 800; margin: 0 0 2px; }
+        .away-modal .away-opts { margin: 14px 0 4px; }
+        .away-quick button[aria-pressed="true"] { background: rgba(164,172,220,0.2); color: #E3E7FB; border-color: rgba(164,172,220,0.55); }
+        .away-err { color: #FCA5A5; font-size: 0.85rem; line-height: 1.4; min-height: 1.2em; margin: 6px 0 10px; }
+        .away-end { display: block; margin: 12px auto 0; background: none; border: 0; color: var(--text-muted); font: 700 0.85rem 'Heebo', sans-serif; text-decoration: underline; cursor: pointer; }
+        .away-end[hidden] { display: none; }
+        /* ארכיון אוטומטי: מי שעוד מעט עובר לארכיון, והארכיון עצמו (למנהלים) */
+        .arch-warn-card { border-color: rgba(164,172,220,0.5) !important; }
+        body.is-admin .arch-warn-card[hidden], body.is-admin .archive-card[hidden] { display: none; }
+        .arch-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: none; max-width: 52%; }
+        .archive-card summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+        .archive-card summary::-webkit-details-marker { display: none; }
+        .archive-card summary::after { content: '▾'; color: var(--text-muted); transition: transform 0.2s; }
+        .archive-card details[open] summary::after { transform: rotate(180deg); }
+        .archive-card summary .card-title { margin: 0; }
+        .archive-card details[open] .lr-sub { margin-top: 10px; }
+        .arch-hint { display: block; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; margin-top: 6px; padding-right: 28px; }
+        .arch-hint b { color: #FCD34D; font-weight: 800; }
 
         .reg-banner {
             display: none;
@@ -1205,7 +1226,7 @@
                                 <div class="away-top">
                                     <div>
                                         <div class="away-title">⏸️ נעדר באישור?</div>
-                                        <div class="away-sub">בזמן הזה ההרשמות לא נספרות לו, והוא נשאר פעיל</div>
+                                        <div class="away-sub" id="awaySub">בזמן הזה ההרשמות לא נספרות לו, והוא נשאר פעיל</div>
                                     </div>
                                     <button type="button" id="awayToggleBtn" class="away-btn" onclick="toggleAway()" aria-pressed="false">לא</button>
                                 </div>
@@ -1348,6 +1369,13 @@
                     <div id="actList"></div>
                 </div>
 
+                <!-- ארכיון אוטומטי: מי שעוד מעט עובר לארכיון (GroupPrefs.archivePlan) -->
+                <div class="card admin-only arch-warn-card" id="archWarnCard" hidden>
+                    <h2 class="card-title">📦 עוברים לארכיון בקרוב <span class="squad-count" id="archWarnCount"></span></h2>
+                    <p class="lr-sub">מי שלא נרשם חודש עובר לארכיון, ומשם אפשר להחזיר אותו. אפשר להשאיר שחקן בסגל עוד חודש, או לסמן אותו נעדר באישור.</p>
+                    <div id="archWarnList"></div>
+                </div>
+
                 <div class="card admin-only year-card" id="yearCard" hidden>
                     <h2 class="card-title">🎂 שנה בקבוצה <span class="squad-count" id="yearCount"></span></h2>
                     <p class="lr-sub">שחקנים שמסומנים 🆕 חדש ומתקרבים לשנה בקבוצה, או כבר עברו אותה. כשתחליט, הופכים אותם לוותיקים.</p>
@@ -1366,6 +1394,15 @@
                     <input type="search" id="squadSearch" class="form-input squad-search" placeholder="🔍 חיפוש שחקן לפי שם" oninput="render()" aria-label="חיפוש שחקן בסגל" autocomplete="off" hidden>
                     <div class="squad-hint">➕ מוסיף את השחקן להרכב של המשחק, ✓ מוריד אותו. לחיצה על שחקן פותחת עריכה</div>
                     <div class="squad-list" id="squadList"></div>
+                </div>
+
+                <!-- הארכיון: כרטיסים של מי שלא נרשם חודש. רק המנהלים רואים, ומחזירים לסגל בלחיצה -->
+                <div class="card admin-only archive-card" id="archiveCard" hidden>
+                    <details id="archiveDetails">
+                        <summary><h2 class="card-title">📦 ארכיון שחקנים <span class="squad-count" id="archiveCount"></span></h2></summary>
+                        <p class="lr-sub">כרטיסים של מי שלא נרשם חודש. רק המנהלים רואים אותם. שחקן שחוזר לסגל ממשיך עם כל הנתונים שלו.</p>
+                        <div id="archiveList"></div>
+                    </details>
                 </div>
             </div>
 
@@ -1568,6 +1605,28 @@
         </div>
     </div>
 
+    <!-- Modal: ⏸️ נעדר באישור מהכרטיסים בלשונית הסגל: לכמה זמן, ונשמר במקום (openAwaySheet) -->
+    <div id="awaySheetOverlay" class="modal-overlay" onclick="closeAwaySheet()">
+        <div class="player-card-modal away-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="awaySheetTitle">
+            <button class="close-btn" onclick="closeAwaySheet()" aria-label="סגור">✕</button>
+            <h2 class="modal-name" id="awaySheetTitle">⏸️ נעדר באישור</h2>
+            <p class="away-who" id="awaySheetWho"></p>
+            <div class="away-sub" id="awaySheetSub"></div>
+            <div class="away-opts">
+                <label class="away-opt"><input type="radio" name="awaySheetMode" value="date" onchange="syncAwaySheet()"> עד <input type="date" id="awaySheetUntil" class="form-input away-date" oninput="pickAwaySheetDate()" aria-label="עד איזה תאריך"></label>
+                <div class="away-quick" role="group" aria-label="בחירה מהירה">
+                    <button type="button" data-days="7" onclick="pickAwaySheetDays(7)">שבוע</button>
+                    <button type="button" data-days="14" onclick="pickAwaySheetDays(14)">שבועיים</button>
+                    <button type="button" data-days="30" onclick="pickAwaySheetDays(30)">חודש</button>
+                </div>
+                <label class="away-opt"><input type="radio" name="awaySheetMode" value="return" onchange="syncAwaySheet()"> עד שיחזור להירשם</label>
+            </div>
+            <div class="away-err" id="awaySheetErr" role="alert"></div>
+            <button type="button" class="btn" id="awaySheetOk" onclick="saveAwaySheet()">אישור</button>
+            <button type="button" class="away-end" id="awaySheetEnd" onclick="endAwaySheet()" hidden>סיום ההיעדרות</button>
+        </div>
+    </div>
+
     <!-- Modal: הוספת כמה שחקנים בבת אחת (רשימה מודבקת, גם מהוואטסאפ) -->
     <div id="bulkModalOverlay" class="modal-overlay" onclick="closeBulkAdd()">
         <div class="player-card-modal bulk-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
@@ -1704,6 +1763,12 @@
                     </div>
                     <div class="prio-note">בתוך אותה דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד כבר לא נדחק להמתנה. השחקנים רואים את הכללים בדף ההרשמה.</div>
                 </div>
+            </div>
+            <!-- ארכיון אוטומטי (settings.archive, GroupPrefs.archivePlan) -->
+            <div id="archiveSection" style="text-align: right; margin-bottom:20px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
+                <div style="color:var(--text-main); font-weight:bold; margin-bottom:8px;">📦 ארכיון שחקנים</div>
+                <label class="prio-check"><input type="checkbox" id="setArchive" onchange="updateArchiveHint()"><span>מי שלא נרשם חודש עובר לארכיון</span></label>
+                <small class="arch-hint" id="archiveHint"></small>
             </div>
             <div style="text-align: right;">
                 <h3 style="font-size: 1rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
@@ -1976,6 +2041,7 @@ function setAdminMode(on) {
         else updateBottomBar();
         if (currentSection === 'market') fillMarketForm();   // נכנסו ישר ל-#market לפני שזוהה המנהל
         startLinkRequestsListener();
+        startArchiveListener();
         ensureAdminUids();
         migrateCareerStats();
         maybeSyncAutoRegs();
@@ -1994,6 +2060,7 @@ function setAdminMode(on) {
         if (SECTIONS[currentSection].admin) goSection('game');
         else updateBottomBar();
         stopLinkRequestsListener();
+        stopArchiveListener();
         queueActivityCheck();
     }
     updateRateMe();
@@ -2307,6 +2374,9 @@ function startRealtimeListeners() {
             }
             const newPrio = GroupPrefs.regPriority(currentGroupId, data);
             if (JSON.stringify(newPrio) !== JSON.stringify(prioCfg)) { setPrioCfg(newPrio); render(); }
+            // הארכיון האוטומטי הודלק או כובה (גם על ידי מנהל אחר)
+            const archNow = JSON.stringify(GroupPrefs.archivePrefs(data));
+            if (archNow !== archPrefsSeen) { archPrefsSeen = archNow; applyPriorityUI(); queueActivityCheck(); render(); }
             if (marketDocs) paintMarket();   // מנהל אחר פרסם או הוריד מודעה
             syncHistoryListener();
             customParams = data.customParams || [];
@@ -2396,7 +2466,9 @@ function applyPriorityUI() {
     if (hidden) setPriorityFlagUI(hidden.value === 'true');
     updateJoinRow();
     const awayRow = document.getElementById('awayRow');
-    if (awayRow) awayRow.hidden = !(editingId && awayRuleOn());
+    if (awayRow) awayRow.hidden = !(editingId && excuseOn());
+    const awaySub = document.getElementById('awaySub');
+    if (awaySub) awaySub.textContent = awaySubText();
 }
 
 // שחקן שנוסף לסגל: כשהכלל "ותיקים לפני חדשים" פועל הוא מתחיל כ"חדש" (אפשר להוריד), ותאריך ההצטרפות הוא היום
@@ -2433,9 +2505,18 @@ function updateJoinHint() {
 }
 
 // ===== "⏸️ נעדר באישור" בטופס השחקן =====
-// מופיע בעריכת שחקן כשהכלל "יורד מ'פעיל' אחרי X שבועות בלי הרשמה" פועל.
+// מופיע בעריכת שחקן כשהכלל "יורד מ'פעיל' אחרי X שבועות בלי הרשמה" פועל, או הארכיון האוטומטי.
 // נשמר בכרטיס כ-excused: { at: היום שבו סומן, until: עד איזה יום (כולל), או null = עד שיירשם שוב }
 function awayRuleOn() { return !!(prioCfg.active && prioCfg.activeWeeks > 0); }
+function archiveOn() { return GroupPrefs.archivePrefs(currentGroupData).on; }
+function excuseOn() { return awayRuleOn() || archiveOn(); }
+// מה "נעדר באישור" עושה, לפי הכללים שפועלים בקבוצה
+function awaySubText() {
+    const act = awayRuleOn(), arch = archiveOn();
+    if (act && arch) return 'בזמן הזה ההרשמות לא נספרות לו: הוא נשאר פעיל ולא עובר לארכיון';
+    if (arch) return 'בזמן הזה הוא לא עובר לארכיון, גם אם לא נרשם';
+    return 'בזמן הזה ההרשמות לא נספרות לו, והוא נשאר פעיל';
+}
 function excusedNow(p) {
     const ex = p && p.excused && typeof p.excused === 'object' ? p.excused : null;
     if (!ex) return null;
@@ -2463,7 +2544,7 @@ function setAwayUI(on, until, mode) {
 function fillAwayForm(p) {
     const row = document.getElementById('awayRow');
     if (!row) return;
-    row.hidden = !(p && editingId && awayRuleOn());
+    row.hidden = !(p && editingId && excuseOn());
     const ex = p ? excusedNow(p) : null;
     setAwayUI(!!ex, ex && ex.until ? ex.until : '', ex && !ex.until ? 'return' : 'date');
     updateAwayHint();
@@ -2502,7 +2583,7 @@ function activityFormPatch(before, isActive) {
     const out = { set: {}, del: [], error: '' };
     if (!before) return out;
     const today = GroupPrefs.todayYmd();
-    if (awayRuleOn()) {
+    if (excuseOn()) {
         const on = document.getElementById('pAway').value === 'true';
         const old = before.excused && typeof before.excused === 'object' ? before.excused : null;
         if (on) {
@@ -2514,7 +2595,11 @@ function activityFormPatch(before, isActive) {
             const u = mode === 'date' ? until : null;
             if (!excusedNow(before) || (old.until || null) !== u) out.set.excused = { at: today, until: u };
             if (before.autoOff && !before.isActive) isActive = out.set.isActive = true;
-        } else if (old) out.del.push('excused');
+        } else if (old) {
+            out.del.push('excused');
+            // ההיעדרות נגמרה היום: סופרים ממנו, כמו כשהיא נגמרת לבד (השבועות שבהם נעדר לא נחשבים)
+            if (excusedNow(before)) out.set.actFrom = today;
+        }
     }
     if (isActive && (!before.isActive || before.autoOff)) out.set.actFrom = today;
     // ירד אוטומטית ומוכיח את עצמו: נשאר כך כל עוד המנהל לא החזיר אותו
@@ -3660,11 +3745,9 @@ function getPlayerBadgesHTML(p, small = false) {
         ? `<span class="badge-fresh" style="${sz}" title="בקבוצה פחות מ-${GroupPrefs.weeksText(prioCfg.newWeeks)}">🌱 חדש לגמרי</span>`
         : `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
     if (p.isMoshavResident && priorityLabel) badges += `<span class="badge-resident" style="${sz}">🏠 ${escAdminText(priorityLabel)}</span>`;
-    // הספירה האוטומטית של "פעיל" (רואים רק במצב ניהול)
-    if (awayRuleOn()) {
-        if (p.autoOff && !p.isActive) badges += `<span class="act-badge down" style="${sz}" title="לא נרשם ${GroupPrefs.weeksText(prioCfg.activeWeeks)}">⬇️ ירד מפעיל</span>`;
-        else if (p.isActive && excusedNow(p)) badges += `<span class="act-badge away" style="${sz}">⏸️ נעדר באישור</span>`;
-    }
+    // הספירה האוטומטית של "פעיל" והארכיון (רואים רק במצב ניהול)
+    if (awayRuleOn() && p.autoOff && !p.isActive) badges += `<span class="act-badge down" style="${sz}" title="לא נרשם ${GroupPrefs.weeksText(prioCfg.activeWeeks)}">⬇️ ירד מפעיל</span>`;
+    else if (excuseOn() && excusedNow(p) && (p.isActive || !awayRuleOn())) badges += `<span class="act-badge away" style="${sz}">⏸️ נעדר באישור</span>`;
     return badges;
 }
 function getAvatarHTML(url, className, id) {
@@ -3700,6 +3783,7 @@ function openSettingsModal() {
     document.getElementById('setNumTeams').value = groupSettings.numTeams;
     document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
     fillPriorityForm();
+    fillArchiveForm();
     fillGroupDetailsForm();
     renderCustomParamsManagerList();
     renderAdminsManager();
@@ -3822,6 +3906,27 @@ function priorityFormToSettings() {
             activeSince: activeSinceFor(f)
         }
     };
+}
+
+// ========== Settings: ארכיון אוטומטי (settings.archive) ==========
+// since = היום שבו הודלק: נשאר כל עוד הוא דולק. ממנו עובר שבוע לפחות עד שמישהו עובר לארכיון
+function fillArchiveForm() {
+    document.getElementById('setArchive').checked = archiveOn();
+    updateArchiveHint();
+}
+function archiveFormToSettings() {
+    const on = document.getElementById('setArchive').checked;
+    const cur = GroupPrefs.archivePrefs(currentGroupData);
+    return { on, since: on ? (cur.on ? cur.since : GroupPrefs.todayYmd()) : '' };
+}
+function updateArchiveHint() {
+    const el = document.getElementById('archiveHint');
+    if (!el) return;
+    const on = document.getElementById('setArchive').checked;
+    let html = 'שבוע לפני שהוא עובר, השחקן מופיע בלשונית הסגל ואפשר להשאיר אותו. בארכיון רק המנהלים רואים אותו, ומחזירים לסגל בלחיצה עם כל הנתונים. כל הרשמה נחשבת, גם להמתנה וגם מי שנרשם וביטל. "⏸️ נעדר באישור" בכרטיס השחקן עוצר את הספירה.';
+    if (on && !archiveOn()) html += ' בשבוע הראשון אף אחד לא עובר לארכיון: קודם הוא מופיע ברשימה.';
+    if (on && archDenied) html += ' <b>⚠️ כדי שזה יעבוד, צריך לפרסם קודם ב-Firebase את חוקי האבטחה המעודכנים.</b>';
+    el.innerHTML = html;
 }
 
 // ========== Delete group (owner) ==========
@@ -3989,7 +4094,7 @@ async function saveGroupSettings() {
     }
     // שינוי גודל הקבוצות מבטל את השיבוץ הנוכחי; שאר ההגדרות לא
     const teamsChanged = numTeams !== Number(groupSettings.numTeams) || playersPerTeam !== Number(groupSettings.playersPerTeam);
-    const update = { settings: { numTeams, playersPerTeam, priorityLabel: prio.priorityLabel, regPriority: prio.regPriority } };
+    const update = { settings: { numTeams, playersPerTeam, priorityLabel: prio.priorityLabel, regPriority: prio.regPriority, archive: archiveFormToSettings() } };
     let savedName = null, savedCity = null, savedIcon = null;
     let listingRef = null, listing = null, dropListingRef = null;
 
@@ -4155,6 +4260,7 @@ document.addEventListener('focusout', e => {
     if (to && !menu.contains(to) && to.id !== 'adminBtnHeader') toggleAdminMenu(false);
 });
 document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('awaySheetOverlay').style.display === 'flex') return closeAwaySheet();
     if (e.key === 'Escape' && document.getElementById('bulkModalOverlay').style.display === 'flex') return closeBulkAdd();
     if (e.key === 'Escape' && document.getElementById('lineupPickerOverlay').style.display === 'flex') return closeLineupPicker();
     if (e.key === 'Escape' && document.getElementById('pitchModalOverlay').style.display === 'flex') return closePitchPicker();
@@ -5501,7 +5607,7 @@ function snoozeYearCard() {
 // אין שרת שרץ ברקע, אז הבדיקה רצה כשמנהל פותח את דף הקבוצה: קוראים את ההרשמות מאז שהכלל הודלק (עד 10 שבועות אחורה),
 // מי נרשם לכל משחק ומתי, ומעדכנים את הכרטיסים. רשימות של משחקים שעברו לפני יותר מיומיים נשמרות בדפדפן,
 // כך שכל כניסה קוראת רק את מה שעוד יכול להשתנות
-const ACT_HORIZON_DAYS = 70, ACT_SETTLED_MS = 2 * 864e5, ACT_RELOAD_MS = 15 * 60e3;
+const ACT_HORIZON_DAYS = 70, ACT_SETTLED_MS = 2 * 864e5, ACT_RELOAD_MS = 15 * 60e3, ARCH_FRESH_MS = 60e3;
 let actData = null, actKey = '', actLoadedAt = 0, actRunning = false, actQueued = false, actTimer = null;
 let actStates = {};
 const actTried = new Set();
@@ -5514,9 +5620,11 @@ function writeActCache(c) {
     try { localStorage.setItem(actCacheKey(), JSON.stringify(c)); } catch (e) { /* לא קריטי */ }
 }
 
-async function loadActivityData() {
+// withArchive: הארכיון צריך את ההרשמות של 10 השבועות האחרונים, גם מלפני שהכלל של "פעיל" הודלק
+async function loadActivityData(withArchive) {
     const now = Date.now();
-    const fromN = Math.max(GroupPrefs.dayNum(prioCfg.activeSince), GroupPrefs.dayNum(now) - ACT_HORIZON_DAYS);
+    const horizon = GroupPrefs.dayNum(now) - ACT_HORIZON_DAYS;
+    const fromN = withArchive ? horizon : Math.max(GroupPrefs.dayNum(prioCfg.activeSince), horizon);
     const snap = await groupRef.collection('registrations').where('gameDateRaw', '>=', GroupPrefs.dayYmd(fromN)).get();
     const cache = readActCache(), keep = {};
     const regs = await Promise.all(snap.docs.map(async doc => {
@@ -5543,7 +5651,9 @@ async function loadActivityData() {
         return { day: RegAuto.ymd(start), done: doneAt <= now, people: people.map(x => ({ pid: x[0], at: x[1], listed: !!x[2] })) };
     }));
     writeActCache(keep);
-    return GroupPrefs.activityData(regs.filter(Boolean), 2 * (parseInt(groupSettings.playersPerTeam) || 6));
+    const data = GroupPrefs.activityData(regs.filter(Boolean), 2 * (parseInt(groupSettings.playersPerTeam) || 6));
+    data.from = fromN;   // היום הראשון שההרשמות שלו נקראו (GroupPrefs.archivePlan)
+    return data;
 }
 
 function queueActivityCheck() {
@@ -5551,25 +5661,37 @@ function queueActivityCheck() {
     actTimer = setTimeout(runActivityCheck, 300);
 }
 async function runActivityCheck() {
-    if (!isAdminNow() || !playersLoaded || !groupRef || !awayRuleOn()) {
+    const act = awayRuleOn(), arch = archiveOn();
+    if (!isAdminNow() || !playersLoaded || !groupRef || (!act && !arch)) {
         actStates = {};
+        archStates = {};
         renderActCard();
+        renderArchWarnCard();
         return;
     }
     if (actRunning) { actQueued = true; return; }
     actRunning = true;
     let tried = [];
     try {
-        const key = [currentGroupId, prioCfg.activeSince, groupSettings.playersPerTeam].join('|');
+        const archCfg = GroupPrefs.archivePrefs(currentGroupData);
+        const key = [currentGroupId, act ? prioCfg.activeSince : '', arch ? archCfg.since : '', groupSettings.playersPerTeam].join('|');
         if (!actData || key !== actKey || Date.now() - actLoadedAt > ACT_RELOAD_MS) {
-            actData = await loadActivityData();
+            actData = await loadActivityData(arch);
             actKey = key;
             actLoadedAt = Date.now();
         }
         const now = Date.now(), FV = firebase.firestore.FieldValue;
-        const batch = db.batch(), downs = [], backs = [], states = {};
+        const batch = db.batch(), downs = [], backs = [], states = {}, arStates = {}, moves = [];
+        const admins = (currentGroupData && currentGroupData.admins) || {};
         players.forEach(p => {
             if (!SAFE_ID.test(p.id)) return;
+            if (arch) {
+                // הכרטיס של מנהל בקבוצה לא עובר לארכיון
+                const ap = p.uid && Object.prototype.hasOwnProperty.call(admins, p.uid) ? { kind: 'ok' } : GroupPrefs.archivePlan(archCfg, p, actData, now);
+                arStates[p.id] = ap;
+                if (ap.kind === 'move') { moves.push({ p, plan: ap }); return; }   // עובר לארכיון: לא משנים בו כלום לפני כן
+            }
+            if (!act) return;
             const plan = GroupPrefs.activityPlan(prioCfg, p, actData, now);
             states[p.id] = plan;
             if (!plan.set && !plan.del) return;
@@ -5584,6 +5706,7 @@ async function runActivityCheck() {
             else if (plan.kind === 'back') backs.push(p.name);
         });
         actStates = states;
+        archStates = arStates;
         if (tried.length) {
             await batch.commit();
             tried = [];
@@ -5591,14 +5714,148 @@ async function runActivityCheck() {
             if (downs.length) showToast(downs.length === 1 ? `⬇️ ${downs[0]} ירד מ"פעיל": לא נרשם ${w}` : `⬇️ ${downs.length} שחקנים ירדו מ"פעיל": לא נרשמו ${w}`, 'info');
             else if (backs.length) showToast(backs.length === 1 ? `✅ ${backs[0]} חזר להיות פעיל` : `✅ ${backs.length} שחקנים חזרו להיות פעילים`, 'success');
         }
+        const todo = archBlocked ? [] : moves.filter(m => !archTried.has(m.p.id));
+        if (todo.length) {
+            // מעבירים רק לפי הרשמות שנקראו בדקה האחרונה: אולי מישהו נרשם מאז (למשל דף שנשאר פתוח עד אחרי חצות)
+            if (Date.now() - actLoadedAt > ARCH_FRESH_MS) { actData = null; actQueued = true; }
+            else await archivePlayers(todo);
+        }
     } catch (e) {
         console.warn('activity check', e);
         tried.forEach(t => actTried.delete(t));   // לא נשמר: אפשר לנסות שוב בבדיקה הבאה
     } finally {
         actRunning = false;
         renderActCard();
+        renderArchWarnCard();
         updateAwayHint();
         if (actQueued) { actQueued = false; queueActivityCheck(); }
+    }
+}
+
+// ========== ארכיון אוטומטי: מי שלא נרשם חודש עובר לארכיון (GroupPrefs.archivePlan) ==========
+// הכרטיס עובר כמו שהוא ל-groups/{gid}/archive/{pid}, שרק המנהלים קוראים, ונמחק מהסגל באותה פעולה.
+// כך הוא לא מופיע בשום מקום (הרשמה, דירוג, חלוקה), והחזרה מחזירה אותו עם כל הנתונים ואותו מזהה
+// archDenied: חוקי האבטחה של הארכיון עוד לא פורסמו (הקריאה או הכתיבה נדחו)
+let archStates = {}, archived = null, archUnsub = null, archBlocked = false, archDenied = false, archPrefsSeen = '';
+const archTried = new Set();
+const ARCHIVE_META = ['archivedAt', 'archivedLast', 'archivedBy'];
+function archiveRef() { return groupRef.collection('archive'); }
+
+async function archivePlayers(moves) {
+    const todo = archBlocked ? [] : moves.filter(m => !archTried.has(m.p.id));   // כל שחקן פעם אחת בכל כניסה
+    if (!todo.length) return;
+    todo.forEach(m => archTried.add(m.p.id));
+    const FV = firebase.firestore.FieldValue;
+    try {
+        const names = await db.runTransaction(async tx => {
+            const snaps = await Promise.all(todo.map(m => tx.get(playersRef.doc(m.p.id))));
+            const moved = [];
+            snaps.forEach((s, i) => {
+                if (!s.exists) return;
+                const plan = todo[i].plan;
+                tx.set(archiveRef().doc(s.id), Object.assign({}, s.data(), { archivedAt: FV.serverTimestamp(), archivedLast: plan.reg || '', archivedBy: 'auto' }));
+                tx.delete(s.ref);
+                moved.push(s.data().name || '');
+            });
+            return moved;
+        });
+        if (names.length) showToast(names.length === 1 ? `📦 ${names[0]} עבר לארכיון: לא נרשם חודש` : `📦 ${names.length} שחקנים עברו לארכיון: לא נרשמו חודש`, 'info');
+    } catch (e) {
+        console.warn('archive', e);
+        if (e && e.code === 'permission-denied') {
+            // חוקי האבטחה של הארכיון עוד לא פורסמו: הכרטיסים נשארים בסגל, ולא מנסים שוב עד הכניסה הבאה
+            archBlocked = archDenied = true;
+            showToast('📦 הארכיון לא נשמר: צריך לפרסם את חוקי האבטחה המעודכנים', 'error');
+        } else todo.forEach(m => archTried.delete(m.p.id));
+    }
+}
+
+// שורת מצב בכרטיס "עוברים לארכיון בקרוב"
+function archWarnText(s) {
+    const was = s.fromStart ? 'לא נרשם בחודשיים האחרונים' : `לא נרשם מאז ${fmtDayMonth(s.last)}`;
+    return `${was} · יעבור לארכיון ב-${fmtDayMonth(s.at)}`;
+}
+function renderArchWarnCard() {
+    const box = document.getElementById('archWarnCard'), list = document.getElementById('archWarnList');
+    if (!box || !list) return;
+    const items = isAdminNow() && archiveOn() ? players.filter(p => SAFE_ID.test(p.id) && archStates[p.id] && archStates[p.id].kind === 'warn') : [];
+    items.sort((a, b) => String(archStates[a.id].at).localeCompare(String(archStates[b.id].at)) || String(a.name).localeCompare(String(b.name), 'he'));
+    box.hidden = !items.length;
+    if (box.hidden) { list.innerHTML = ''; return; }
+    document.getElementById('archWarnCount').textContent = items.length > 1 ? `${items.length} שחקנים` : '';
+    list.innerHTML = items.map(p => `<div class="yr-item act-item" data-pid="${p.id}"><div class="yr-tx"><b>${escAdminText(p.name)}</b><small>${escAdminText(archWarnText(archStates[p.id]))}</small></div>`
+        + `<div class="arch-acts"><button type="button" class="yr-ok" onclick="keepFromArchive('${p.id}', this)">להשאיר</button><button type="button" class="act-alt" onclick="openAwaySheet('${p.id}')">⏸️ נעדר באישור</button></div></div>`).join('');
+}
+// "להשאיר": סופרים לו חודש חדש מהיום
+async function keepFromArchive(id, btn) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    if (btn) btn.disabled = true;
+    try {
+        await playersRef.doc(id).update({ archiveKeep: GroupPrefs.todayYmd() });
+        showToast(`${p.name} נשאר בסגל עוד חודש`, 'success');
+    } catch (e) {
+        if (btn) btn.disabled = false;
+        alert('לא נשמר: ' + AdminAuth.errorMessage(e));
+    }
+}
+
+// הארכיון עצמו (למנהלים). עד שחוקי האבטחה של הארכיון מתפרסמים הקריאה נכשלת, והכרטיס פשוט לא מופיע
+function startArchiveListener() {
+    if (archUnsub || !groupRef) return;
+    archUnsub = archiveRef().onSnapshot(snap => {
+        const ms = v => (v && typeof v.toMillis === 'function' ? v.toMillis() : 0);
+        archived = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id }))
+            .filter(a => SAFE_ID.test(a.id))
+            .sort((a, b) => ms(b.archivedAt) - ms(a.archivedAt) || String(a.name).localeCompare(String(b.name), 'he'));
+        archDenied = false;
+        renderArchiveCard();
+    }, e => {
+        console.warn('archive list', e);
+        if (e && e.code === 'permission-denied') archDenied = true;
+        archived = null;
+        renderArchiveCard();
+    });
+}
+function stopArchiveListener() {
+    if (archUnsub) { archUnsub(); archUnsub = null; }
+    archived = null;
+    renderArchiveCard();
+}
+function archiveLine(a) {
+    const at = a.archivedAt && typeof a.archivedAt.toMillis === 'function' ? GroupPrefs.todayYmd(a.archivedAt.toMillis()) : '';
+    return [at ? `עבר לארכיון ב-${fmtYmd(at)}` : 'בארכיון', a.archivedLast ? `נרשם לאחרונה ב-${fmtDayMonth(a.archivedLast)}` : ''].filter(Boolean).join(' · ');
+}
+function renderArchiveCard() {
+    const box = document.getElementById('archiveCard'), list = document.getElementById('archiveList');
+    if (!box || !list) return;
+    const items = isAdminNow() && Array.isArray(archived) ? archived : [];
+    box.hidden = !items.length;
+    if (box.hidden) { list.innerHTML = ''; return; }
+    document.getElementById('archiveCount').textContent = String(items.length);
+    list.innerHTML = items.map(a => `<div class="yr-item" data-pid="${a.id}"><div class="yr-tx"><b>${escAdminText(a.name)}</b><small>${escAdminText(archiveLine(a))}</small></div>`
+        + `<button type="button" class="yr-ok" onclick="restoreArchived('${a.id}', this)">↩️ להחזיר</button></div>`).join('');
+}
+// מחזיר לסגל עם כל הנתונים ואותו מזהה, ומהיום סופרים לו חודש חדש
+async function restoreArchived(id, btn) {
+    const a = (archived || []).find(x => x.id === id);
+    if (!a) return;
+    if (btn) btn.disabled = true;
+    try {
+        await db.runTransaction(async tx => {
+            const ref = archiveRef().doc(id);
+            const s = await tx.get(ref);
+            if (!s.exists) return;
+            const d = Object.assign({}, s.data());
+            ARCHIVE_META.forEach(k => { delete d[k]; });
+            d.archiveKeep = GroupPrefs.todayYmd();
+            tx.set(playersRef.doc(id), d);
+            tx.delete(ref);
+        });
+        showToast(`↩️ ${a.name} חזר לסגל`, 'success');
+    } catch (e) {
+        if (btn) btn.disabled = false;
+        alert('לא נשמר: ' + AdminAuth.errorMessage(e));
     }
 }
 
@@ -5641,9 +5898,9 @@ function renderActCard() {
     list.innerHTML = items.map(({ p, s }) => {
         const cls = s.kind === 'risk' ? 'is-risk' : s.kind === 'away' ? 'is-away' : 'is-down';
         const btn = s.kind === 'risk'
-            ? `<button type="button" class="act-alt" onclick="openAway('${p.id}')">⏸️ נעדר באישור</button>`
+            ? `<button type="button" class="act-alt" onclick="openAwaySheet('${p.id}')">⏸️ נעדר באישור</button>`
             : s.kind === 'away'
-                ? `<button type="button" class="act-alt" onclick="startEditById('${p.id}')">✏️ עריכה</button>`
+                ? `<button type="button" class="act-alt" onclick="openAwaySheet('${p.id}')">⏸️ שינוי</button>`
                 : `<button type="button" class="yr-ok" onclick="restoreActive('${p.id}', this)">↩️ להחזיר</button>`;
         return `<div class="yr-item act-item ${cls}" data-pid="${p.id}"><div class="yr-tx"><b>${escAdminText(p.name)}</b><small>${escAdminText(activityStatusText(p))}</small></div>${btn}</div>`;
     }).join('');
@@ -5662,14 +5919,107 @@ async function restoreActive(id, btn) {
     }
 }
 
-// פותח את הכרטיס של השחקן עם "נעדר באישור" מסומן (עוד לא נשמר)
-function openAway(id) {
-    startEditById(id);
-    if (document.getElementById('pAway').value !== 'true') toggleAway();
+// ===== "⏸️ נעדר באישור" בחלונית קטנה, מהכרטיסים בלשונית הסגל: לכמה זמן, אישור, ונשמר במקום =====
+// אותם שינויים בכרטיס כמו בטופס השחקן (activityFormPatch): מי שירד אוטומטית חוזר להיות פעיל וסופרים לו מהיום
+let awaySheetId = null;
+function awaySheetMode() {
+    const r = document.querySelector('input[name="awaySheetMode"]:checked');
+    return r && r.value === 'return' ? 'return' : 'date';
+}
+function setAwaySheetMode(mode) {
+    document.querySelectorAll('input[name="awaySheetMode"]').forEach(r => { r.checked = r.value === mode; });
+}
+function openAwaySheet(id) {
+    const p = players.find(x => x.id === id);
+    if (!p || !isAdminNow()) return;
+    awaySheetId = id;
+    const ex = excusedNow(p);
+    document.getElementById('awaySheetWho').textContent = ex ? `${p.name} נעדר באישור. לשנות?` : `לכמה זמן ${p.name} נעדר?`;
+    document.getElementById('awaySheetSub').textContent = awaySubText();
+    const dateEl = document.getElementById('awaySheetUntil');
+    dateEl.min = GroupPrefs.todayYmd();
+    dateEl.value = ex && ex.until ? ex.until : GroupPrefs.todayYmd(Date.now() + 14 * 864e5);
+    setAwaySheetMode(ex && !ex.until ? 'return' : 'date');
+    document.getElementById('awaySheetEnd').hidden = !ex;
+    document.getElementById('awaySheetErr').textContent = '';
+    document.getElementById('awaySheetOk').disabled = false;
+    syncAwaySheet();
+    document.getElementById('awaySheetOverlay').style.display = 'flex';
     setTimeout(() => {
-        const row = document.getElementById('awayRow');
-        if (row && !row.hidden) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 350);
+        const first = document.querySelector('#awaySheetOverlay .away-quick button[aria-pressed="true"]') || document.getElementById('awaySheetOk');
+        if (first) first.focus();
+    }, 30);
+}
+function closeAwaySheet() {
+    document.getElementById('awaySheetOverlay').style.display = 'none';
+    awaySheetId = null;
+}
+// הכפתור המהיר שמתאים לתאריך שנבחר נראה לחוץ
+function syncAwaySheet() {
+    const mode = awaySheetMode(), v = document.getElementById('awaySheetUntil').value;
+    document.querySelectorAll('#awaySheetOverlay .away-quick button').forEach(b => {
+        b.setAttribute('aria-pressed', String(mode === 'date' && v === GroupPrefs.todayYmd(Date.now() + Number(b.dataset.days) * 864e5)));
+    });
+    document.getElementById('awaySheetErr').textContent = '';
+}
+function pickAwaySheetDays(n) {
+    document.getElementById('awaySheetUntil').value = GroupPrefs.todayYmd(Date.now() + n * 864e5);
+    setAwaySheetMode('date');
+    syncAwaySheet();
+}
+function pickAwaySheetDate() {
+    setAwaySheetMode('date');
+    syncAwaySheet();
+}
+// השינויים בכרטיס. until = יום, או null = עד שיירשם שוב. null = אין מה לשנות
+function awayPatch(before, until) {
+    const today = GroupPrefs.todayYmd(), patch = {};
+    const old = excusedNow(before);
+    if (!old || (old.until || null) !== until) patch.excused = { at: today, until };
+    if (before.autoOff) {
+        patch.autoOff = firebase.firestore.FieldValue.delete();
+        patch.actFrom = today;
+        if (!before.isActive) patch.isActive = true;
+    }
+    return Object.keys(patch).length ? patch : null;
+}
+async function saveAwaySheet() {
+    const p = players.find(x => x.id === awaySheetId);
+    if (!p) { closeAwaySheet(); return; }
+    const err = document.getElementById('awaySheetErr'), btn = document.getElementById('awaySheetOk');
+    const mode = awaySheetMode(), until = document.getElementById('awaySheetUntil').value, today = GroupPrefs.todayYmd();
+    if (mode === 'date' && (GroupPrefs.ymdToMs(until) == null || until < today)) {
+        err.textContent = 'בחר תאריך מהיום והלאה, או "עד שיחזור להירשם"';
+        return;
+    }
+    const u = mode === 'date' ? until : null;
+    const patch = awayPatch(p, u);
+    if (!patch) { closeAwaySheet(); return; }
+    btn.disabled = true;
+    try {
+        await playersRef.doc(p.id).update(patch);
+        closeAwaySheet();
+        showToast(u ? `⏸️ ${p.name} נעדר באישור עד ${fmtDayMonth(u)}` : `⏸️ ${p.name} נעדר באישור עד שיחזור להירשם`, 'success');
+    } catch (e) {
+        btn.disabled = false;
+        err.textContent = 'לא נשמר: ' + AdminAuth.errorMessage(e);
+    }
+}
+// סיום ההיעדרות לפני הזמן: סופרים לו מהיום, כמו כשהיא נגמרת לבד
+async function endAwaySheet() {
+    const p = players.find(x => x.id === awaySheetId);
+    if (!p) { closeAwaySheet(); return; }
+    const btn = document.getElementById('awaySheetEnd');
+    btn.disabled = true;
+    try {
+        await playersRef.doc(p.id).update({ excused: firebase.firestore.FieldValue.delete(), actFrom: GroupPrefs.todayYmd() });
+        closeAwaySheet();
+        showToast(`⏸️ ההיעדרות של ${p.name} הסתיימה`, 'success');
+    } catch (e) {
+        document.getElementById('awaySheetErr').textContent = 'לא נשמר: ' + AdminAuth.errorMessage(e);
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 // ========== בקשות לחבר כרטיס (למנהלים, בלשונית הסגל) ==========
