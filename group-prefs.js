@@ -323,6 +323,57 @@
         return out({ kind: 'ok', last: dayYmd(last), reg });
     }
 
+    // ===== ארכיון אוטומטי: מי שלא נרשם חודש עובר לארכיון, שרק המנהלים רואים ומחזירים ממנו =====
+    // נשמר ב-settings.archive = { on, since: היום שבו הודלק }. הבדיקה רצה כשמנהל פותח את דף הקבוצה, כמו "פעיל"
+    const ARCHIVE_DAYS = 30, ARCHIVE_WARN_DAYS = 7, ARCHIVE_MIN_GAMES = 2;
+    function archivePrefs(groupData) {
+        const a = groupData && groupData.settings && groupData.settings.archive;
+        const on = !!(a && a.on === true && ymdToMs(a.since) != null);
+        return { on, since: on ? a.since : '' };
+    }
+    // מה קורה עם שחקן אחד. data = activityData (ההרשמות), ובו from = מספר היום הראשון שההרשמות שלו נקראו.
+    //   off  — הארכיון כבוי, או שהשחקן "⏸️ נעדר באישור" (away: true)
+    //   ok   — נרשם בחודש האחרון, או שלא היו מאז לפחות 2 משחקים (הפסקה, או קבוצה שלא נרשמת דרך האתר)
+    //   warn — יעבור לארכיון ב-at, אם לא יירשם עד אז
+    //   move — עובר עכשיו
+    // last = היום האחרון שנספר לו: הרשמה (reg = יום ההרשמה האחרונה, או '' אם לא נרשם בתקופה שנקראה),
+    // תאריך ההצטרפות, archiveKeep ("להשאיר", או חזרה מהארכיון), actFrom, או סוף היעדרות באישור.
+    // מי שלא נרשם בכל התקופה שנקראה (fromStart: true) נחשב כמי שלא נרשם לפחות מאז from. תמיד שבוע אזהרה, גם ביום שהארכיון הודלק
+    function archivePlan(cfg, p, data, nowMs) {
+        const since = dayNum(cfg && cfg.on ? cfg.since : null);
+        if (since == null || !p || !p.id) return { kind: 'off' };
+        const today = dayNum(nowMs == null ? Date.now() : nowMs);
+        const acts = ((data && data.acts) || {})[p.id] || [];
+        const from = data && Number.isFinite(data.from) ? data.from : null;
+        const reg = acts.length ? acts[acts.length - 1] : null;
+        let last = reg != null ? reg : -Infinity;
+        const bump = v => { const n = dayNum(v); if (n != null && n > last) last = n; };
+        bump(p.joinDate); bump(p.archiveKeep); bump(p.actFrom);
+        const ex = p.excused && typeof p.excused === 'object' ? p.excused : null;
+        if (ex) {
+            const until = ex.until ? dayNum(ex.until) : null;
+            if (until != null) {
+                if (until >= today) return { kind: 'off', away: true };
+                if (until > last) last = until;
+            } else if (!ex.until) {   // עד שיירשם שוב: נגמר בהרשמה הראשונה אחרי שסומן
+                const at = dayNum(ex.at);
+                if (!acts.some(a => at == null || a > at)) return { kind: 'off', away: true };
+            }
+        }
+        if (!Number.isFinite(last)) {
+            if (from == null) return { kind: 'ok' };   // אין שום מידע: לא נוגעים
+            last = from;
+        }
+        // לא נרשם בכל התקופה שנקראה: לא יודעים מתי נרשם לאחרונה, רק שזה היה לפני from
+        const fromStart = reg == null && from != null && last <= from;
+        const base = { last: dayYmd(last), reg: reg != null ? dayYmd(reg) : '', fromStart };
+        const missed = ((data && data.games) || []).filter(g => g.n > last && g.n <= today).length;
+        const at = Math.max(last + ARCHIVE_DAYS, since + ARCHIVE_WARN_DAYS);
+        if (missed < ARCHIVE_MIN_GAMES || today < at - ARCHIVE_WARN_DAYS) return Object.assign({ kind: 'ok' }, base);
+        if (today >= at) return Object.assign({ kind: 'move' }, base);
+        return Object.assign({ kind: 'warn', at: dayYmd(at) }, base);
+    }
+
     // ===== הוספת כמה שחקנים בבת אחת: רשימת שמות מודבקת, גם מהוואטסאפ =====
     const PLAYER_NAME_MAX = 40;
     const BULK_MAX = 100;
@@ -833,6 +884,7 @@
         validNewWeeks, DEFAULT_NEW_WEEKS, NEW_WEEKS_MAX,
         validActiveWeeks, validBackWeeks, ACTIVE_WEEKS_MAX, DEFAULT_BACK_WEEKS, BACK_WEEKS_MAX,
         dayNum, dayYmd, activityData, activityPlan,
+        archivePrefs, archivePlan, ARCHIVE_DAYS, ARCHIVE_WARN_DAYS, ARCHIVE_MIN_GAMES,
         ymdToMs, todayYmd, daysInGroup, isFreshNew, freshDaysLeft, weeksText, durationText,
         cleanPlayerName, playerNameKey, parsePlayerList, PLAYER_NAME_MAX, BULK_MAX,
         DAY_NAMES, DAY_SHORT, LEVELS, CITIES,
