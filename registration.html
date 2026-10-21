@@ -203,6 +203,8 @@
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:active, .autocomplete-item:hover { background: rgba(77,124,255,0.1); }
         .autocomplete-item.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+        .autocomplete-item.ac-note { display: block; color: var(--muted); cursor: default; font-size: 0.82rem; line-height: 1.55; }
+        .autocomplete-item.ac-note:hover, .autocomplete-item.ac-note:active { background: none; }
 
         .ac-avatar {
             width: 38px; height: 38px; border-radius: 50%;
@@ -1002,7 +1004,10 @@ function onSearchFocus() {
 function renderAutocomplete(results, query) {
     const list = document.getElementById('autocompleteList');
     if (results.length === 0) {
-        list.innerHTML = `<div class="autocomplete-item" style="color:var(--muted); cursor:default;">לא נמצאו שחקנים תואמים</div>`;
+        // בקבוצה עם ארכיון: מי שלא נרשם חודש לא מופיע כאן, אז אומרים לו למי לפנות
+        const arch = groupData && groupData.settings && groupData.settings.archive && groupData.settings.archive.on === true;
+        list.innerHTML = `<div class="autocomplete-item" style="color:var(--muted); cursor:default;">לא נמצאו שחקנים תואמים</div>`
+            + (arch ? `<div class="autocomplete-item ac-note">לא מוצא את השם שלך? אם לא נרשמת חודש, הכרטיס עבר לארכיון. בקש מהמנהל להחזיר אותך.</div>` : '');
         list.classList.add('visible');
         return;
     }
