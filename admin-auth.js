@@ -524,6 +524,8 @@
         }
         // בקשות של שחקנים לחבר פרופיל לכרטיס (שם, תמונה ותאריך לידה) — נמחקות עם הקבוצה
         await collect(groupRef.collection('links')).catch(() => null);
+        // הארכיון: כרטיסים של מי שלא נרשם חודש (רק מנהלים קוראים אותו)
+        await collect(groupRef.collection('archive')).catch(() => null);
         // הסיסמה הישנה של קבוצות ותיקות — רק מנהל-העל רשאי לקרוא ולמחוק אותה
         if (isSuperAdmin(u)) await collect(groupRef.collection('private')).catch(() => null);
 
