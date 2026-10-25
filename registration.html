@@ -1176,6 +1176,18 @@ function promotePlan(entries) {
     const free = maxPlayers - entries.filter(r => !r.isWaiting).length;
     return free > 0 ? entries.filter(r => r.isWaiting).sort(byPriority).slice(0, free) : [];
 }
+// רשימה מלאה שלא לפי סדר העדיפות הנוכחי (למשל אחרי שהמנהל שינה את הכללים, כשכבר נרשמו): מי צריך להיכנס מההמתנה
+// ומי לעבור אליה במקומו. כמו בהרשמה רגילה: ב-4 השעות שלפני המשחק אף אחד לא נדחק, ובאותה עדיפות מי שנרשם קודם
+function reorderPlan(entries) {
+    const none = { up: [], down: [] };
+    if (!prioCfg || prioCfg.mode !== 'rules' || isWithin4Hours()) return none;
+    const confirmed = entries.filter(r => !r.isWaiting);
+    if (confirmed.length !== maxPlayers || confirmed.length === entries.length) return none;
+    const inIdeal = new Set(entries.slice().sort(byPriority).slice(0, maxPlayers).map(r => r.id));
+    const up = entries.filter(r => r.isWaiting && inIdeal.has(r.id)).sort(byPriority);
+    const down = confirmed.filter(r => !inIdeal.has(r.id)).sort(byPriority);
+    return up.length && up.length === down.length ? { up, down } : none;
+}
 // תיקון אוטומטי (Self-Healing): יותר מאושרים מהמקסימום, העודף עובר להמתנה (חוקי האבטחה מתירים לכל אחד להעביר
 // שחקן להמתנה). קורה כששניים נרשמים באותו רגע על המקום האחרון, כשהמנהל הקטין את מספר השחקנים, או ברשימה מלפני
 // התיקון. כל דף פתוח מתקן, תמיד לפי ההגדרות והרשימה שבשרת ברגע התיקון: דף שנפתח לפני שהמנהל הגדיל את הקבוצות
@@ -1324,20 +1336,33 @@ function renderPlayerRow(r, pos, isWaiting) {
 // ===== מנהל: מקומות פנויים כשיש ממתינים =====
 // למשל אחרי שהמנהל הגדיל את מספר הקבוצות או השחקנים. רק מנהל יכול להעלות שחקן מההמתנה (חוקי האבטחה),
 // ולכן רק הוא רואה את זה, עם כפתור שמעלה את הבאים בתור בלחיצה אחת
-let listFixKey = '', listFixIds = '';
+// וגם: רשימה מלאה שלא לפי סדר העדיפות (reorderPlan), עם כפתור שמסדר אותה
+let listFixKey = '', listFixIds = '', listFixMode = '';
 function firstName(name) { return String(name || '').trim().split(/\s+/)[0] || 'השחקן'; }
 const idsOf = list => list.map(r => r.id).sort().join(',');
-function renderListFix() {
+const reorderIds = ro => idsOf(ro.up) + '>' + idsOf(ro.down);
+// list: הרשימה כפי שנקראה עכשיו מהשרת (כשהיא חדשה יותר ממה שעל המסך), אחרת הרשימה שעל המסך
+function renderListFix(list) {
     const box = document.getElementById('listFix');
     if (!box) return;
-    const up = isAdmin ? promotePlan(registrations) : [];
-    listFixIds = idsOf(up);
-    if (!up.length) { listFixKey = ''; box.hidden = true; box.innerHTML = ''; return; }
-    const confirmedN = registrations.filter(r => !r.isWaiting).length;
-    const waitingN = registrations.length - confirmedN;
-    const key = listFixIds + '|' + confirmedN + '|' + waitingN + '|' + maxPlayers;
+    const regs = Array.isArray(list) ? list : registrations;
+    const up = isAdmin ? promotePlan(regs) : [];
+    const ro = isAdmin && !up.length ? reorderPlan(regs) : { up: [], down: [] };
+    listFixMode = up.length ? 'promote' : ro.up.length ? 'reorder' : '';
+    listFixIds = listFixMode === 'promote' ? idsOf(up) : listFixMode === 'reorder' ? reorderIds(ro) : '';
+    if (!listFixMode) { listFixKey = ''; box.hidden = true; box.innerHTML = ''; return; }
+    const confirmedN = regs.filter(r => !r.isWaiting).length;
+    const waitingN = regs.length - confirmedN;
+    const key = listFixMode + '|' + listFixIds + '|' + confirmedN + '|' + waitingN + '|' + maxPlayers;
     if (key === listFixKey) return;   // בלי לצייר מחדש: הכפתור לא קופץ, וקורא המסך לא מכריז שוב
     listFixKey = key;
+    if (listFixMode === 'reorder') {
+        const n = ro.up.length, names = list => list.map(r => escHtml(r.name)).join(', ');
+        box.innerHTML = `<div class="list-fix-tx"><b>הרשימה לא לפי סדר העדיפות</b>נכנסים: ${names(ro.up)}. עוברים להמתנה: ${names(ro.down)}.</div>`
+            + `<button type="button" class="list-fix-btn" id="listFixBtn" onclick="applyListFix()">${n === 1 ? 'החלף ביניהם' : 'סדר לפי העדיפות'}</button>`;
+        box.hidden = false;
+        return;
+    }
     const free = maxPlayers - confirmedN, one = up.length === 1;
     const names = up.map(r => escHtml(r.name)).join(', ');
     const title = `יש ${free === 1 ? 'מקום פנוי' : free + ' מקומות פנויים'} ו${waitingN === 1 ? 'ממתין אחד' : '-' + waitingN + ' ממתינים'}`;
@@ -1348,17 +1373,37 @@ function renderListFix() {
 }
 async function applyListFix() {
     if (!isAdmin || !listFixIds) return;
-    const ids = listFixIds;
+    const ids = listFixIds, mode = listFixMode;
     const btn = document.getElementById('listFixBtn');
-    if (!confirm((btn ? btn.textContent : 'להעלות מההמתנה') + '?')) return;
+    if (mode === 'reorder') {
+        const ro = reorderPlan(registrations);
+        const names = list => list.map(r => r.name).join(', ');
+        if (!confirm(`להכניס את ${names(ro.up)}, ולהעביר להמתנה את ${names(ro.down)}?`)) return;
+    } else if (!confirm((btn ? btn.textContent : 'להעלות מההמתנה') + '?')) return;
     if (btn) btn.disabled = true;
     try {
-        // שוב מול השרת: אם הרשימה השתנתה מאז שהוצגה, לא מעלים מישהו אחר ממה שהמנהל אישר
+        // שוב מול השרת: אם הרשימה השתנתה מאז שהוצגה, לא מזיזים מישהו אחר ממה שהמנהל אישר
         const [entries] = await Promise.all([fetchEntries(), refreshGroupSettings()]);
+        if (mode === 'reorder') {
+            const ro = reorderPlan(entries);
+            if (!ro.up.length || reorderIds(ro) !== ids) {
+                listFixKey = '';
+                renderListFix(entries);
+                showToast(ro.up.length ? 'הרשימה השתנתה, בדוק שוב' : 'הרשימה כבר לפי סדר העדיפות ✅', ro.up.length ? 'info' : 'success');
+                return;
+            }
+            const batch = db.batch();
+            ro.up.forEach(r => batch.update(entriesCol().doc(r.id), { isWaiting: false }));
+            ro.down.forEach(r => batch.update(entriesCol().doc(r.id), { isWaiting: true }));
+            await batch.commit();
+            showToast(ro.up.length === 1 ? `${firstName(ro.up[0].name)} נכנס, ${firstName(ro.down[0].name)} עבר להמתנה ✅`
+                : `הרשימה מסודרת לפי העדיפות: ${ro.up.length} נכנסו, ${ro.down.length} עברו להמתנה ✅`, 'success');
+            return;
+        }
         const up = promotePlan(entries);
         if (idsOf(up) !== ids) {
             listFixKey = '';
-            renderListFix();
+            renderListFix(entries);
             showToast(up.length ? 'הרשימה השתנתה, בדוק שוב' : 'הרשימה כבר מלאה ✅', up.length ? 'info' : 'success');
             return;
         }
