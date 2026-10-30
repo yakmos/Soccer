@@ -27,7 +27,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="admin-auth.js"></script>
-    <script src="group-prefs.js?v=20261024"></script>
+    <script src="group-prefs.js?v=20261030"></script>
     <script src="reg-auto.js?v=1"></script>
     <script src="reg-ring.js?v=20261014b"></script>
 
@@ -222,6 +222,8 @@
         /* 🌱 חדש לגמרי: מסומן "חדש" ועוד לא עברו השבועות הראשונים בקבוצה (GroupPrefs.isFreshNew) */
         .badge-fresh   { display:inline-flex; align-items:center; gap:3px; background:rgba(59,130,246,0.06); color:#93C5FD; border:1px dashed rgba(59,130,246,0.45); padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
         .badge-resident{ display:inline-flex; align-items:center; gap:3px; background:var(--resident-dim); color:var(--resident-color); border:1px solid var(--resident-border); padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
+        /* 💰 שילם: כשכלל העדיפות "שילם" פועל (השם המלא בכללים שמעל הרשימה) */
+        .badge-paid    { display:inline-flex; align-items:center; gap:3px; background:rgba(45,212,191,0.12); color:#2DD4BF; border:1px solid rgba(45,212,191,0.3); padding:1px 7px; border-radius:6px; font-size:0.7rem; font-weight:800; letter-spacing:0.3px; }
 
         .ac-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
         .ac-status { font-size: 0.75rem; font-weight: 800; color: var(--primary); }
@@ -858,6 +860,7 @@ function getEntryBadgesHTML(entry) {
             : `<span class="badge-new">🆕 חדש</span>`;
     }
     if (live.isMoshavResident && priorityLabel) b += `<span class="badge-resident">🏠 ${escHtml(priorityLabel)}</span>`;
+    if (live.paid && cfg.paid) b += `<span class="badge-paid" title="${escHtml(cfg.paid)}">💰 שילם</span>`;
     return b;
 }
 
@@ -1236,6 +1239,7 @@ async function registerPlayer() {
             isActive: !!regPlayer.isActive,
             isNew: !!regPlayer.isNew,
             isMoshavResident: !!regPlayer.isMoshavResident,
+            paid: !!regPlayer.paid,
             isGk: !!regPlayer.isGk,
             birthDate: regPlayer.birthDate || null,
             attScore: regPlayer.attScore || 5,
