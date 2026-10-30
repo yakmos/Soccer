@@ -30,6 +30,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20261021"></script>
     <script src="group-prefs.js?v=20261030"></script>
+    <script src="share-card.js?v=20261030"></script>
     <script src="map-kit.js?v=20261014b"></script>
     <script src="profile-kit.js?v=20261014b"></script>
     <script src="tour.js?v=20261014b"></script>
@@ -4905,7 +4906,7 @@ function displayTeams(teams, gkIds, hasFixedGk, wins) {
 
     content += `</div>
         <div id='shareButtonsBox' style='margin-top:20px; display:flex; flex-direction:column; gap:8px;'>
-            <button class='btn btn-whatsapp' onclick='shareImageToWhatsApp()'>שתף תמונה 📸</button>
+            <button class='btn btn-whatsapp' id='shareCardBtn' onclick='shareTeamsCard(this)'>📸 שליחת הקבוצות לוואטסאפ</button>
             <button class='btn btn-whatsapp' onclick='captureTeamImages()'>צילום לכל קבוצה בנפרד 📷📷📷</button>
         </div>`;
 
@@ -4964,19 +4965,42 @@ async function captureTeamImages() {
     }
 }
 
-async function shareImageToWhatsApp() {
-    const r = document.getElementById('results'), b = document.getElementById('shareButtonsBox');
-    b.style.display = 'none'; const wasAdmin = document.body.classList.contains('is-admin'); document.body.classList.remove('is-admin');
-    const bg = r.style.backgroundColor; r.style.backgroundColor = '#111748'; r.style.padding = '20px'; r.style.borderRadius = '16px';
+// תמונת הקבוצות לוואטסאפ (share-card.js): השחקנים לפי התפקידים שבכרטיסים, ובתחתית הקישור לאתר
+const SHARE_TEAM_NAMES = ["קבוצה כחולה","קבוצה שחורה","קבוצה צהובה","קבוצה אדומה","קבוצה ירוקה"];
+const SHARE_TEAM_COLORS = ['#3B82F6','#6B7280','#EAB308','#EF4444','#10B981'];
+function shareCardData() {
+    const teams = (activeTeams || []).map((t, i) => {
+        const isFixed = activeHasFixedGk ? !!activeHasFixedGk[i] : false;
+        const gkId = activeGkIds ? activeGkIds[i] : null;
+        const roles = isFixed ? assignRoles(t, gkId) : assignRolesNoGk(t, gkId);
+        const players = Object.entries(roles).filter(([, p]) => p && p.name)
+            .map(([r, p]) => ({ name: p.name, role: r === 'שוער' ? 'שוער' : r.split(' ')[0] }));
+        return { name: SHARE_TEAM_NAMES[i] || `קבוצה ${i + 1}`, color: SHARE_TEAM_COLORS[i] || '#10B981', players };
+    });
+    return {
+        group: (currentGroupData && currentGroupData.name) || '',
+        title: 'הקבוצות להיום',
+        date: new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }),
+        teams,
+        cta: 'רוצים כזה לקבוצה שלכם? פותחים קבוצה בחינם',
+        link: 'yakmos.github.io/Soccer'
+    };
+}
+async function shareTeamsCard(btn) {
+    if (!activeTeams || !window.ShareCard) return;
+    const label = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'מכין את התמונה…'; }
     try {
-        const canvas = await html2canvas(r, {scale:2, useCORS:true, backgroundColor:'#111748'});
-        b.style.display = 'block'; if(wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor = bg; r.style.padding = '0';
-        canvas.toBlob(async (blob) => {
-            const file = new File([blob], "lineups.png", {type:"image/png"});
-            if (navigator.canShare && navigator.canShare({files:[file]})) { try { await navigator.share({files:[file], title:'תוצאות הערב'}); } catch(err){} }
-            else { const link = document.createElement('a'); link.download='הרכבים.png'; link.href=canvas.toDataURL('image/png'); link.click(); }
-        });
-    } catch(e) { b.style.display='block'; if(wasAdmin) document.body.classList.add('is-admin'); r.style.backgroundColor=bg; r.style.padding='0'; }
+        const blob = await ShareCard.teamsImage(shareCardData());
+        const res = await ShareCard.share({ blob, filename: 'teams.png', title: 'הקבוצות להיום',
+            text: `⚽ הקבוצות להיום\n${location.origin}${location.pathname}?group=${encodeURIComponent(currentGroupId)}` });
+        if (res === 'downloaded') showToast('📥 התמונה ירדה למכשיר. אפשר לצרף אותה בוואטסאפ', 'success');
+    } catch (e) {
+        console.error('share card failed', e);
+        showToast('לא הצלחנו להכין את התמונה, נסה שוב', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
 }
 
 // ========== History ==========
