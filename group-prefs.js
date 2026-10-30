@@ -19,12 +19,16 @@
     }
 
     // ===== מי נכנס כשההרשמה מלאה (settings.regPriority) =====
-    // mode 'first' = כל הקודם זוכה. mode 'rules' = לפי הכללים שסומנו, בסדר החשיבות הזה:
+    // mode 'first' = כל הקודם זוכה. mode 'rules' = לפי הכללים שסומנו, בסדר שהמנהל קבע (order, מהחשוב ביותר).
+    // כל כלל מכריע רק בין מי ששווים בכל הכללים שמעליו. הכללים:
     //   active  — שחקן פעיל (מסומן בכרטיס) לפני שחקן לא פעיל
     //   veteran — ותיק לפני חדש
-    //   label   — מי שמסומן בקבוצת העדיפות (למשל "תושב מגדים"). כשהכלל "פעילים" פועל, זה עוזר רק לשחקן פעיל,
-    //             וכשהכלל "ותיקים" פועל — רק לשחקן חדש (הוותיקים ממילא קודמים)
+    //   label   — מי שמסומן בקבוצת העדיפות (למשל "תושב מגדים"). מתחת ל"פעילים" זה עוזר רק לשחקן פעיל,
+    //             ומתחת ל"ותיקים" — רק לשחקן חדש (כמו שהיה תמיד: הוותיקים ממילא קודמים)
+    //   paid    — מי שמסומן בכרטיס ששילם (paid). את השם קובע המנהל (paidText, למשל "שילם על כדורים")
     //   age     — מגיל ageMin ומעלה. בלי תאריך לידה נחשבים צעירים
+    // קבוצה בלי order ממשיכה בסדר שהיה קבוע עד אז: פעילים, ותיקים, קבוצת העדיפות, גיל
+    // (labelFirst = קבוצת העדיפות לפני הוותיקים). כלל שנוסף אחרי שהסדר נשמר נכנס בסוף.
     // בכלל "ותיקים" יש גם מדרגה בתוך החדשים (newWeeks): מי שמסומן 🆕 ובקבוצה פחות מ-newWeeks שבועות לפי תאריך
     // ההצטרפות בכרטיס ("חדש לגמרי") נכנס אחרי שאר החדשים. המדרגה הזו קודמת לקבוצת העדיפות: חדש שבקבוצה כבר
     // חודשיים נכנס לפני תושב שהגיע לפני שבועיים, ובתוך כל מדרגה התושבים קודם.
@@ -37,6 +41,27 @@
     const DEFAULT_NEW_WEEKS = 6, NEW_WEEKS_MAX = 26;   // 0 = בלי מדרגה בתוך החדשים
     const ACTIVE_WEEKS_MAX = 8;                         // 0 = "פעיל" רק ידנית
     const DEFAULT_BACK_WEEKS = 3, BACK_WEEKS_MAX = 8;
+    const PRIORITY_KEYS = ['active', 'label', 'paid', 'veteran', 'age'];
+    const DEFAULT_PAID_TEXT = 'שילם', PAID_TEXT_MAX = 30;
+
+    // הסדר המלא של הכללים (כל כלל פעם אחת, גם כבויים). בלי סדר שמור: הסדר הקבוע שהיה עד אז
+    function priorityOrder(order, labelFirst) {
+        const out = [];
+        const add = k => { if (PRIORITY_KEYS.indexOf(k) !== -1 && out.indexOf(k) === -1) out.push(k); };
+        if (Array.isArray(order)) order.forEach(add);
+        if (!out.length) (labelFirst ? ['active', 'label', 'veteran', 'age'] : ['active', 'veteran', 'label', 'age']).forEach(add);
+        PRIORITY_KEYS.forEach(add);
+        return out;
+    }
+    function cleanPaidText(s) { return typeof s === 'string' ? s.trim().slice(0, PAID_TEXT_MAX) : ''; }
+    function ruleOn(cfg, k) {
+        return !!(k === 'active' ? cfg.active : k === 'label' ? cfg.label : k === 'paid' ? cfg.paid
+            : k === 'veteran' ? cfg.veteran : k === 'age' ? cfg.age : false);
+    }
+    // הכללים שפועלים, לפי הסדר
+    function ruleOrder(cfg) {
+        return cfg ? priorityOrder(cfg.order, cfg.labelFirst).filter(k => ruleOn(cfg, k)) : [];
+    }
 
     function validPriorityAge(n) {
         const v = Number(n);
@@ -61,16 +86,21 @@
         const labelText = priorityLabel(groupId, groupData);
         const p = s.regPriority;
         if (!p || typeof p !== 'object') {
-            return { mode: 'rules', active: true, veteran: true, label: !!labelText, labelFirst: false, age: true, ageMin: DEFAULT_PRIORITY_AGE,
-                newWeeks: DEFAULT_NEW_WEEKS, activeWeeks: 0, backWeeks: DEFAULT_BACK_WEEKS, activeSince: '', labelText, legacy: true };
+            return { mode: 'rules', active: true, veteran: true, label: !!labelText, labelFirst: false, paid: false, paidText: DEFAULT_PAID_TEXT,
+                age: true, ageMin: DEFAULT_PRIORITY_AGE, newWeeks: DEFAULT_NEW_WEEKS, activeWeeks: 0, backWeeks: DEFAULT_BACK_WEEKS, activeSince: '',
+                labelText, order: priorityOrder(null, false), legacy: true };
         }
+        const order = priorityOrder(p.order, p.labelFirst === true);
         return {
             mode: p.mode === 'rules' ? 'rules' : 'first',
             active: p.active === true,
             veteran: p.veteran === true,
             label: p.label === true,
-            // labelFirst: קבוצת העדיפות לפני הוותיקים (ולא רק בין החדשים)
-            labelFirst: p.labelFirst === true,
+            // labelFirst: קבוצת העדיפות לפני הוותיקים (ולא רק בין החדשים). נגזר מהסדר
+            labelFirst: order.indexOf('label') < order.indexOf('veteran'),
+            paid: p.paid === true,
+            paidText: cleanPaidText(p.paidText) || DEFAULT_PAID_TEXT,
+            order,
             age: p.age === true,
             ageMin: validPriorityAge(p.ageMin) ? Number(p.ageMin) : DEFAULT_PRIORITY_AGE,
             newWeeks: validNewWeeks(p.newWeeks) ? Number(p.newWeeks) : DEFAULT_NEW_WEEKS,
@@ -83,7 +113,8 @@
 
     // הכללים שפועלים בפועל: label = שם קבוצת העדיפות או '' ; age = הגיל או 0 ; newWeeks = מספר השבועות או 0 ;
     // activeWeeks = כמה שבועות בלי הרשמה עד שיורדים מ"פעיל", או 0 (רק ידנית, או שאין תאריך התחלה) ;
-    // labelFirst = קבוצת העדיפות קודמת לוותיקים (רק כששני הכללים פועלים; בלי ותיקים הסדר ממילא זהה)
+    // labelFirst = קבוצת העדיפות קודמת לוותיקים (רק כששני הכללים פועלים; בלי ותיקים הסדר ממילא זהה) ;
+    // paid = השם של כלל התשלום או '' ; order = הסדר המלא (ruleOrder מחזיר רק את מה שפועל)
     function regPriority(groupId, groupData) {
         const p = priorityPrefs(groupId, groupData);
         const on = p.mode === 'rules';
@@ -92,13 +123,15 @@
             veteran: on && p.veteran,
             label: on && p.label ? p.labelText : '',
             labelFirst: !!(on && p.label && p.labelText && p.veteran && p.labelFirst),
+            paid: on && p.paid ? p.paidText : '',
             age: on && p.age ? p.ageMin : 0,
             newWeeks: on && p.veteran ? p.newWeeks : 0,
             activeWeeks: on && p.active && p.activeSince ? p.activeWeeks : 0,
             backWeeks: p.backWeeks,
-            activeSince: p.activeSince
+            activeSince: p.activeSince,
+            order: p.order
         };
-        cfg.mode = (cfg.active || cfg.veteran || cfg.label || cfg.age) ? 'rules' : 'first';
+        cfg.mode = (cfg.active || cfg.veteran || cfg.label || cfg.paid || cfg.age) ? 'rules' : 'first';
         return cfg;
     }
 
@@ -151,50 +184,53 @@
     // דרגת העדיפות של שחקן: מספר קטן יותר = נכנס קודם. 0 לכולם ב"כל הקודם זוכה".
     // player = כרטיס השחקן (הדגלים ותאריך ההצטרפות), age = הגיל בשנים או null,
     // refMs = היום שלפיו בודקים כמה זמן השחקן בקבוצה (בהרשמה: יום המשחק). ברירת מחדל: היום
-    // סדר הכללים: פעילים, ותיקים (ובסוף חדשים לגמרי), קבוצת העדיפות (רק בין החדשים), גיל.
-    // labelFirst: פעילים, קבוצת העדיפות (כל המסומנים, גם ותיקים), ותיקים וחדשים, גיל
+    // כל כלל שפועל הוא ספרה אחת, לפי הסדר (ruleOrder): כלל מכריע רק בין מי ששווים בכל הכללים שמעליו.
+    // ב"ותיקים" יש שתי ספרות: ותיקים, ואז מי שלא "חדש לגמרי"
     function priorityRank(cfg, player, age, refMs) {
         if (!cfg || cfg.mode !== 'rules' || !player) return 0;
         let rank = 0;
         const rule = ok => { rank = rank * 2 + (ok ? 0 : 1); };
-        const first = !!(cfg.labelFirst && cfg.label);
-        if (cfg.active) rule(!!player.isActive);
-        if (first) rule(!!player.isMoshavResident && (!cfg.active || !!player.isActive));
-        if (cfg.veteran) rule(!player.isNew);
-        if (cfg.veteran && cfg.newWeeks) rule(!isFreshNew(cfg, player, refMs));
-        if (cfg.label && !first) rule(!!player.isMoshavResident && (!cfg.active || !!player.isActive) && (!cfg.veteran || !!player.isNew));
-        if (cfg.age) rule(age != null && age >= cfg.age);
+        const order = ruleOrder(cfg);
+        const aboveLabel = k => order.indexOf(k) !== -1 && order.indexOf(k) < order.indexOf('label');
+        order.forEach(k => {
+            if (k === 'active') rule(!!player.isActive);
+            else if (k === 'label') rule(!!player.isMoshavResident
+                && (!aboveLabel('active') || !!player.isActive)       // מתחת ל"פעילים": עוזר רק לשחקן פעיל
+                && (!aboveLabel('veteran') || !!player.isNew));       // מתחת ל"ותיקים": רק בין החדשים
+            else if (k === 'paid') rule(!!player.paid);
+            else if (k === 'veteran') { rule(!player.isNew); if (cfg.newWeeks) rule(!isFreshNew(cfg, player, refMs)); }
+            else if (k === 'age') rule(age != null && age >= cfg.age);
+        });
         return rank;
     }
 
-    // למי עוזר הסימון של קבוצת העדיפות, לפי הכללים האחרים שפועלים
+    // למי עוזר הסימון של קבוצת העדיפות, לפי הכללים שמעליו ומתחתיו
     function priorityLabelScope(cfg) {
-        if (cfg.labelFirst && cfg.label) return cfg.active ? 'מבין השחקנים הפעילים, גם לפני הוותיקים' : 'גם לפני הוותיקים';
-        if (cfg.active && cfg.veteran) return 'מבין השחקנים החדשים והפעילים';
-        if (cfg.veteran) return 'מבין השחקנים החדשים';
-        if (cfg.active) return 'מבין השחקנים הפעילים';
-        return '';
+        if (!cfg) return '';
+        const order = priorityOrder(cfg.order, cfg.labelFirst);
+        const above = k => order.indexOf(k) < order.indexOf('label');
+        const amongNew = !!cfg.veteran && above('veteran'), overVet = !!cfg.veteran && !above('veteran');
+        const amongActive = !!cfg.active && above('active'), overActive = !!cfg.active && !above('active');
+        const parts = [];
+        if (amongNew || amongActive) parts.push('מבין השחקנים ' + (amongNew && amongActive ? 'החדשים והפעילים' : amongNew ? 'החדשים' : 'הפעילים'));
+        if (overActive || overVet) parts.push('גם לפני ' + (overActive && overVet ? 'הפעילים והוותיקים' : overActive ? 'הפעילים' : 'הוותיקים'));
+        return parts.join(', ');
     }
 
     // הכללים שפועלים, בשפה פשוטה ובסדר החשיבות (לדף ההרשמה ולהגדרות)
     function priorityRuleTexts(cfg) {
         if (!cfg || cfg.mode !== 'rules') return [];
-        const out = [];
-        if (cfg.active) out.push(cfg.activeWeeks
-            ? `✅ שחקנים פעילים (מי שלא נרשם ${weeksText(cfg.activeWeeks)} מפסיק להיות פעיל)`
-            : '✅ שחקנים פעילים');
-        const label = () => {
-            const scope = priorityLabelScope(cfg);
-            out.push('🏠 ' + cfg.label + (scope ? ' (' + scope + ')' : ''));
-        };
-        const first = !!(cfg.labelFirst && cfg.label);
-        if (first) label();
-        if (cfg.veteran) out.push(cfg.newWeeks
-            ? `⭐ ותיקים, אחריהם 🆕 חדשים, ובסוף 🌱 חדשים לגמרי (פחות מ-${weeksText(cfg.newWeeks)} בקבוצה)`
-            : '⭐ ותיקים לפני 🆕 חדשים');
-        if (cfg.label && !first) label();
-        if (cfg.age) out.push(`🎂 מגיל ${cfg.age} ומעלה`);
-        return out;
+        return ruleOrder(cfg).map(k => {
+            if (k === 'active') return cfg.activeWeeks
+                ? `✅ שחקנים פעילים (מי שלא נרשם ${weeksText(cfg.activeWeeks)} מפסיק להיות פעיל)`
+                : '✅ שחקנים פעילים';
+            if (k === 'label') { const scope = priorityLabelScope(cfg); return '🏠 ' + cfg.label + (scope ? ' (' + scope + ')' : ''); }
+            if (k === 'paid') return '💰 ' + cfg.paid;
+            if (k === 'veteran') return cfg.newWeeks
+                ? `⭐ ותיקים, אחריהם 🆕 חדשים, ובסוף 🌱 חדשים לגמרי (פחות מ-${weeksText(cfg.newWeeks)} בקבוצה)`
+                : '⭐ ותיקים לפני 🆕 חדשים';
+            return `🎂 מגיל ${cfg.age} ומעלה`;
+        });
     }
 
     // ===== פעילות אוטומטית: מי שלא נרשם activeWeeks שבועות יורד מ"פעיל" =====
@@ -892,6 +928,7 @@
 
     window.GroupPrefs = {
         priorityLabel, priorityPrefs, regPriority, priorityRank, priorityLabelScope, priorityRuleTexts,
+        PRIORITY_KEYS, priorityOrder, ruleOrder, cleanPaidText, DEFAULT_PAID_TEXT, PAID_TEXT_MAX,
         validPriorityAge, DEFAULT_PRIORITY_AGE, PRIORITY_AGE_MIN, PRIORITY_AGE_MAX,
         validNewWeeks, DEFAULT_NEW_WEEKS, NEW_WEEKS_MAX,
         validActiveWeeks, validBackWeeks, ACTIVE_WEEKS_MAX, DEFAULT_BACK_WEEKS, BACK_WEEKS_MAX,
