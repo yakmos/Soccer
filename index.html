@@ -29,7 +29,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
     <script src="admin-auth.js?v=20261021"></script>
-    <script src="group-prefs.js?v=20261024"></script>
+    <script src="group-prefs.js?v=20261030"></script>
     <script src="map-kit.js?v=20261014b"></script>
     <script src="profile-kit.js?v=20261014b"></script>
     <script src="tour.js?v=20261014b"></script>
@@ -149,6 +149,19 @@
         .prio-sent { flex-wrap: wrap; row-gap: 6px; }
         .prio-sent span { white-space: nowrap; }
         .prio-note { margin-top: 8px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.78rem; line-height: 1.5; }
+        /* סדר העדיפויות: מספר לכל כלל שפועל, וחיצים שמזיזים את הכלל ברשימה */
+        .prio-top { display: flex; align-items: center; gap: 8px; }
+        .prio-top .prio-check { flex: 1; min-width: 0; }
+        .prio-num { flex: none; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: rgba(77,124,255,0.18); color: #AFC2FF; font-size: 0.75rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; }
+        .prio-num:empty { display: none; }
+        .prio-move { display: flex; gap: 4px; flex: none; }
+        .prio-move button { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font: 700 0.75rem 'Heebo', sans-serif; cursor: pointer; }
+        .prio-move button:hover:not(:disabled) { color: var(--text-main); border-color: rgba(77,124,255,0.6); }
+        .prio-move button:disabled { opacity: 0.3; cursor: default; }
+        .prio-move button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+        .prio-rule.moved { animation: prioMoved 0.7s ease; }
+        @keyframes prioMoved { from { background: rgba(77,124,255,0.16); } to { background: transparent; } }
+        @media (prefers-reduced-motion: reduce) { .prio-rule.moved { animation: none; } }
 
         /* תפריט הניהול בכותרת */
         .admin-menu { position: fixed; top: 60px; left: 12px; z-index: 300; width: 310px; max-width: calc(100vw - 24px); max-height: calc(100vh - 76px); overflow-y: auto;
@@ -701,6 +714,15 @@
             padding: 1px 7px; border-radius: 6px;
             font-size: 0.7rem; font-weight: 800;
         }
+        /* 💰 שילם (כלל העדיפות "שילם"): רק המנהלים רואים בדף הקבוצה. בדף ההרשמה רואים כולם, כדי שיבינו את הסדר */
+        .badge-paid {
+            display: none; align-items: center; gap: 3px;
+            background: rgba(45,212,191,0.12); color: #2DD4BF;
+            border: 1px solid rgba(45,212,191,0.3);
+            padding: 1px 7px; border-radius: 6px;
+            font-size: 0.7rem; font-weight: 800;
+        }
+        body.is-admin .badge-paid { display: inline-flex; }
         /* 🌱 חדש לגמרי: מסומן "חדש" ועוד לא עברו השבועות הראשונים בקבוצה (GroupPrefs.isFreshNew) */
         .badge-fresh {
             display: inline-flex; align-items: center; gap: 3px;
@@ -763,14 +785,21 @@
         .away-end[hidden] { display: none; }
         /* ארכיון אוטומטי: מי שעוד מעט עובר לארכיון, והארכיון עצמו (למנהלים) */
         .arch-warn-card { border-color: rgba(164,172,220,0.5) !important; }
-        body.is-admin .arch-warn-card[hidden], body.is-admin .archive-card[hidden] { display: none; }
+        body.is-admin .arch-warn-card[hidden], body.is-admin .archive-card[hidden], body.is-admin .paid-card[hidden] { display: none; }
         .arch-acts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: none; max-width: 52%; }
-        .archive-card summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
-        .archive-card summary::-webkit-details-marker { display: none; }
-        .archive-card summary::after { content: '▾'; color: var(--text-muted); transition: transform 0.2s; }
-        .archive-card details[open] summary::after { transform: rotate(180deg); }
-        .archive-card summary .card-title { margin: 0; }
-        .archive-card details[open] .lr-sub { margin-top: 10px; }
+        .archive-card summary, .paid-card summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+        .archive-card summary::-webkit-details-marker, .paid-card summary::-webkit-details-marker { display: none; }
+        .archive-card summary::after, .paid-card summary::after { content: '▾'; color: var(--text-muted); transition: transform 0.2s; }
+        .archive-card details[open] summary::after, .paid-card details[open] summary::after { transform: rotate(180deg); }
+        .archive-card summary .card-title, .paid-card summary .card-title { margin: 0; }
+        .archive-card details[open] .lr-sub, .paid-card details[open] .lr-sub { margin-top: 10px; }
+        /* 💰 מי שילם: לחיצה על שם מסמנת או מבטלת, ונשמרת מיד */
+        .paid-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .paid-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-muted); font: 700 0.9rem 'Heebo', sans-serif; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+        .paid-chip::before { content: '○'; font-size: 0.8em; }
+        .paid-chip[aria-pressed="true"] { background: rgba(45,212,191,0.14); color: #5EEAD4; border-color: rgba(45,212,191,0.45); }
+        .paid-chip[aria-pressed="true"]::before { content: '✓'; }
+        .paid-chip:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
         .arch-hint { display: block; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; margin-top: 6px; padding-right: 28px; }
         .arch-hint b { color: #FCD34D; font-weight: 800; }
 
@@ -1267,10 +1296,19 @@
                                 </div>
                                 <button type="button" id="residentToggleBtn" onclick="togglePriorityFlag()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא תושב</button>
                             </div>
+                            <!-- שילם (כלל העדיפות "שילם": settings.regPriority.paid, והשם ב-paidText) -->
+                            <div id="paidFlagRow" style="display:flex; align-items:center; justify-content:space-between; background:rgba(45,212,191,0.06); border:1px solid rgba(45,212,191,0.2); border-radius:12px; padding:12px 16px;">
+                                <div>
+                                    <div id="paidFlagTitle" style="font-weight:800; color:#2DD4BF; font-size:0.95rem;">💰 שילם?</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">מי ששילם מקבל קדימות בהרשמה</div>
+                                </div>
+                                <button type="button" id="paidToggleBtn" onclick="togglePaidFlag()" style="background:transparent; color:var(--text-muted); border:1px solid var(--border-color); border-radius:8px; padding:4px 10px; font-size:0.8rem; font-weight:800; cursor:pointer; font-family:'Heebo',sans-serif; transition:0.2s;">לא שילם</button>
+                            </div>
                         </div>
                         <input type="hidden" id="pIsActive" value="false">
                         <input type="hidden" id="pIsNew" value="false">
                         <input type="hidden" id="pIsMoshavResident" value="false">
+                        <input type="hidden" id="pPaid" value="false">
                         <!-- Birthday Field -->
         <div class="birthday-field-row" id="birthdayFieldRow">
             <div>
@@ -1390,6 +1428,15 @@
                     <h2 class="card-title">🔗 בקשות לחבר כרטיס <span class="squad-count" id="linkReqCount"></span></h2>
                     <p class="lr-sub">שחקנים שיצרו פרופיל ומבקשים לחבר אותו לכרטיס שלהם בסגל. אחרי האישור הם נרשמים למשחקים בלחיצה אחת.</p>
                     <div id="linkReqList"></div>
+                </div>
+
+                <!-- 💰 מי שילם: כשכלל העדיפות "שילם" פועל. לחיצה על שם מסמנת או מבטלת, ונשמרת מיד (renderPaidCard) -->
+                <div class="card admin-only paid-card" id="paidCard" hidden>
+                    <details id="paidDetails">
+                        <summary><h2 class="card-title">💰 <span id="paidCardTitle">שילם</span> <span class="squad-count" id="paidCount"></span></h2></summary>
+                        <p class="lr-sub">לחיצה על שם מסמנת שהוא שילם, ולחיצה נוספת מבטלת. נשמר מיד.</p>
+                        <div class="paid-list" id="paidList"></div>
+                    </details>
                 </div>
 
                 <div class="card admin-only">
@@ -1738,35 +1785,55 @@
                     <label class="vis-opt"><input type="radio" name="setPrioMode" value="first" onchange="onPrioModeChange()"><b>⏱️ כל הקודם זוכה</b><small>מי שנרשם אחרי שהרשימה התמלאה נכנס להמתנה, לפי הסדר</small></label>
                     <label class="vis-opt"><input type="radio" name="setPrioMode" value="rules" onchange="onPrioModeChange()"><b>⭐ לפי עדיפות</b><small>שחקן בעדיפות גבוהה יותר דוחק להמתנה את מי שנמוך ממנו</small></label>
                 </div>
+                <!-- כל כלל הוא שורה, והסדר שלהן הוא סדר העדיפות (settings.regPriority.order). החיצים מזיזים שורה (movePrioRule) -->
                 <div id="prioRules" class="prio-rules" style="display:none;">
-                    <div class="prio-rules-head">מה נותן עדיפות? מהחשוב ביותר:</div>
-                    <div class="prio-rule">
-                        <label class="prio-check"><input type="checkbox" id="prioActive" onchange="updatePrioForm()"><span>✅ שחקנים פעילים</span></label>
+                    <div class="prio-rules-head">מה נותן עדיפות? מהחשוב ביותר. החיצים משנים את הסדר:</div>
+                    <div class="prio-rule" id="prioActiveRule" data-key="active">
+                        <div class="prio-top">
+                            <label class="prio-check"><input type="checkbox" id="prioActive" onchange="updatePrioForm()"><span class="prio-num" aria-hidden="true"></span><span>✅ שחקנים פעילים</span></label>
+                            <div class="prio-move" role="group" aria-label="המקום של שחקנים פעילים ברשימה"><button type="button" class="prio-up" onclick="movePrioRule(this, -1)" aria-label="להעלות: שחקנים פעילים">▲</button><button type="button" class="prio-down" onclick="movePrioRule(this, 1)" aria-label="להוריד: שחקנים פעילים">▼</button></div>
+                        </div>
                         <small>מסמנים "פעיל" בכרטיס של מי שמגיע באופן קבוע</small>
                         <!-- ספירה אוטומטית לפי ההרשמות (GroupPrefs.activityPlan) -->
                         <div class="prio-age prio-sent"><span>⏳ יורד מ"פעיל" אחרי</span><input type="number" id="prioActiveWeeks" min="0" max="8" step="1" inputmode="numeric" oninput="onPrioActiveWeeksInput()" aria-label="כמה שבועות בלי הרשמה"><span>שבועות בלי הרשמה</span></div>
                         <div class="prio-age prio-sent" id="prioBackRow"><span>↩️ חוזר אחרי</span><input type="number" id="prioBackWeeks" min="1" max="8" step="1" inputmode="numeric" oninput="onPrioActiveWeeksInput()" aria-label="כמה שבועות רצופים של הרשמה"><span>שבועות רצופים של הרשמה</span></div>
                         <small id="prioActiveHint"></small>
                     </div>
-                    <div class="prio-rule" id="prioVeteranRule">
-                        <label class="prio-check"><input type="checkbox" id="prioVeteran" onchange="updatePrioForm()"><span>⭐ ותיקים לפני חדשים</span></label>
+                    <div class="prio-rule" id="prioVeteranRule" data-key="veteran">
+                        <div class="prio-top">
+                            <label class="prio-check"><input type="checkbox" id="prioVeteran" onchange="updatePrioForm()"><span class="prio-num" aria-hidden="true"></span><span>⭐ ותיקים לפני חדשים</span></label>
+                            <div class="prio-move" role="group" aria-label="המקום של ותיקים לפני חדשים ברשימה"><button type="button" class="prio-up" onclick="movePrioRule(this, -1)" aria-label="להעלות: ותיקים לפני חדשים">▲</button><button type="button" class="prio-down" onclick="movePrioRule(this, 1)" aria-label="להוריד: ותיקים לפני חדשים">▼</button></div>
+                        </div>
                         <small>מסמנים "חדש" בכרטיס של מי שהצטרף לאחרונה</small>
                         <div class="prio-age">🌱 חדשים לגמרי: <input type="number" id="prioNewWeeks" min="0" max="26" step="1" inputmode="numeric" oninput="onPrioNewWeeksInput()" aria-label="כמה שבועות"> השבועות הראשונים</div>
                         <small id="prioNewHint">בין המסומנים "חדש", מי שבקבוצה פחות מזה (לפי תאריך ההצטרפות בכרטיס) נכנס אחרון, גם אחרי קבוצת העדיפות. 0 = בלי</small>
                     </div>
-                    <div class="prio-rule" id="prioLabelRule">
-                        <label class="prio-check"><input type="checkbox" id="prioLabel" onchange="onPrioLabelCheck()"><span>🏠 קבוצת עדיפות</span></label>
+                    <div class="prio-rule" id="prioLabelRule" data-key="label">
+                        <div class="prio-top">
+                            <label class="prio-check"><input type="checkbox" id="prioLabel" onchange="onPrioLabelCheck()"><span class="prio-num" aria-hidden="true"></span><span>🏠 קבוצת עדיפות</span></label>
+                            <div class="prio-move" role="group" aria-label="המקום של קבוצת העדיפות ברשימה"><button type="button" class="prio-up" onclick="movePrioRule(this, -1)" aria-label="להעלות: קבוצת עדיפות">▲</button><button type="button" class="prio-down" onclick="movePrioRule(this, 1)" aria-label="להוריד: קבוצת עדיפות">▼</button></div>
+                        </div>
                         <input type="text" id="setPriorityLabel" class="form-input prio-input" maxlength="30" placeholder="שם, לדוגמה: תושב השכונה" oninput="onPrioLabelInput()" aria-label="שם קבוצת העדיפות">
-                        <!-- labelFirst: קבוצת העדיפות לפני הוותיקים (GroupPrefs.priorityRank). השורה עולה מעל הוותיקים -->
-                        <label class="prio-check prio-sub" id="prioLabelFirstRow"><input type="checkbox" id="prioLabelFirst" onchange="onPrioLabelFirst()"><span>⬆️ גם לפני הוותיקים</span></label>
                         <small id="prioLabelHint"></small>
                     </div>
-                    <div class="prio-rule">
-                        <label class="prio-check"><input type="checkbox" id="prioAge" onchange="updatePrioForm()"><span>🎂 מבוגרים קודם</span></label>
+                    <!-- שילם: סימון בכרטיס השחקן (paid). השם לפי הקבוצה (paidText), למשל "שילם על כדורים" -->
+                    <div class="prio-rule" id="prioPaidRule" data-key="paid">
+                        <div class="prio-top">
+                            <label class="prio-check"><input type="checkbox" id="prioPaid" onchange="onPrioPaidCheck()"><span class="prio-num" aria-hidden="true"></span><span>💰 מי ששילם</span></label>
+                            <div class="prio-move" role="group" aria-label="המקום של מי ששילם ברשימה"><button type="button" class="prio-up" onclick="movePrioRule(this, -1)" aria-label="להעלות: מי ששילם">▲</button><button type="button" class="prio-down" onclick="movePrioRule(this, 1)" aria-label="להוריד: מי ששילם">▼</button></div>
+                        </div>
+                        <input type="text" id="setPaidText" class="form-input prio-input" maxlength="30" placeholder="על מה, לדוגמה: שילם על כדורים" oninput="onPrioPaidInput()" aria-label="השם של התשלום">
+                        <small id="prioPaidHint"></small>
+                    </div>
+                    <div class="prio-rule" id="prioAgeRule" data-key="age">
+                        <div class="prio-top">
+                            <label class="prio-check"><input type="checkbox" id="prioAge" onchange="updatePrioForm()"><span class="prio-num" aria-hidden="true"></span><span>🎂 מבוגרים קודם</span></label>
+                            <div class="prio-move" role="group" aria-label="המקום של מבוגרים קודם ברשימה"><button type="button" class="prio-up" onclick="movePrioRule(this, -1)" aria-label="להעלות: מבוגרים קודם">▲</button><button type="button" class="prio-down" onclick="movePrioRule(this, 1)" aria-label="להוריד: מבוגרים קודם">▼</button></div>
+                        </div>
                         <div class="prio-age">מגיל <input type="number" id="prioAgeMin" min="16" max="70" step="1" inputmode="numeric" oninput="onPrioAgeInput()" aria-label="מאיזה גיל"> ומעלה</div>
                         <small>לפי תאריך הלידה בכרטיס. מי שאין לו תאריך נחשב צעיר</small>
                     </div>
-                    <div class="prio-note">בתוך אותה דרגה, מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד כבר לא נדחק להמתנה. השחקנים רואים את הכללים בדף ההרשמה.</div>
+                    <div class="prio-note">כל שורה מכריעה רק בין מי ששווים בכל השורות שמעליה, ובסוף מי שנרשם ראשון. ב-4 השעות שלפני המשחק אף אחד כבר לא נדחק להמתנה. השחקנים רואים את הכללים בדף ההרשמה.</div>
                 </div>
             </div>
             <!-- ארכיון אוטומטי (settings.archive, GroupPrefs.archivePlan) -->
@@ -2452,6 +2519,10 @@ function setPriorityFlagUI(val) {
     const [on, off] = priorityFlagTexts();
     setPlayerFlagUI('isMoshavResident','residentToggleBtn',!!val,on,off,'rgba(252,211,77,0.2)','#FCD34D','rgba(252,211,77,0.4)');
 }
+// 💰 שילם (השדה paid בכרטיס)
+const PAID_FLAG_UI = ['💰 שילם', 'לא שילם', 'rgba(45,212,191,0.2)', '#2DD4BF', 'rgba(45,212,191,0.4)'];
+function togglePaidFlag() { togglePlayerFlag('paid', 'paidToggleBtn', ...PAID_FLAG_UI); }
+function setPaidFlagUI(val) { setPlayerFlagUI('paid', 'paidToggleBtn', !!val, ...PAID_FLAG_UI); }
 
 // בטופס השחקן מופיעים רק הסימונים של כללים שפועלים. סימון שכבר נשמר בכרטיס נשאר בו גם כשהכלל כבוי
 function applyPriorityUI() {
@@ -2459,9 +2530,13 @@ function applyPriorityUI() {
     show('activeFlagRow', prioCfg.active);
     show('newFlagRow', prioCfg.veteran);
     show('priorityFlagRow', !!priorityLabel);
-    show('flagRows', prioCfg.active || prioCfg.veteran || !!priorityLabel);
+    show('paidFlagRow', !!prioCfg.paid);
+    show('flagRows', prioCfg.active || prioCfg.veteran || !!priorityLabel || !!prioCfg.paid);
     const title = document.getElementById('priorityFlagTitle');
     if (title) title.textContent = `🏠 ${priorityLabel}?`;
+    const paidTitle = document.getElementById('paidFlagTitle');
+    if (paidTitle) paidTitle.textContent = `💰 ${prioCfg.paid || GroupPrefs.DEFAULT_PAID_TEXT}?`;
+    renderPaidCard();
     const desc = document.getElementById('priorityFlagDesc');
     if (desc) {
         const scope = GroupPrefs.priorityLabelScope(prioCfg);
@@ -2481,6 +2556,7 @@ function resetAllFlagButtons() {
     setPlayerFlagUI('isActive','activeToggleBtn',false,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
     setPlayerFlagUI('isNew','newToggleBtn',!!(prioCfg && prioCfg.veteran),'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(false);
+    setPaidFlagUI(false);
     setJoinDateField(GroupPrefs.todayYmd());
     fillAwayForm(null);
 }
@@ -2980,6 +3056,7 @@ async function savePlayer() {
     let isActive = document.getElementById('pIsActive').value === 'true';
     const isNew = document.getElementById('pIsNew').value === 'true';
     const isMoshavResident = document.getElementById('pIsMoshavResident').value === 'true';
+    const paid = document.getElementById('pPaid').value === 'true';
     // נעדר באישור, ו"פעיל" שהמנהל שינה בעצמו (הספירה האוטומטית מתחילה מהיום)
     const act = activityFormPatch(editingId ? players.find(x => x.id === editingId) : null, isActive);
     if (act.error) {
@@ -2993,7 +3070,7 @@ async function savePlayer() {
     const lockedParams = hasLocked ? { ...currentLockedParams } : {};
 
     const birthDate = document.getElementById('pBirthDate').value || null;
-    let playerData = { name, isGk, isActive, isNew, isMoshavResident, lockedParams, birthDate };
+    let playerData = { name, isGk, isActive, isNew, isMoshavResident, paid, lockedParams, birthDate };
     // תאריך ההצטרפות: מה שבטופס, ולשחקן חדש בלי תאריך — היום. בעריכה, שדה ריק מוחק תאריך ששמור
     const joinRaw = (document.getElementById('pJoinDate') || {}).value || '';
     const joinDate = GroupPrefs.ymdToMs(joinRaw) != null ? joinRaw : '';
@@ -3113,6 +3190,7 @@ function startEdit(id, p) {
     setPlayerFlagUI('isActive','activeToggleBtn',isActive,'✅ פעיל','לא פעיל','rgba(16,185,129,0.2)','#10B981','rgba(16,185,129,0.4)');
     setPlayerFlagUI('isNew','newToggleBtn',isNew,'🆕 חדש','לא חדש','rgba(59,130,246,0.2)','#60A5FA','rgba(59,130,246,0.4)');
     setPriorityFlagUI(isMoshavResident);
+    setPaidFlagUI(!!p.paid);
     setJoinDateField(GroupPrefs.ymdToMs(p.joinDate) != null ? p.joinDate : '');
     fillAwayForm(p);
 
@@ -3226,7 +3304,7 @@ function newPlayerDefaults(name, flags) {
     const customStats = {};
     customParams.forEach(cp => { customStats[cp.id] = 5; });
     return Object.assign({
-        name, isGk: false, isActive: false, isNew: false, isMoshavResident: false, lockedParams: {}, birthDate: null,
+        name, isGk: false, isActive: false, isNew: false, isMoshavResident: false, paid: false, lockedParams: {}, birthDate: null,
         atk: 5, def: 5, sta: 5, pac: 5, pas: 5, customStats, attScore: 5, defScore: 5,
         gkScore: 5, gkDiv: 5, gkHan: 5, gkKic: 5, gkPos: 5, gkRef: 5,
         imgUrl: null, inLineup: false, goals: 0, joinDate: GroupPrefs.todayYmd()
@@ -3239,6 +3317,7 @@ function openBulkAdd() {
     if (prioCfg.active) opts.push(['isActive', '✅ כולם שחקנים פעילים']);
     if (prioCfg.veteran) opts.push(['isNew', '🆕 כולם שחקנים חדשים']);
     if (priorityLabel) opts.push(['isMoshavResident', `🏠 כולם ${priorityLabel}`]);
+    if (prioCfg.paid) opts.push(['paid', `💰 כולם ${prioCfg.paid}`]);
     const box = document.getElementById('bulkFlags');
     box.innerHTML = opts.map(([k, label]) => `<label><input type="checkbox" data-flag="${k}"> ${escAdminText(label)}</label>`).join('');
     renderBulkPreview();
@@ -3633,6 +3712,7 @@ if (statKey === 'age') {
 // ========== Main Render ==========
 function render() {
     renderYearCard();
+    renderPaidCard();
     const currentScrollPos = window.scrollY;
     const numTeams = parseInt(groupSettings.numTeams) || 3;
     const playersPerTeam = parseInt(groupSettings.playersPerTeam) || 6;
@@ -3750,6 +3830,7 @@ function getPlayerBadgesHTML(p, small = false) {
         ? `<span class="badge-fresh" style="${sz}" title="בקבוצה פחות מ-${GroupPrefs.weeksText(prioCfg.newWeeks)}">🌱 חדש לגמרי</span>`
         : `<span class="badge-new" style="${sz}">🆕 חדש</span>`;
     if (p.isMoshavResident && priorityLabel) badges += `<span class="badge-resident" style="${sz}">🏠 ${escAdminText(priorityLabel)}</span>`;
+    if (p.paid && prioCfg.paid) badges += `<span class="badge-paid" style="${sz}" title="${escAdminText(prioCfg.paid)}">💰 שילם</span>`;
     // הספירה האוטומטית של "פעיל" והארכיון (רואים רק במצב ניהול)
     if (awayRuleOn() && p.autoOff && !p.isActive) badges += `<span class="act-badge down" style="${sz}" title="לא נרשם ${GroupPrefs.weeksText(prioCfg.activeWeeks)}">⬇️ ירד מפעיל</span>`;
     else if (excuseOn() && excusedNow(p) && (p.isActive || !awayRuleOn())) badges += `<span class="act-badge away" style="${sz}">⏸️ נעדר באישור</span>`;
@@ -3800,7 +3881,14 @@ function openSettingsModal() {
 function closeSettingsModal() { document.getElementById('settingsModalOverlay').style.display = 'none'; }
 
 // ========== Settings: who gets in when registration is full ==========
-const PRIO_BOXES = ['prioActive', 'prioVeteran', 'prioLabel', 'prioAge'];
+const PRIO_BOXES = ['prioActive', 'prioVeteran', 'prioLabel', 'prioPaid', 'prioAge'];
+
+// השורות של הכללים, לפי הסדר שבו הן מופיעות (= סדר העדיפות)
+function prioRuleEls() { return [...document.querySelectorAll('#prioRules .prio-rule[data-key]')]; }
+function setPrioOrder(order) {
+    const box = document.getElementById('prioRules'), note = box.querySelector('.prio-note');
+    order.forEach(k => { const el = box.querySelector(`.prio-rule[data-key="${k}"]`); if (el) box.insertBefore(el, note); });
+}
 
 function fillPriorityForm() {
     const p = GroupPrefs.priorityPrefs(currentGroupId, currentGroupData);
@@ -3808,24 +3896,30 @@ function fillPriorityForm() {
     document.getElementById('prioActive').checked = p.active;
     document.getElementById('prioVeteran').checked = p.veteran;
     document.getElementById('prioLabel').checked = p.label;
-    document.getElementById('prioLabelFirst').checked = p.labelFirst;
     document.getElementById('setPriorityLabel').value = p.labelText;
+    document.getElementById('prioPaid').checked = p.paid;
+    document.getElementById('setPaidText').value = p.paidText;
     document.getElementById('prioAge').checked = p.age;
     document.getElementById('prioAgeMin').value = p.ageMin;
     document.getElementById('prioNewWeeks').value = p.newWeeks;
     document.getElementById('prioActiveWeeks').value = p.activeWeeks;
     document.getElementById('prioBackWeeks').value = p.backWeeks;
+    setPrioOrder(p.order);
     updatePrioForm();
 }
 
 function readPriorityForm() {
     const modeEl = document.querySelector('input[name="setPrioMode"]:checked');
+    const order = prioRuleEls().map(el => el.dataset.key);
     return {
         mode: modeEl && modeEl.value === 'rules' ? 'rules' : 'first',
         active: document.getElementById('prioActive').checked,
         veteran: document.getElementById('prioVeteran').checked,
         label: document.getElementById('prioLabel').checked,
-        labelFirst: document.getElementById('prioLabelFirst').checked,
+        labelFirst: order.indexOf('label') < order.indexOf('veteran'),
+        paid: document.getElementById('prioPaid').checked,
+        paidText: GroupPrefs.cleanPaidText(document.getElementById('setPaidText').value),
+        order,
         age: document.getElementById('prioAge').checked,
         ageMin: Number(document.getElementById('prioAgeMin').value),
         newWeeks: document.getElementById('prioNewWeeks').value.trim(),
@@ -3851,13 +3945,26 @@ function onPrioLabelInput() {
     if (document.getElementById('setPriorityLabel').value.trim()) document.getElementById('prioLabel').checked = true;
     updatePrioForm();
 }
-// "גם לפני הוותיקים" מדליק גם את קבוצת העדיפות עצמה
-function onPrioLabelFirst() {
-    if (document.getElementById('prioLabelFirst').checked) {
-        document.getElementById('prioLabel').checked = true;
-        if (!document.getElementById('setPriorityLabel').value.trim()) document.getElementById('setPriorityLabel').focus();
-    }
+// "מי ששילם": בלי שם, מתחילים מ"שילם" (אפשר לכתוב "שילם על כדורים" וכו')
+function onPrioPaidCheck() {
+    const input = document.getElementById('setPaidText');
+    if (document.getElementById('prioPaid').checked && !input.value.trim()) input.value = GroupPrefs.DEFAULT_PAID_TEXT;
     updatePrioForm();
+}
+function onPrioPaidInput() {
+    if (document.getElementById('setPaidText').value.trim()) document.getElementById('prioPaid').checked = true;
+    updatePrioForm();
+}
+// החיצים: מזיזים את השורה מקום אחד למעלה או למטה. הפוקוס נשאר על החץ (או עובר לשני כשהגענו לקצה)
+function movePrioRule(btn, dir) {
+    const rule = btn.closest('.prio-rule'), els = prioRuleEls();
+    const i = els.indexOf(rule), j = i + dir;
+    if (i < 0 || j < 0 || j >= els.length) return;
+    if (dir < 0) rule.parentNode.insertBefore(rule, els[j]);
+    else rule.parentNode.insertBefore(els[j], rule);
+    rule.classList.remove('moved'); void rule.offsetWidth; rule.classList.add('moved');
+    updatePrioForm();
+    (btn.disabled ? rule.querySelector(dir < 0 ? '.prio-down' : '.prio-up') : btn).focus();
 }
 function onPrioAgeInput() {
     document.getElementById('prioAge').checked = true;
@@ -3883,23 +3990,27 @@ function updatePrioForm() {
     const f = readPriorityForm();
     document.getElementById('prioRules').style.display = f.mode === 'rules' ? 'block' : 'none';
     PRIO_BOXES.forEach(id => { const el = document.getElementById(id); el.closest('.prio-rule').classList.toggle('off', !el.checked); });
-    // "גם לפני הוותיקים": רק כשיש ותיקים. הרשימה מסודרת מהחשוב ביותר, אז השורה עולה מעל הוותיקים
-    const first = f.label && f.veteran && f.labelFirst;
-    document.getElementById('prioLabelFirstRow').hidden = !f.veteran;
-    const vetRule = document.getElementById('prioVeteranRule'), labRule = document.getElementById('prioLabelRule');
-    const focused = document.activeElement;
-    if (first) vetRule.parentNode.insertBefore(labRule, vetRule); else labRule.parentNode.insertBefore(vetRule, labRule);
-    if (focused && focused !== document.activeElement && labRule.contains(focused)) focused.focus();
-    // למי עוזר הסימון, לפי הכללים האחרים שמסומנים (ראה GroupPrefs.priorityRank)
+    // מספר לכל כלל שפועל (1 = החשוב ביותר), והחיצים בקצוות כבויים
+    const els = prioRuleEls();
+    let num = 0;
+    els.forEach((el, i) => {
+        el.querySelector('.prio-num').textContent = el.querySelector('.prio-check input').checked ? String(++num) : '';
+        el.querySelector('.prio-up').disabled = i === 0;
+        el.querySelector('.prio-down').disabled = i === els.length - 1;
+    });
+    // למי עוזר הסימון של קבוצת העדיפות, לפי הכללים שמעליו ומתחתיו (ראה GroupPrefs.priorityRank)
+    const above = k => f.order.indexOf(k) < f.order.indexOf('label');
+    const amongActive = f.active && above('active'), overActive = f.active && !above('active');
+    const amongNew = f.veteran && above('veteran'), overVet = f.veteran && !above('veteran');
     const name = f.labelText ? `"${f.labelText}"` : 'כך';
     document.getElementById('prioNewHint').textContent = 'בין המסומנים "חדש", מי שבקבוצה פחות מזה (לפי תאריך ההצטרפות בכרטיס) נכנס אחרון'
-        + (first ? `, אבל מי שמסומן ${name} עדיין לפני מי שלא` : f.label ? ', גם אחרי קבוצת העדיפות' : '') + '. 0 = בלי';
+        + (f.label && overVet ? `, אבל מי שמסומן ${name} עדיין לפני מי שלא` : f.label ? ', גם אחרי קבוצת העדיפות' : '') + '. 0 = בלי';
     document.getElementById('prioLabelHint').textContent =
-        first ? (f.active ? `שחקן פעיל שמסומן ${name} נכנס לפני כל שאר השחקנים הפעילים, גם ותיקים` : `מי שמסומן ${name} נכנס לפני כל האחרים, גם ותיקים`)
-        : f.active && f.veteran ? `שחקן חדש ופעיל שמסומן ${name} נכנס לפני שחקנים חדשים אחרים`
-        : f.veteran ? `שחקן חדש שמסומן ${name} נכנס לפני שחקנים חדשים אחרים`
-        : f.active ? `שחקן פעיל שמסומן ${name} נכנס לפני שחקנים פעילים אחרים`
-        : `מי שמסומן ${name} נכנס לפני כל האחרים`;
+        amongNew ? `שחקן חדש${amongActive ? ' ופעיל' : ''} שמסומן ${name} נכנס לפני שחקנים חדשים אחרים${overActive ? ', גם לפני פעילים' : ''}`
+        : amongActive ? `שחקן פעיל שמסומן ${name} נכנס לפני ${overVet ? 'כל שאר השחקנים הפעילים, גם ותיקים' : 'שחקנים פעילים אחרים'}`
+        : `מי שמסומן ${name} נכנס לפני כל האחרים${overActive && overVet ? ', גם פעילים וותיקים' : overActive ? ', גם פעילים' : overVet ? ', גם ותיקים' : ''}`;
+    const paidName = f.paidText || GroupPrefs.DEFAULT_PAID_TEXT;
+    document.getElementById('prioPaidHint').textContent = `מסמנים "${paidName}" בכרטיס של השחקן, או כמה שחקנים יחד בלשונית הסגל ("💰 ${paidName}")`;
     // ספירה אוטומטית של "פעיל"
     const w = Number(f.activeWeeks), autoOn = GroupPrefs.validActiveWeeks(f.activeWeeks) && w > 0;
     document.getElementById('prioBackRow').hidden = !autoOn;
@@ -3918,12 +4029,13 @@ function priorityFormToSettings() {
         if (f.veteran && !GroupPrefs.validNewWeeks(f.newWeeks)) return { error: `מספר השבועות של "חדשים לגמרי" צריך להיות מספר שלם בין 0 ל-${GroupPrefs.NEW_WEEKS_MAX} (0 = בלי).` };
         if (f.active && !GroupPrefs.validActiveWeeks(f.activeWeeks)) return { error: `מספר השבועות בלי הרשמה (עד שיורדים מ"פעיל") צריך להיות מספר שלם בין 0 ל-${GroupPrefs.ACTIVE_WEEKS_MAX} (0 = רק ידנית).` };
         if (f.active && Number(f.activeWeeks) > 0 && !GroupPrefs.validBackWeeks(f.backWeeks)) return { error: `מספר השבועות הרצופים לחזרה ל"פעיל" צריך להיות מספר שלם בין 1 ל-${GroupPrefs.BACK_WEEKS_MAX}.` };
-        if (!f.active && !f.veteran && !f.label && !f.age) return { error: 'סמן לפחות דבר אחד שנותן עדיפות, או בחר "כל הקודם זוכה".' };
+        if (!f.active && !f.veteran && !f.label && !f.paid && !f.age) return { error: 'סמן לפחות דבר אחד שנותן עדיפות, או בחר "כל הקודם זוכה".' };
     }
     return {
         priorityLabel: f.labelText,
         regPriority: {
             mode: f.mode, active: f.active, veteran: f.veteran, label: f.label, labelFirst: !!(f.label && f.labelFirst), age: f.age,
+            paid: f.paid, paidText: f.paidText || GroupPrefs.DEFAULT_PAID_TEXT, order: f.order,
             ageMin: GroupPrefs.validPriorityAge(f.ageMin) ? f.ageMin : GroupPrefs.DEFAULT_PRIORITY_AGE,
             newWeeks: GroupPrefs.validNewWeeks(f.newWeeks) ? Number(f.newWeeks) : GroupPrefs.DEFAULT_NEW_WEEKS,
             activeWeeks: GroupPrefs.validActiveWeeks(f.activeWeeks) ? Number(f.activeWeeks) : 0,
@@ -5626,6 +5738,33 @@ async function makeVeteran(id, btn) {
 function snoozeYearCard() {
     try { localStorage.setItem(yearSnoozeKey(), String(Date.now() + 7 * 864e5)); } catch (e) { /* לא קריטי */ }
     renderYearCard();
+}
+
+// ========== 💰 מי שילם: סימון מהיר כשכלל העדיפות "שילם" פועל ==========
+// כל השחקנים לפי השם. לחיצה הופכת את paid בכרטיס ונשמרת מיד; הרשימה מתעדכנת מהמאזין של השחקנים
+function renderPaidCard() {
+    const card = document.getElementById('paidCard'), list = document.getElementById('paidList');
+    if (!card || !list) return;
+    const on = !!(prioCfg && prioCfg.paid) && isAdminNow();
+    card.hidden = !on;
+    if (!on) { list.innerHTML = ''; return; }
+    document.getElementById('paidCardTitle').textContent = prioCfg.paid;
+    const roster = players.filter(p => SAFE_ID.test(p.id));
+    document.getElementById('paidCount').textContent = roster.length ? `${roster.filter(p => p.paid).length} מתוך ${roster.length}` : '';
+    const focusId = document.activeElement && document.activeElement.classList.contains('paid-chip') ? document.activeElement.dataset.id : null;
+    list.innerHTML = roster.length
+        ? roster.map(p => `<button type="button" class="paid-chip" data-id="${p.id}" aria-pressed="${p.paid ? 'true' : 'false'}" onclick="togglePaid('${p.id}')">${escAdminText(p.name)}</button>`).join('')
+        : '<div class="squad-none">עוד אין שחקנים בסגל</div>';
+    if (focusId) { const again = list.querySelector(`.paid-chip[data-id="${focusId}"]`); if (again) again.focus(); }
+}
+async function togglePaid(id) {
+    const p = players.find(x => x.id === id);
+    if (!p || !playersRef) return;
+    try {
+        await playersRef.doc(id).update({ paid: !p.paid });
+    } catch (e) {
+        alert('לא נשמר: ' + AdminAuth.errorMessage(e));
+    }
 }
 
 // ========== פעילות אוטומטית: מי שלא נרשם X שבועות יורד מ"פעיל" (GroupPrefs.activityPlan) ==========
