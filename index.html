@@ -1843,6 +1843,12 @@
                 <label class="prio-check"><input type="checkbox" id="setArchive" onchange="updateArchiveHint()"><span>מי שלא נרשם חודש עובר לארכיון</span></label>
                 <small class="arch-hint" id="archiveHint"></small>
             </div>
+            <!-- צילום משחקים (settings.filming): בדף ההרשמה צריך לאשר את תנאי הצילום -->
+            <div id="filmingSection" style="text-align: right; margin-bottom:20px; border-bottom: 1px solid var(--border-color); padding-bottom:15px;">
+                <div style="color:var(--text-main); font-weight:bold; margin-bottom:8px;">🎥 צילום משחקים</div>
+                <label class="prio-check"><input type="checkbox" id="setFilming"><span>המשחקים מצולמים: כל שחקן מאשר צילום ופרסום כשהוא נרשם</span></label>
+                <small class="arch-hint">בדף ההרשמה יופיע נוסח ההסכמה, ואי אפשר יהיה להירשם בלי לסמן אותו. כל הרשמה שומרת את ההסכמה ואת השעה שלה.</small>
+            </div>
             <div style="text-align: right;">
                 <h3 style="font-size: 1rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
                     ⭐ מדדים מותאמים אישית
@@ -3871,6 +3877,7 @@ function openSettingsModal() {
     document.getElementById('setPlayersPerTeam').value = groupSettings.playersPerTeam;
     fillPriorityForm();
     fillArchiveForm();
+    document.getElementById('setFilming').checked = !!(currentGroupData && currentGroupData.settings && currentGroupData.settings.filming);
     fillGroupDetailsForm();
     renderCustomParamsManagerList();
     renderAdminsManager();
@@ -4232,7 +4239,7 @@ async function saveGroupSettings() {
     }
     // שינוי גודל הקבוצות מבטל את השיבוץ הנוכחי; שאר ההגדרות לא
     const teamsChanged = numTeams !== Number(groupSettings.numTeams) || playersPerTeam !== Number(groupSettings.playersPerTeam);
-    const update = { settings: { numTeams, playersPerTeam, priorityLabel: prio.priorityLabel, regPriority: prio.regPriority, archive: archiveFormToSettings() } };
+    const update = { settings: { numTeams, playersPerTeam, priorityLabel: prio.priorityLabel, regPriority: prio.regPriority, archive: archiveFormToSettings(), filming: document.getElementById('setFilming').checked } };
     let savedName = null, savedCity = null, savedIcon = null;
     let listingRef = null, listing = null, dropListingRef = null;
 
