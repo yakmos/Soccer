@@ -398,6 +398,14 @@
 
         /* הרשמה בלחיצה אחת: הכרטיס מחובר לפרופיל השחקן שנכנס עם Google */
         .me-box { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--primary-dim); border: 1px solid var(--primary-border); margin-bottom: 10px; }
+        /* הסכמה לצילום (settings.filming) */
+        .film-consent { margin-bottom: 12px; padding: 12px; border-radius: 14px; background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.35); }
+        .film-consent.need { border-color: #EF4444; background: rgba(239,68,68,0.08); animation: filmShake 0.35s; }
+        @keyframes filmShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        .film-consent-title { font-weight: 900; font-size: 0.92rem; margin-bottom: 6px; color: var(--text); }
+        .film-consent-text { font-size: 0.78rem; line-height: 1.55; color: var(--muted); max-height: 130px; overflow-y: auto; padding-left: 4px; margin-bottom: 10px; }
+        .film-consent label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-weight: 800; font-size: 0.9rem; color: var(--text); }
+        .film-consent input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--primary); cursor: pointer; }
         .me-box.wait { background: var(--waiting-dim); border-color: var(--waiting-border); }
         .me-av { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex: none; display: grid; place-items: center; background: var(--surface2); font-size: 1.2rem; }
         .me-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -515,6 +523,11 @@
 
         <div class="card" style="margin-top:16px;">
             <div class="card-title">✍️ הרשמה למשחק</div>
+            <div class="film-consent" id="filmConsent" hidden>
+                <div class="film-consent-title">🎥 המשחקים מצולמים</div>
+                <div class="film-consent-text" id="filmConsentText"></div>
+                <label><input type="checkbox" id="filmConsentChk" onchange="onFilmConsentChange()"><span>קראתי ואני מסכים/ה</span></label>
+            </div>
             <div id="meBoxWrap"></div>
             <div class="search-wrap">
                 <input type="text" id="playerSearchInput" class="search-input"
@@ -625,6 +638,7 @@ window.onload = async () => {
         customParams = groupData.customParams || [];
         prioCfg = GroupPrefs.regPriority(groupId, groupData);
         priorityLabel = prioCfg.label;
+        renderFilmConsent();
         renderPriorityInfo();
 
         if (!registrationId) {
@@ -1062,6 +1076,40 @@ function accountLineHTML(linked) {
     const connect = linked ? '' : ` · <a href="index.html?group=${encodeURIComponent(groupId)}#me">חיבור הכרטיס</a>`;
     return `<div class="me-acct-line">מחובר בתור <b>${escHtml(name)}</b>${connect} · <button type="button" onclick="signOutMe()">התנתקות</button></div>`;
 }
+// ===== הסכמה לצילום (settings.filming) =====
+// כשהמנהל מדליק "המשחקים מצולמים" בהגדרות הקבוצה, אי אפשר להירשם בלי לסמן הסכמה.
+// בכל הרשמה מסמנים מחדש, וכל הרשמה שומרת mediaConsent + mediaConsentAt + mediaConsentVer כתיעוד. שינוי בנוסח: להעלות את FILM_CONSENT_VER
+const FILM_CONSENT_VER = 1;
+const FILM_CONSENT_TEXT = 'אני מסכים/ה שאצולם בזמן המשחק, וכי הסרטונים ייערכו (כולל בעריכה הומוריסטית, סאטירית או יצירתית לפי ראות עיניהם הבלעדית, לרבות קטעים המציגים פספוסים/החמצות, הוספת אילוסטרציות, גרפיקות, אפקטים, מדבקות ו/או כיתובים, וכן הוספת אודיו, מוזיקה, אפקטים קוליים ו/או קריינות ו/או כל אחר) לפי שיקול דעת ההנהלה ו/או מי מטעמה. אני מסכים/ה, באופן סופי, מוחלט ובלתי חוזר, כי כלל הסרטונים בפועל, לפי שיקול דעת ההנהלה ו/או מי מטעמה, יועלו ויפורסמו במדיות ו/או ברשתות חברתיות ו/או בכל פלטפורמה אחרת, ללא תמורה, ומוותר/ת בזאת על כל טענה ו/או תביעה בקשר לאמור.';
+function filmingOn() { return !!(groupData && groupData.settings && groupData.settings.filming); }
+function renderFilmConsent() {
+    const box = document.getElementById('filmConsent');
+    if (!box) return;
+    box.hidden = !filmingOn();
+    if (!box.hidden) document.getElementById('filmConsentText').textContent = FILM_CONSENT_TEXT;
+}
+function onFilmConsentChange() {
+    document.getElementById('filmConsent').classList.remove('need');
+}
+// ההסכמה לא נשמרת: מסמנים אותה מחדש בכל הרשמה
+function resetFilmConsent() {
+    const chk = document.getElementById('filmConsentChk');
+    if (chk) chk.checked = false;
+}
+function filmConsentGiven() {
+    if (!filmingOn()) return true;
+    return document.getElementById('filmConsentChk').checked;
+}
+// מחזיר false ומסמן את התיבה אם צריך הסכמה ואין. מנהל שרושם שחקן אחר לא נחסם
+function requireFilmConsent() {
+    if (filmConsentGiven() || isAdmin) return true;
+    const box = document.getElementById('filmConsent');
+    box.classList.remove('need'); void box.offsetWidth; box.classList.add('need');
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('כדי להירשם צריך לאשר את תנאי הצילום 🎥', 'error');
+    return false;
+}
+
 function renderMeBox() {
     const wrap = document.getElementById('meBoxWrap');
     if (!wrap) return;
@@ -1101,6 +1149,7 @@ async function signOutMe() {
 async function registerMe() {
     const me = myPlayer();
     if (!me) return;
+    if (!requireFilmConsent()) return;
     const b = document.getElementById('meGoBtn');
     if (b) { b.disabled = true; b.textContent = 'רושם… ⏳'; }
     selectedPlayer = me;
@@ -1139,6 +1188,7 @@ async function refreshGroupSettings() {
         maxPlayers = (s.numTeams || 3) * (s.playersPerTeam || 6);
         prioCfg = GroupPrefs.regPriority(groupId, groupData);
         priorityLabel = prioCfg.label;
+        renderFilmConsent();
         if (before !== maxPlayers + '|' + JSON.stringify(prioCfg)) { renderPriorityInfo(); renderPlayersList(); updateCapacityBar(); }
     } catch (e) { console.warn('group settings refresh', e); }
 }
@@ -1212,6 +1262,7 @@ function healOverflow() {
 
 async function registerPlayer() {
     if (!selectedPlayer) return;
+    if (!requireFilmConsent()) return;
     const regPlayer = selectedPlayer;   // החיפוש יכול להשתנות בזמן שמחכים לשרת
     const btn = document.getElementById('registerBtn');
     btn.disabled = true;
@@ -1246,7 +1297,12 @@ async function registerPlayer() {
             defScore: regPlayer.defScore || 5,
             gkScore: regPlayer.gkScore || 5,
             isWaiting,
-            registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+            registeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+            ...(filmingOn() ? {
+                mediaConsent: filmConsentGiven(),
+                mediaConsentVer: FILM_CONSENT_VER,
+                mediaConsentAt: firebase.firestore.FieldValue.serverTimestamp()
+            } : {})
         });
         if (bumpId) batch.update(entriesRef.doc(bumpId), { isWaiting: true });
         await batch.commit();
@@ -1264,6 +1320,7 @@ async function registerPlayer() {
 
         document.getElementById('playerSearchInput').value = '';
         selectedPlayer = null;
+        resetFilmConsent();
         btn.textContent = 'הירשם למשחק ⚽';
 
         if (endedWaiting)  showToast(isWaiting ? 'נרשמת לרשימת המתנה ⏳' : 'המקום האחרון נתפס, נרשמת להמתנה ⏳', 'info');
